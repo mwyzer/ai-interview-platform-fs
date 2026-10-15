@@ -27,6 +27,8 @@ It also doesn't protect the result once it's produced.
   services and database**, with the model response stubbed:
   [evidence/repro_findings.rb](evidence/repro_findings.rb).
 - Hit the API over HTTP with tokens for two separate organizations, and read the Sidekiq and Rails logs.
+- Walked the assessor's entry screen (`/assessments`) in the browser at desktop and 375px width, including while
+  the API was still booting, and compared what it renders with the `GET /assessments` payload.
 
 Scenario used: *Senior Frontend Engineer* with three skills (React L3, Communication L3, System Design L2). The
 candidate's connection drops at minute 6, after only React was discussed. The model answers honestly with
@@ -67,6 +69,8 @@ broken). **Seam** marks findings that sit between the data computation and the f
 | P1-5 | **Evidence quotes aren't verified against the transcript.** | A made-up quote is shown as "Evidence from interview" and backs the rating. | Missing spec | `api` generator; `web` skill card | repro: invented quote stored, found in transcript = `false` |
 | P1-6 | **Duplicate fit/gap jobs race.** No dedupe; the web re-triggers generation on every 404 while polling. | Concurrent jobs crash on `UniqueViolation`; wasted model calls and noisy retries. | Defect | `api` controller and worker; `web` `FitGapReportPage` | 3 POSTs → 3 jobs, 2 failed with `PG::UniqueViolation` |
 | P1-7 | **Secrets and personal data in logs.** No `filter_parameters`. | Login passwords and assessor notes are written in plain text to the request log. | Defect | `api` config | `development.log` contains `"password"=>"password123"` 3×, and the override notes |
+| P1-8 | **The assessment list only ever loads page 1.** `assessmentsApi.list()` is always called without a page, and the `meta` the API returns (`total_pages`, `total_count`, `per_page: 20`) is ignored. There's no pager. | From the 21st assessment on, older assessments and their candidates can't be reached from the list, and nothing says so. The assessor may assume they're gone and recreate them. | Defect | **seam** `web` `AssessmentListPage`; `api` `assessments#index` | payload: `meta: {current_page: 1, total_pages, total_count, per_page: 20}`; page never requests `page=2` |
+| P1-9 | **Every ended session reads "Last: completed".** `manual_candidate`, `manual_assessor`, `time_ceiling` and `all_covered` all render the same label; only `error` differs. | A candidate who left at minute 2 looks the same as one who covered every skill. It hides the early-ended interviews that P0-1 turns into L1 ratings. | Missing spec | `web` `AssessmentListPage` `SessionSummary` | seeded session: `status: ended, end_reason: manual_candidate` → "Last: completed" |
 
 ### P2: failure paths and trust signals
 
@@ -77,10 +81,20 @@ broken). **Seam** marks findings that sit between the data computation and the f
 | P2-3 | **Gemini HTTP retries never fire.** Faraday's retry middleware only retries idempotent methods (`delete, get, head, options, put`), and every Gemini call is a `POST`. | One 429 or 503 fails the step outright; the retry config is dead code. | Defect | `api` `Gemini::HttpClient` |
 | P2-4 | **No notice or consent for the candidate.** The interview page tells the candidate "has been recorded" only *after* the interview; nothing before it explains AI assessment, purpose or retention. | Processing without informed consent; the candidate can't make a choice. | Missing spec (UU PDP) | `web` interview page |
 | P2-5 | **Fit/gap discovered-skills list** shows a raw `3` instead of `L3`, labels anything not low as "confirmed", and the summary counts leave out `not_assessed`. | Inconsistent, overconfident wording. | Defect | `web` fit/gap page |
+| P2-6 | **The assessment list shows an error and an empty state at once.** When the request fails, "Failed to load assessments" renders *and* "No assessments yet. Create your first assessment", because `error` and `loading`/`length === 0` are checked separately. | Two contradicting messages, and the page pushes the assessor to create an assessment that already exists. Seen live while the API was booting (`ERR_EMPTY_RESPONSE`). | Defect | `web` `AssessmentListPage` |
+| P2-7 | **List load failures are a dead end.** The only message is "Please refresh the page": no retry, and no difference between a network error, a 403 `Tenant not found` (needs a new sign-in, not a refresh) and a 500. | The assessor refreshes and gets the same result, with no idea what to do next. | Missing spec | `web` `AssessmentListPage` |
+| P2-8 | **Assessment cards can't be reached with a keyboard.** Each card is a `<div onClick>` with no role and `tabIndex = -1`, so it isn't focusable, isn't announced as a link, and can't be opened in a new tab. | Keyboard and screen-reader users can't open any assessment, so they can't invite candidates or reach results. | Defect (accessibility) | `web` `AssessmentListPage` |
+| P2-9 | **The list doesn't say what needs attention.** A row shows the name, time limit and only the latest session. There's no candidate count, nothing awaiting review, no failed portfolio generation, no language or created date, and no search or sort. | To find the work waiting for them, the assessor has to open every assessment one by one. | Missing spec | **seam** `api` `assessments#index` serializer; `web` `AssessmentListPage` |
 
 ### P3: polish and hygiene
 
 - The override can be saved without a reason. The label reads "You Overridden ✓".
+- On the assessment list, clicking a card goes straight to `/assessments/:id/invite`. There's no summary or detail
+  view, and no Edit action from the list.
+- `GET /assessments` returns the full `system_prompt` for every row, which the list never uses. It inflates the
+  payload and sends the internal interviewer prompt to every page load.
+- At 375px the header doesn't fit: the brand wraps onto three lines and the "Tenant: Demo Tenant" pill collapses
+  into a three-line circle.
 - No path to delete a candidate's data (transcripts, portfolio). That's needed for the right to erasure under
   UU PDP; it's tracked as constraint C4.
 - Dev setup issues are in [00-work-log.md](00-work-log.md): the Puma pid directory, no seeded user, CRLF line
