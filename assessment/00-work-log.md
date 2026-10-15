@@ -14,14 +14,16 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 1 | Own repo created (`mwyzer/ai-interview-platform`, private); `upstream` kept for the final PR | n/a |
 | 2026-10-15 | 3 | Product spec read, code traced, findings reproduced and written up | `docs/step-3-gap-analysis` · `076cca4` |
 | 2026-10-15 | 3 | Setup log renamed to this work log; AI verification moments added | `docs/step-3-gap-analysis` · `5e19594` |
-| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` · `068cc6f`, `8a2df0b`, `cd8c049` |
-| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | `test/rspec-harness` · `6787575` (log only; key never committed) |
+| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` · `2d209dd`, `8b9095c`, `00fd692` |
+| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | `test/rspec-harness` · `e73b565` (log only; key never committed) |
 | 2026-10-15 | 1 | `.gitattributes`: LF for `api/bin/*` and `db/schema.rb` | `test/rspec-harness` (see 1.5) |
 | 2026-10-15 | 3 | Assessment list findings added (P1-8, P1-9, P2-6..P2-9) | `docs/step-3-gap-analysis` · `4f746a8` |
-| 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` · `1263425` |
+| 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` · `1631401` |
 | 2026-10-15 | 3 | Candidate-link findings (P1-10, P2-10, C6), reproduced over HTTP | `docs/step-3-gap-analysis` · `b32f1ec` |
-| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `edf177e` |
-| 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `d70e9e4`, `8bc1d8a`, `8048f6a` |
+| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `13c60db` |
+| 2026-10-15 | 3 | Findings from the functional tests added (P1-11, P1-12, P2-11) | `docs/step-3-gap-analysis` · `1c36a91` |
+| 2026-10-15 | 4 | Delivery plan: web null-level fix lands before the API change | `docs/step-4-strategy` · `d591121` |
+| 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `2ca7c38`, `4f39635`, `6a5c763` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
@@ -221,7 +223,7 @@ and the background job it queues.
 stated reason. A deliberate fault in each suite was caught: flipping the fit/gap verdict (API) and not saving the
 login token (web). The web tests passed three runs in a row on the host and two inside the Docker container.
 
-**Found by the functional tests** (to add to Step 3):
+**Found by the functional tests** (added to Step 3 as P2-11, P1-11 and P1-12, in this order):
 
 - **A null `ai_level` crashes the whole portfolio page.** `parseLevel(null)` calls `.replace` on `null`, and the
   page becomes "Something went wrong." So the API half of Option B can't ship before the web half.

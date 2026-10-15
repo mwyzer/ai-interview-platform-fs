@@ -93,7 +93,7 @@ flowchart TD
 
     S2 -.- K2["A rating must be defensible.<br/>The candidate is harmed silently."]
     S3 -.- K3["P0-1: unassessed skills stored as L1<br/>P0-2: cross-tenant read and write"]
-    S4 -.- K4["Option B: a real 'not assessed' state<br/>30 acceptance criteria, 4 sub-PRs"]
+    S4 -.- K4["Option B: a real 'not assessed' state<br/>30 acceptance criteria, 5 sub-PRs"]
 
     classDef done fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef todo fill:#f1f5f9,stroke:#94a3b8,color:#334155
@@ -124,8 +124,8 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
       AI adoption in Indonesian hiring, UU PDP mapping, Gemini free-tier constraint
 - [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked
-      P0–P3 and reproduced, including the assessment list (P1-8, P1-9, P2-6..P2-10), the candidate link (P1-10), and
-      constraint signals C1–C6
+      P0–P3 and reproduced, including the assessment list (P1-8, P1-9, P2-6..P2-10), the candidate link (P1-10),
+      findings from the functional tests (P1-11, P1-12, P2-11), and constraint signals C1–C6
 - [x] **Step 4 · Strategy** ([04-strategy.md](assessment/04-strategy.md)): 30 acceptance criteria, options A/B/C
       compared, Option B chosen, delivery plan
 
@@ -133,9 +133,10 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
 
 - [ ] **Step 5 · Implementation and PR** (Option B: umbrella PR + focused sub-PRs)
   - [ ] Sub-PR 1: tenant scoping for portfolio export, override and fit/gap reads (P0-2)
-  - [ ] Sub-PR 2: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21)
-  - [ ] Sub-PR 3: fit/gap engine + payload (AC-13..AC-16)
-  - [ ] Sub-PR 4: portfolio and fit/gap screens (AC-22..AC-30); the web test runner is in place
+  - [ ] Sub-PR 2: web tolerates a missing level (AC-23); must land before or with sub-PR 3 (P2-11)
+  - [ ] Sub-PR 3: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21)
+  - [ ] Sub-PR 4: fit/gap engine + payload (AC-13..AC-16)
+  - [ ] Sub-PR 5: portfolio and fit/gap screens (AC-22, AC-24..AC-30); the web test runner is in place
   - [ ] Known defects in the chosen scope fixed: their `pending` specs and `it.fails` tests flip to passing
   - [ ] Seeded fault test: break the logic on a scratch branch, show the suite catch it, revert with history visible
   - [ ] AI verification moments written up for the report (6 logged so far in the work log)
