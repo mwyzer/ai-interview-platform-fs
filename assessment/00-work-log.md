@@ -20,14 +20,15 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 3 | Assessment list findings added (P1-8, P1-9, P2-6..P2-9) | `docs/step-3-gap-analysis` · `4f746a8` |
 | 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` · `1263425` |
 | 2026-10-15 | 3 | Candidate-link findings (P1-10, P2-10, C6), reproduced over HTTP | `docs/step-3-gap-analysis` · `b32f1ec` |
-| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` |
+| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `edf177e` |
+| 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `d70e9e4`, `8bc1d8a`, `8048f6a` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
 
 **Branches** (all pushed to `origin` = `github.com/mwyzer/ai-interview-platform`, private). They're stacked, so each
 contains the ones before it: `main` → `chore/docker-dev-setup` → `docs/step-3-gap-analysis` → `test/rspec-harness` →
-`docs/step-2-domain-immersion` → `docs/step-4-strategy`.
+`docs/step-2-domain-immersion` → `docs/step-4-strategy` → `test/functional-tests`.
 
 **Local-only changes** (gitignored, never committed): `api/config/application.yml` (secret key base, Gemini key,
 model IDs), `web/.env` (dev JWT), and synthetic test data in the local database.
@@ -183,6 +184,59 @@ branch, show the suite catch it, revert) belongs to Step 5.
 
 **Run:** see the "Running the API tests" section of the root `README.md`.
 
+## Functional tests (API and web)
+
+Unit and request specs check one piece at a time. Functional tests check a whole path the way a user takes it,
+so they also catch breaks *between* pieces: the seam between `api/` and `web/`, and the hand-off between a request
+and the background job it queues.
+
+**API** (`api/spec/functional/`, 14 examples):
+
+- `assessor_journey_spec.rb`: the PRD 02 journey in one example. Sign in through the real login endpoint, create
+  an assessment, compile its prompt, invite, open the candidate link, run the interview, end it, generate the
+  portfolio, review it, create a vacancy, run fit/gap, override a rating (the stale report is rebuilt with it),
+  export JSON. The evidence quotes are verbatim candidate turns, so the journey stays valid once quotes are
+  verified (P1-5).
+- `failure_paths_spec.rb`: a model timeout marks the portfolio failed and a retry recovers it; a non-JSON answer
+  fails cleanly; a failed narrative call still yields a report with the fallback text; an invalid time limit, an
+  unknown end reason, a double end, a bad invite token and a missing auth token are all refused.
+- `known_defects_journey_spec.rb` (`pending`): P0-1 and P1-1 through HTTP after a candidate ends at minute 6, and
+  P1-10 (the invite link ends a never-started session as `all_covered`).
+- Support: `scripted_gemini.rb` answers by what the prompt asks for (portfolio vs narrative), because each service
+  builds its own client. `functional_helpers.rb` signs in, runs queued jobs, and stands in for the audio
+  WebSocket by persisting what it would (start, turns, coverage).
+- The live WebSocket interview itself is still out of reach (constraint C1).
+
+**Web** (`web/src/test/`, 25 tests):
+
+- Harness: Vitest 5, Testing Library, MSW 3, jsdom. `renderApp(url)` renders the whole app with the same error
+  boundary as `main.tsx`. Only the network is faked. Fixtures mirror the Rails serializers' exact output.
+- Tests: signing in and the route guard; the assessment list and its empty state; portfolio review (levels,
+  evidence, discovered skills, generating then ready, failed then retry, saving an override, a failed save);
+  fit/gap (comparison, narrative, discovered skills, generating then ready); the candidate page from an invite link.
+- Known defects as `it.fails` (11): P0-1, P1-2, P1-6, P1-8, P1-9, P2-1, P2-4, P2-5, P2-6, plus two found by
+  these tests (below).
+
+**Checked:** every `pending` and `it.fails` test was run as a normal test and fails on its assertion for the
+stated reason. A deliberate fault in each suite was caught: flipping the fit/gap verdict (API) and not saving the
+login token (web). The web tests passed three runs in a row on the host and two inside the Docker container.
+
+**Found by the functional tests** (to add to Step 3):
+
+- **A null `ai_level` crashes the whole portfolio page.** `parseLevel(null)` calls `.replace` on `null`, and the
+  page becomes "Something went wrong." So the API half of Option B can't ship before the web half.
+- **A broken invite link says the interview "has been recorded".** `InterviewPage` treats any error loading the
+  link as "interview complete".
+- **The hardware check contacts third parties before the interview.** Unless `VITE_SPEED_TEST_*` is set, the
+  candidate's browser fetches from google.com, cdn.jsdelivr.net and unpkg.com and uploads 0.5 MB to httpbin.org or
+  postman-echo.com, several times (12 requests in the first 1.5 s in the test), with no notice. The API already
+  has `/api/v1/speed_test`. That's a privacy issue (UU PDP Art. 5 and 21: the candidate isn't told who receives
+  their data) and a reliability one (networks that block those hosts fail the check).
+
+**Environment notes:** the dev image now uses Node 22 (Vitest 5, MSW 3 and jest-dom 7 need it; Node 20 is past end
+of life). This machine's shell sets `NODE_ENV=production`, so `npm install` skips devDependencies unless given
+`--include=dev`.
+
 ---
 
 ## AI verification moments
@@ -217,3 +271,16 @@ the raw material for the report's "AI verification moment" section.
    but FactoryBot's default `build` strategy doesn't save associations, so the organization had no `id`.
    **Caught by:** running the suite. **Fixed:** `FactoryBot.use_parent_strategy = false`, so associations are always
    saved, with a comment explaining why.
+7. **Known-defect tests that "passed" for the wrong reason.** *(code generation)* The first web run reported 3
+   expected failures, which reads as "the 3 defects are pinned". In fact every render was failing with `act(...) is
+   not supported in production builds of React`: the shell's `NODE_ENV=production` made React load its production
+   build. `it.fails`, like `pending`, accepts any failure. **Caught by:** reading the failure output instead of the
+   summary line. **Fixed:** the Vitest config pins `NODE_ENV=test`, and each `it.fails` test was then run as a
+   normal test to check its failure message.
+8. **A safety check written from memory of an older library.** *(code generation)* The assistant wrote
+   `server.listen({ onUnhandledRequest: "error" })`, the MSW 2 option, so that a test fails on any request it
+   doesn't handle. MSW 3 renamed it to `onUnhandledFrame` and ignores the old name, so the check was off. Even with
+   the right name, MSW only turns an unhandled request into a network error, which a page that swallows errors
+   hides. **Caught by:** `tsc` flagging the unknown option, then a probe test showing the request was seen as
+   unhandled while the test still passed. **Fixed:** the right option, plus collecting unhandled requests and
+   failing the test after it. Turning the check on immediately exposed the hardware check's third-party requests.

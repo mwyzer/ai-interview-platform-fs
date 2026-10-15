@@ -52,8 +52,11 @@ quietly work around it.
 - **Watch every new test fail first**, against the unfixed code, and check that it fails on its assertion and for
   the stated reason, not on a setup error. A `pending` spec accepts *any* failure, so a broken factory looks exactly
   like proof (AI verification moment 5).
-- **`pending` means a known defect.** Each `pending` spec pins one finding from Step 3. When the fix lands, RSpec
-  reports "Expected pending … to fail"; remove the marker in the same commit as the fix.
+- **`pending` (API) and `it.fails` (web) mean a known defect.** Each pins one finding from Step 3. When the fix
+  lands, the test starts failing; remove the marker in the same commit as the fix. Both accept *any* failure, so
+  check each one by running it as a normal test and reading why it fails (AI verification moments 5 and 7).
+- **Web tests fake only the network**, at the HTTP level (MSW). Don't mock the app's own services or components.
+  A request without a handler fails the test; add a handler rather than loosening that check.
 - **Specs never call Gemini.** Use `spec/support/fake_gemini.rb`. Tests that need the network aren't tests.
 - **Cover the failure paths:** model timeout, invalid JSON, missing fields, out-of-range and wrongly typed values,
   partial writes, duplicate jobs, very long text.

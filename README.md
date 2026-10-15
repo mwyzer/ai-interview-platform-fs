@@ -41,9 +41,29 @@ docker compose exec -e RAILS_ENV=test api bundle exec rails db:create db:schema:
 docker compose exec -e RAILS_ENV=test api bundle exec rspec
 ```
 
-Specs never call Gemini; model responses are stubbed with `spec/support/fake_gemini.rb`. Examples marked
-`pending` encode known defects from `assessment/03-problem-and-gap.md`: they are expected to fail until the
-defect is fixed, at which point RSpec reports them and the `pending` marker must be removed.
+Specs never call Gemini; model responses are stubbed with `spec/support/fake_gemini.rb` and, in
+`spec/functional`, with `spec/support/scripted_gemini.rb`. Examples marked `pending` encode known defects from
+`assessment/03-problem-and-gap.md`: they are expected to fail until the defect is fixed, at which point RSpec
+reports them and the `pending` marker must be removed.
+
+`spec/functional` holds whole journeys driven over HTTP, with background jobs run explicitly: the assessor's path
+from setup to export, the failure paths, and known defects end to end. Run just those with
+`bundle exec rspec spec/functional`.
+
+### Running the web tests
+
+```bash
+docker compose exec web npm test                     # in the dev container (once: docker compose build web)
+cd web && npm install --include=dev && npm test      # or on the host, with Node 22+
+```
+
+`--include=dev` matters if your shell sets `NODE_ENV=production`, which makes npm skip devDependencies.
+
+The tests in `web/src/test/functional` render the whole app at a URL (real routes, guards, services and error
+boundary) with Vitest and Testing Library. Only the network is faked, at the HTTP level, with MSW; a request with no
+handler fails the test. Fixtures in `web/src/test/fixtures.ts` follow the exact shape of the API's responses.
+Known defects use `it.fails`: the test passes while the defect exists, and must become `it` in the commit that fixes
+it.
 
 ## Notes for the case study
 
@@ -96,6 +116,11 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
   - [x] RSpec harness with factories and a stubbed Gemini client: 67 passing specs, plus 11 `pending` specs that
         pin known defects
   - [x] LF line endings pinned for `api/bin/*` and `db/schema.rb`
+- [x] **Functional tests** (API and web)
+  - [x] API: whole journeys over HTTP (`api/spec/functional`): 11 passing, 3 `pending` known defects. Full API
+        suite: 92 examples, 14 pending
+  - [x] Web: Vitest + Testing Library + MSW harness; 14 passing page-level tests, 11 `it.fails` known defects
+  - [x] Every known-defect test checked to fail on its assertion; a deliberate fault in each suite was caught
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
       AI adoption in Indonesian hiring, UU PDP mapping, Gemini free-tier constraint
 - [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked
@@ -110,8 +135,8 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
   - [ ] Sub-PR 1: tenant scoping for portfolio export, override and fit/gap reads (P0-2)
   - [ ] Sub-PR 2: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21)
   - [ ] Sub-PR 3: fit/gap engine + payload (AC-13..AC-16)
-  - [ ] Sub-PR 4: web test runner (Vitest) + portfolio and fit/gap screens (AC-22..AC-30)
-  - [ ] All 11 `pending` specs resolved (each passes and its marker is removed)
+  - [ ] Sub-PR 4: portfolio and fit/gap screens (AC-22..AC-30); the web test runner is in place
+  - [ ] Known defects in the chosen scope fixed: their `pending` specs and `it.fails` tests flip to passing
   - [ ] Seeded fault test: break the logic on a scratch branch, show the suite catch it, revert with history visible
   - [ ] AI verification moments written up for the report (6 logged so far in the work log)
   - [ ] Screenshots of every state: assessed, not assessed, mixed, generating, failed, long text, 375px
