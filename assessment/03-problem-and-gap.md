@@ -22,7 +22,7 @@ It also doesn't protect the result once it's produced.
 ## How I checked
 
 - Read the product spec (wiki PRD 01 and PRD 02) and traced each node (N1–N14) to the code.
-- Ran the stack locally (see [01-setup-log.md](01-setup-log.md)). No Gemini key was provided, so a live voice
+- Ran the stack locally (see [00-work-log.md](00-work-log.md)). No Gemini key was provided, so a live voice
   interview couldn't run (see constraint C1). Instead I reproduced the post-interview pipeline against the **real
   services and database**, with the model response stubbed:
   [evidence/repro_findings.rb](evidence/repro_findings.rb).
@@ -83,7 +83,7 @@ broken). **Seam** marks findings that sit between the data computation and the f
 - The override can be saved without a reason. The label reads "You Overridden ✓".
 - No path to delete a candidate's data (transcripts, portfolio). That's needed for the right to erasure under
   UU PDP; it's tracked as constraint C4.
-- Dev setup issues are in [01-setup-log.md](01-setup-log.md): the Puma pid directory, no seeded user, CRLF line
+- Dev setup issues are in [00-work-log.md](00-work-log.md): the Puma pid directory, no seeded user, CRLF line
   endings, the `.env.example` port, no lockfile.
 
 ## Constraint signal (what I'd escalate to a Tech Lead)
