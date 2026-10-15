@@ -50,6 +50,10 @@ reports them and the `pending` marker must be removed.
 from setup to export, the failure paths, and known defects end to end. Run just those with
 `bundle exec rspec spec/functional`.
 
+`spec/integration` runs against the real Postgres, Redis and Rack stack: database constraints, the coverage
+pub/sub channel the live monitor reads, tenant resolution, CORS, rate limits, and Sidekiq jobs run inline with strict
+JSON arguments. Jobs are never pushed to the real Redis, because the dev Sidekiq shares it.
+
 ### Running the web tests
 
 ```bash
@@ -60,7 +64,18 @@ cd web && npm install --include=dev && npm test      # or on the host, with Node
 `--include=dev` matters if your shell sets `NODE_ENV=production`, which makes npm skip devDependencies.
 
 Unit tests sit next to the code they test (`*.test.ts(x)` beside the source file): utilities, the API client,
-hooks and components, each on its own. The tests in `web/src/test/functional` render the whole app at a URL (real
+hooks and components, each on its own. `web/src/test/integration` joins REST and the coverage WebSocket on the
+live monitor, with the messages in the exact shape the API publishes.
+
+An opt-in contract test runs the web services against the running API. Run it from the host (inside the web
+container, Rails' development host check answers 403):
+
+```bash
+cd web && API_INTEGRATION_URL=http://localhost:3001/api/v1 \
+  API_INTEGRATION_EMAIL=admin@example.com API_INTEGRATION_PASSWORD=password123 npm test
+```
+
+It only creates an assessment without sessions and a vacancy, and deletes both. The tests in `web/src/test/functional` render the whole app at a URL (real
 routes, guards, services and error boundary) with Vitest and Testing Library. Only the network is faked, at the HTTP level, with MSW; a request with no
 handler fails the test. Fixtures in `web/src/test/fixtures.ts` follow the exact shape of the API's responses.
 Known defects use `it.fails`: the test passes while the defect exists, and must become `it` in the commit that fixes
@@ -124,8 +139,14 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
   - [x] API: prompt compiler, session start/end, JWT, audio buffer, Gemini HTTP client, PDF export, request
         authorization, model validations, workers: 72 passing, 3 `pending`
   - [x] Web: utilities, API client, polling hook and components: 48 passing, 9 `it.fails`
-  - [x] Totals: API 167 examples, 17 pending; web 82 tests, 20 expected to fail. Every known-defect test checked to
-        fail on its assertion, and deliberate faults were caught in each suite
+- [x] **Integration tests** (API and web)
+  - [x] API: Postgres constraints, the Redis coverage channel, the Rack request pipeline, Sidekiq jobs inline: 28
+        passing
+  - [x] Web: live monitor over REST + WebSocket (5 passing, 2 `it.fails`); contract test against the running API
+        (7 passing, opt-in)
+- [x] **Totals:** API 195 examples, 0 failures, 17 pending. Web 96 tests: 74 passing, 22 expected to fail (67 and 7
+      skipped without the API). Every known-defect test checked to fail on its assertion; deliberate faults were
+      caught in each suite
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
       AI adoption in Indonesian hiring, UU PDP mapping, Gemini free-tier constraint
 - [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked

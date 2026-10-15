@@ -23,6 +23,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `13c60db` |
 | 2026-10-15 | 3 | Findings from the functional tests added (P1-11, P1-12, P2-11) | `docs/step-3-gap-analysis` · `1c36a91` |
 | 2026-10-15 | 4 | Delivery plan: web null-level fix lands before the API change | `docs/step-4-strategy` · `d591121` |
+| 2026-10-16 | 1/5 | Integration tests: Postgres, Redis channel, Rack pipeline, Sidekiq inline; live monitor REST + WebSocket; API contract | `test/integration-tests` · `d272639`, `1821f18` |
 | 2026-10-16 | 1/5 | Unit tests: API services, clients, auth, models, workers; web utils, client, hooks, components | `test/unit-tests` · `3697014`, `04d3ce7` |
 | 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `2ca7c38`, `4f39635`, `6a5c763` |
 
@@ -31,7 +32,8 @@ the one that changed.
 
 **Branches** (all pushed to `origin` = `github.com/mwyzer/ai-interview-platform`, private). They're stacked, so each
 contains the ones before it: `main` → `chore/docker-dev-setup` → `docs/step-3-gap-analysis` → `test/rspec-harness` →
-`docs/step-2-domain-immersion` → `docs/step-4-strategy` → `test/functional-tests` → `test/unit-tests`.
+`docs/step-2-domain-immersion` → `docs/step-4-strategy` → `test/functional-tests` → `test/unit-tests` →
+`test/integration-tests`.
 
 **Local-only changes** (gitignored, never committed): `api/config/application.yml` (secret key base, Gemini key,
 model IDs), `web/.env` (dev JWT), and synthetic test data in the local database.
@@ -186,6 +188,48 @@ client (they need a live model; constraint C1), and the PDF export. The seeded f
 branch, show the suite catch it, revert) belongs to Step 5.
 
 **Run:** see the "Running the API tests" section of the root `README.md`.
+
+## Integration tests (API and web)
+
+Unit tests check a piece alone; functional tests check a user's path with the network faked. Integration tests check
+the joins to real infrastructure, and the contracts between the two services.
+
+**API** (`api/spec/integration/`, 28 examples). Full suite: 195 examples, 0 failures, 17 pending.
+
+| Spec | Runs against | What it pins down |
+|---|---|---|
+| `database_constraints_spec.rb` | Postgres | Levels kept in 1..5 and required even with validations skipped (no "not assessed" state: the schema side of P0-1); enum values; one portfolio per session, one override per skill, one report per portfolio and vacancy (why concurrent fit/gap jobs crash, P1-6), one coverage row per skill; unique invite tokens; cascading deletes |
+| `coverage_channel_spec.rb` | Redis pub/sub | The exact `session_status` (start, end) and `coverage_update` messages on `coverage:<id>`, the contract the live monitor reads; nothing published on a second end |
+| `request_pipeline_spec.rb` | Rack stack | Tenant from the signed token, not a header; no tenant leaking between requests; candidate link with no tenant; CORS preflight; WebSocket paths pass plain HTTP through; login and invite-link rate limits answer a JSON 429 |
+| `job_pipeline_spec.rb` | Sidekiq inline, strict JSON args | One request carries through to the generated portfolio, the compiled prompt, or the rebuilt fit/gap report |
+
+**Web** (`web/src/test/integration/`):
+
+- `live-monitor.test.tsx` (5 passing, 2 `it.fails`): the real page, hook and services against REST and an MSW
+  WebSocket sending the API's exact messages. Auth goes over the socket first; coverage and discovered skills
+  update live; the end of the session shows with its reason; the transcript polls from the last turn; ending the
+  session goes over REST and opens the portfolio.
+- `api-contract.test.ts` (7 passing, opt-in): the web services against the running Rails API, with real HTTP and a
+  real CORS preflight from the web origin. It checks the fields and types the screens read. It only creates an
+  assessment without sessions and a vacancy, and deletes both; the API log shows the inserts and deletes, and none
+  were left behind.
+
+**Checked:** each new `it.fails` test was run as a normal test and fails on its final assertion. Deliberate faults
+were caught: renaming a key in the end message and raising the login limit (API), and renaming the coverage
+message type in the hook (web).
+
+**Found by the integration tests** (not yet in Step 3):
+
+- **A session that ends while the monitor is reconnecting never shows as ended.** The end only reaches the monitor
+  as the initial `coverage_update` (with `status: "ended"`) after it reconnects, and the hook only reacts to
+  `session_status`. The assessor keeps watching a "live" interview that is over. P2.
+- **The monitor gives up silently.** After three failed reconnects (1, 2 and 4 s) it stops trying, and the header
+  says "Reconnecting..." forever, with no retry. P2.
+- **CORS allows any origin.** `ALLOWED_ORIGINS` is `"*"` in the sample config, so any website can call the API
+  from a signed-in assessor's browser if it gets a token. It has to be the web app's origin in production.
+  Constraint signal.
+- **Inside Docker, the web container can't reach the API by name**: Rails' development host check answers 403 for
+  Host `api`. Only the contract test is affected; it runs from the host.
 
 ## Unit tests (API and web)
 

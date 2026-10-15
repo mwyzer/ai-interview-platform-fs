@@ -56,7 +56,12 @@ quietly work around it.
   lands, the test starts failing; remove the marker in the same commit as the fix. Both accept *any* failure, so
   check each one by running it as a normal test and reading why it fails (AI verification moments 5 and 7).
 - **Unit tests sit beside their source** (`foo.ts` → `foo.test.ts`; API specs mirror `app/` under `spec/`).
-  Functional tests live in `api/spec/functional` and `web/src/test/functional`.
+  Integration tests live in `api/spec/integration` and `web/src/test/integration`; functional tests in
+  `api/spec/functional` and `web/src/test/functional`.
+- **Never push test jobs to the real Redis.** The dev Sidekiq shares it and would run them against the dev
+  database, possibly calling Gemini. Use `Sidekiq::Testing` (fake or inline).
+- **Tests that touch a running service are opt-in and clean up after themselves.** The web contract test only
+  creates what it can delete, and never starts or ends a session.
 - **Web tests fake only the network**, at the HTTP level (MSW). Don't mock the app's own services or components.
   A request without a handler fails the test; add a handler rather than loosening that check.
 - **Specs never call Gemini.** Use `spec/support/fake_gemini.rb`. Tests that need the network aren't tests.
