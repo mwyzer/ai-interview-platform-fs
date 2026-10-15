@@ -3,3 +3,4 @@
 # `rails db:migrate` rewrites schema.rb with different line endings).
 api/bin/* text eol=lf
 api/db/schema.rb text eol=lf
+*.sh text eol=lf
