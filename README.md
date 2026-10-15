@@ -172,6 +172,9 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
   - [ ] Umbrella PR opened against `rakamindev/ai-interview-platform`
 - [ ] **Step 6 · Submission**
   - [ ] Report PDF: PR link, narrative for Steps 2–5, screenshots
+    - Draft: [`assessment/report/report.html`](assessment/report/report.html), built to PDF with
+      `assessment/report/build.sh`. Steps 2–4 and the AI verification moments are written; Step 5, the PR and video
+      links, and the screenshots are marked "To fill in"
   - [ ] 3–5 minute video (unlisted link)
 
 #### Open questions
