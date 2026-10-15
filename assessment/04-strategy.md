@@ -215,6 +215,10 @@ Brief Option B: an umbrella PR plus focused sub-PRs, each reviewable on its own.
 - **Assumption:** the coverage map is reliable enough to overrule the model on `not_yet`. If the analyzer lags
   (PRD 02 notes a one-turn lag), a skill discussed in the very last turn could be marked not reached. That's the
   safe direction, and the assessor can add a rating. Worth confirming with the Tech Lead.
+- **Risk:** `end_reason` can't be trusted on its own: anyone with the invite link can end a session as
+  `all_covered` (Step 3, P1-10). The design doesn't depend on it: "assessed" is decided by the coverage map and the
+  model output. The one place that shows it, the summary line in AC-24, should name the reason only when it agrees
+  with coverage, and otherwise say "the interview ended before these skills were reached".
 - **Assumption:** keeping `required_level` alongside `expected_level` for one release is acceptable; nothing else
   consumes the fit/gap payload today besides this web app and the PDF.
 - **Risk:** quote matching may drop real quotes the model paraphrased slightly. The match is normalized but still
