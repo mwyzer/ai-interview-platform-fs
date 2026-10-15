@@ -34,6 +34,17 @@ Runs Postgres, Redis, the API, Sidekiq and the web app together.
 
 Stop with `docker compose down`; add `-v` to also wipe the database.
 
+### Running the API tests
+
+```bash
+docker compose exec -e RAILS_ENV=test api bundle exec rails db:create db:schema:load   # first time only
+docker compose exec -e RAILS_ENV=test api bundle exec rspec
+```
+
+Specs never call Gemini; model responses are stubbed with `spec/support/fake_gemini.rb`. Examples marked
+`pending` encode known defects from `assessment/03-problem-and-gap.md`: they are expected to fail until the
+defect is fixed, at which point RSpec reports them and the `pending` marker must be removed.
+
 ## Notes for the case study
 
 - This is the codebase you assess, harden, and release. Treat it as a version about to ship to a client.

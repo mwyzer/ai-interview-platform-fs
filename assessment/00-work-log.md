@@ -13,6 +13,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 1 | Setup findings written up | `chore/docker-dev-setup` · `52c36d6` |
 | 2026-10-15 | 1 | Own repo created (`mwyzer/ai-interview-platform`, private); `upstream` kept for the final PR | n/a |
 | 2026-10-15 | 3 | Product spec read, code traced, findings reproduced and written up | `docs/step-3-gap-analysis` · `076cca4` |
+| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` |
 
 ---
 
@@ -76,6 +77,63 @@ Full write-up: [03-problem-and-gap.md](03-problem-and-gap.md).
 
 ---
 
+## Test harness (API)
+
+The brief's baseline: "RSpec currently has no specs written." The gems were already in the Gemfile, but there was
+no `spec/` folder, no helpers and no factories.
+
+**Added** (`api/spec/`):
+
+- `rails_helper.rb` / `spec_helper.rb`: transactional fixtures, random order, `Sidekiq::Testing.fake!` (jobs are
+  asserted, not run), and Rack::Attack disabled so throttling can't make specs order-dependent.
+- `factories.rb`: synthetic data only (Faker names, `example.test` emails), never real candidate data.
+- `support/fake_gemini.rb`: stands in for `Gemini::HttpClient`. It returns a canned response or raises a given
+  error, and records prompts. **No spec calls the network.**
+- `support/auth_helpers.rb`: signs a JWT for a given organization and role.
+
+**What's covered** (78 examples, run in ~25 s):
+
+| Area | What the specs pin down |
+|---|---|
+| `Coverage::StateEngine` | Forward-only transitions; the PRD hard rule (no advance past `initiated` with < 2 probes); jumps walked step by step |
+| `Coverage::Analyzer` | No model call without transcript; probe increment capped at +1; covered skills frozen; unknown IDs ignored; prose instead of JSON handled; transcript marked untrusted in the prompt |
+| `Coverage::MapInjector` | `all_covered?` rules; priority of the least-covered skill; pacing buckets; time never negative |
+| `Portfolios::Generator` | Skills stored and status complete; discovered skills separate; evidence capped at 3; regeneration replaces skills; **model timeout → `failed` with the error, re-raised for Sidekiq** |
+| `FitGap::Engine` | match / gap / exceed / not assessed with delta; override beats the AI level; match by skill ID then by label; **model failure → fallback narrative**; one report per portfolio and vacancy |
+| Auth (requests) | Login: case-insensitive email, same error for a wrong password and an unknown email, non-admins refused; 401 for no token, a forged token or an expired token; 403 for the wrong role |
+| Tenant isolation (requests) | The owner can read; another organization gets 404 for assessments, sessions, portfolios and vacancies; listings only show the caller's rows |
+| Fit/gap (requests) | 202 + one job when missing; stored report returned without a new job; 422 when the portfolio isn't complete or the vacancy is missing |
+| Models / worker | Invite token 64 hex characters and unique; tenant scoping and auto-assignment; level and confidence validation; worker skips missing sessions and marks `failed` once retries are exhausted |
+
+**Known defects pinned as `pending`.** Each Step 3 finding that the backend can prove is written as a spec of the
+*correct* behavior, marked `pending`. RSpec runs these and expects them to fail. When a fix lands, RSpec reports
+"Expected pending ... to fail", and the marker is removed. That makes them the failing tests for Step 5.
+
+| Spec | Fails today because |
+|---|---|
+| P0-1 unrated skill must not become L1 | `expected: nil, got: 1` |
+| P0-1/P1-1 unreached skill is `not_assessed` in fit/gap | `expected: "not_assessed", got: "gap"` |
+| P0-2 export of another org's portfolio → 404 | `but it was 200` |
+| P0-2 override of another org's rating → 404 | `but it was 201` |
+| P0-2 read another org's fit/gap → 404 | `but it was 200` |
+| P1-3 every configured skill accounted for | `missing: ["Communication", "System Design"]` |
+| P1-4 no half-written portfolio | 1 skill left behind after the failure |
+| P1-4 overrides survive regeneration | `expected: 1, got: 0` |
+| P1-5 invented quote dropped | quote kept |
+| P1-6 one job while generating | `expected: 1, got: 2` |
+| P1-7 passwords filtered from logs | `got: "correct-horse-battery"` |
+
+Each pending failure was checked to fail **for the stated reason**, not because of a setup error (see AI
+verification moment 5).
+
+**Not covered yet:** the web app (no test runner; brief baseline), the audio WebSocket middleware and the Gemini Live
+client (they need a live model; constraint C1), and the PDF export. The seeded fault test (break logic on a scratch
+branch, show the suite catch it, revert) belongs to Step 5.
+
+**Run:** see the "Running the API tests" section of the root `README.md`.
+
+---
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
@@ -95,3 +153,16 @@ the raw material for the report's "AI verification moment" section.
 4. **Retry configuration that looks right but does nothing.** `Gemini::HttpClient` has a careful retry block for
    429/5xx. Reading the code suggests it works. **Checked:** at runtime, `Faraday::Retry::Middleware::IDEMPOTENT_METHODS`
    excludes `POST`, and every Gemini call is a POST, so the retries never fire (finding P2-3).
+5. **AI-generated spec that would have "proved" a bug for the wrong reason.** *(code generation)* While writing
+   the tenant-isolation specs, the assistant generated `create(:fit_gap_report_record, ...)`, a factory that
+   didn't exist. The example was marked `pending`, so its failure would have been *expected*. It would have shown
+   as a passing proof of the cross-tenant fit/gap leak, while actually failing on `KeyError: Factory not
+   registered`. **Why it's risky:** a pending spec accepts *any* failure, so a broken setup looks exactly like
+   evidence. **Caught by:** reviewing the generated code before the first run, then checking that every pending
+   example fails on its assertion line with the expected values (`but it was 200`, `got: 1`, ...). **Fixed:** added a
+   real `:fit_gap_report` factory, and now read each pending spec's failure message, not just the pending count.
+6. **AI-generated factories that broke under `build`.** *(code generation)* The first full run had 2 failures:
+   `please set Current.tenant_id`. The generated factories derived `tenant_id` from an associated organization,
+   but FactoryBot's default `build` strategy doesn't save associations, so the organization had no `id`.
+   **Caught by:** running the suite. **Fixed:** `FactoryBot.use_parent_strategy = false`, so associations are always
+   saved, with a comment explaining why.
