@@ -1,0 +1,107 @@
+name: CI
+
+# Runs both test suites on every push and pull request, so a change can't land
+# without them. Nothing here calls Gemini: model responses are stubbed in the
+# API specs, and the web tests fake the network.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (RSpec)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      RAILS_ENV: test
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://localhost:6379/1
+      # Throwaway values for the test run only; no real secret is needed or used.
+      SECRET_KEY_BASE: ci-only-secret-key-base-not-used-anywhere-else-0000000000000000
+      GEMINI_API_KEY: ci-dummy-key-never-sent
+      ALLOWED_ORIGINS: http://localhost:5173
+      APP_BASE_URL: http://localhost:5173
+
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libpq
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+          working-directory: api
+
+      # CI=true turns on eager loading in config/environments/test.rb, as in
+      # production; this check fails fast if a file and its constant don't match.
+      - name: Check autoloading
+        run: bundle exec rails zeitwerk:check
+
+      - name: Set up the test database
+        run: bundle exec rails db:create db:schema:load
+
+      - name: Run specs
+        run: bundle exec rspec --format progress
+
+  web:
+    name: Web (type check + Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # The API contract test needs a running API and is skipped here
+      # (API_INTEGRATION_URL is not set).
+      - name: Run tests
+        run: npm test
