@@ -29,6 +29,8 @@ It also doesn't protect the result once it's produced.
 - Hit the API over HTTP with tokens for two separate organizations, and read the Sidekiq and Rails logs.
 - Walked the assessor's entry screen (`/assessments`) in the browser at desktop and 375px width, including while
   the API was still booting, and compared what it renders with the `GET /assessments` payload.
+- Called the candidate endpoints (`/sessions/:token/candidate`, `/sessions/:token/audio_complete`) without any
+  credentials, against a session created 400 days earlier and never started.
 
 Scenario used: *Senior Frontend Engineer* with three skills (React L3, Communication L3, System Design L2). The
 candidate's connection drops at minute 6, after only React was discussed. The model answers honestly with
@@ -71,6 +73,7 @@ broken). **Seam** marks findings that sit between the data computation and the f
 | P1-7 | **Secrets and personal data in logs.** No `filter_parameters`. | Login passwords and assessor notes are written in plain text to the request log. | Defect | `api` config | `development.log` contains `"password"=>"password123"` 3×, and the override notes |
 | P1-8 | **The assessment list only ever loads page 1.** `assessmentsApi.list()` is always called without a page, and the `meta` the API returns (`total_pages`, `total_count`, `per_page: 20`) is ignored. There's no pager. | From the 21st assessment on, older assessments and their candidates can't be reached from the list, and nothing says so. The assessor may assume they're gone and recreate them. | Defect | **seam** `web` `AssessmentListPage`; `api` `assessments#index` | payload: `meta: {current_page: 1, total_pages, total_count, per_page: 20}`; page never requests `page=2` |
 | P1-9 | **Every ended session reads "Last: completed".** `manual_candidate`, `manual_assessor`, `time_ceiling` and `all_covered` all render the same label; only `error` differs. | A candidate who left at minute 2 looks the same as one who covered every skill. It hides the early-ended interviews that P0-1 turns into L1 ratings. | Missing spec | `web` `AssessmentListPage` `SessionSummary` | seeded session: `status: ended, end_reason: manual_candidate` → "Last: completed" |
+| P1-10 | **Anyone with the invite link can end the interview as "all skills covered".** `POST /sessions/:token/audio_complete` needs no auth and calls `EndHandler` with `all_covered` without checking coverage (the check was removed on purpose; see the comment in `sessions#audio_complete`). | A forwarded or leaked link can end a candidate's interview, live or not yet started. The session is then recorded as fully covered, which falsifies the one signal that says an interview was cut short. It also triggers a paid model call over an empty transcript. | Defect | `api` `SessionsController#audio_complete` | a never-started session: `POST …/audio_complete` with no token → `status: ended, end_reason: all_covered, started_at: nil`; Sidekiq then spent 43 s on a Gemini call and stored a `complete` portfolio with **0 skills** |
 
 ### P2: failure paths and trust signals
 
@@ -85,6 +88,7 @@ broken). **Seam** marks findings that sit between the data computation and the f
 | P2-7 | **List load failures are a dead end.** The only message is "Please refresh the page": no retry, and no difference between a network error, a 403 `Tenant not found` (needs a new sign-in, not a refresh) and a 500. | The assessor refreshes and gets the same result, with no idea what to do next. | Missing spec | `web` `AssessmentListPage` |
 | P2-8 | **Assessment cards can't be reached with a keyboard.** Each card is a `<div onClick>` with no role and `tabIndex = -1`, so it isn't focusable, isn't announced as a link, and can't be opened in a new tab. | Keyboard and screen-reader users can't open any assessment, so they can't invite candidates or reach results. | Defect (accessibility) | `web` `AssessmentListPage` |
 | P2-9 | **The list doesn't say what needs attention.** A row shows the name, time limit and only the latest session. There's no candidate count, nothing awaiting review, no failed portfolio generation, no language or created date, and no search or sort. | To find the work waiting for them, the assessor has to open every assessment one by one. | Missing spec | **seam** `api` `assessments#index` serializer; `web` `AssessmentListPage` |
+| P2-10 | **Invite links never expire.** The token is a 64-character random hex with no expiry and no single use; the API's error says "Invalid or expired invite token", but nothing expires. | A link forwarded in email or WhatsApp stays usable forever: it shows the role and can start or end the session (P1-10). | Missing spec | `api` `Session`, `SessionsController` | a pending session created 400 days ago: `GET /sessions/:token/candidate` → 200 with the role title |
 
 ### P3: polish and hygiene
 
@@ -113,6 +117,9 @@ broken). **Seam** marks findings that sit between the data computation and the f
 - **C4: No retention or erasure policy** for transcripts, audio-derived text or portfolios. That's a product and
   legal decision, not an engineering default.
 - **C5: No tests, no web test runner, no CI.** Every change above is currently unprotected against regression.
+- **C6: The candidate is whoever holds the link.** There's no login and no check that the person talking is the person
+  who was invited. That may be acceptable for a first screening round, but it's a product and trust decision, and
+  it should be stated to clients rather than assumed.
 
 ## What this points to for Step 4
 
