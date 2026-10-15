@@ -82,3 +82,46 @@ flowchart TD
     class S5,S6 todo
     class K2,K3,K4 note
 ```
+
+### Progress
+
+Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
+
+#### Done
+
+- [x] **Step 1 · Setup** ([work log](assessment/00-work-log.md))
+  - [x] Docker Compose dev stack; fixed the API crashing on boot (missing `tmp/pids`)
+  - [x] Seeded a dev admin so `/login` works on a fresh database
+  - [x] Gemini configured locally; retired default model IDs replaced (key never committed)
+  - [x] RSpec harness with factories and a stubbed Gemini client: 67 passing specs, plus 11 `pending` specs that
+        pin known defects
+  - [x] LF line endings pinned for `api/bin/*` and `db/schema.rb`
+- [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
+      AI adoption in Indonesian hiring, UU PDP mapping, Gemini free-tier constraint
+- [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked
+      P0–P3 and reproduced, including the assessment list (P1-8, P1-9, P2-6..P2-10), the candidate link (P1-10), and
+      constraint signals C1–C6
+- [x] **Step 4 · Strategy** ([04-strategy.md](assessment/04-strategy.md)): 30 acceptance criteria, options A/B/C
+      compared, Option B chosen, delivery plan
+
+#### Not done yet
+
+- [ ] **Step 5 · Implementation and PR** (Option B: umbrella PR + focused sub-PRs)
+  - [ ] Sub-PR 1: tenant scoping for portfolio export, override and fit/gap reads (P0-2)
+  - [ ] Sub-PR 2: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21)
+  - [ ] Sub-PR 3: fit/gap engine + payload (AC-13..AC-16)
+  - [ ] Sub-PR 4: web test runner (Vitest) + portfolio and fit/gap screens (AC-22..AC-30)
+  - [ ] All 11 `pending` specs resolved (each passes and its marker is removed)
+  - [ ] Seeded fault test: break the logic on a scratch branch, show the suite catch it, revert with history visible
+  - [ ] AI verification moments written up for the report (6 logged so far in the work log)
+  - [ ] Screenshots of every state: assessed, not assessed, mixed, generating, failed, long text, 375px
+  - [ ] Umbrella PR opened against `rakamindev/ai-interview-platform`
+- [ ] **Step 6 · Submission**
+  - [ ] Report PDF: PR link, narrative for Steps 2–5, screenshots
+  - [ ] 3–5 minute video (unlisted link)
+
+#### Open questions
+
+- [ ] Step 2, Pillar 2: confirm the hiring-market assumptions against the candidate's own experience
+- [ ] Step 4: confirm that the coverage map may overrule the model for skills never probed
+- [ ] The deadline in the brief has no year; confirm the actual date
