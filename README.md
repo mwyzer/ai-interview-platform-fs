@@ -151,7 +151,8 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
       AI adoption in Indonesian hiring, UU PDP mapping, Gemini free-tier constraint
 - [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked
       P0–P3 and reproduced, including the assessment list (P1-8, P1-9, P2-6..P2-10), the candidate link (P1-10),
-      findings from the functional tests (P1-11, P1-12, P2-11), and constraint signals C1–C6
+      findings from the functional, unit and integration tests (P1-11..P1-13, P2-11..P2-13), and constraint
+      signals C1–C7
 - [x] **Step 4 · Strategy** ([04-strategy.md](assessment/04-strategy.md)): 30 acceptance criteria, options A/B/C
       compared, Option B chosen, delivery plan
 

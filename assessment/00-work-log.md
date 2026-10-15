@@ -14,18 +14,19 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 1 | Own repo created (`mwyzer/ai-interview-platform`, private); `upstream` kept for the final PR | n/a |
 | 2026-10-15 | 3 | Product spec read, code traced, findings reproduced and written up | `docs/step-3-gap-analysis` · `076cca4` |
 | 2026-10-15 | 3 | Setup log renamed to this work log; AI verification moments added | `docs/step-3-gap-analysis` · `5e19594` |
-| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` · `2d209dd`, `8b9095c`, `00fd692` |
-| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | `test/rspec-harness` · `e73b565` (log only; key never committed) |
+| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` · `630ce38`, `23eeee8`, `172eaf8` |
+| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | `test/rspec-harness` · `3e644c7` (log only; key never committed) |
 | 2026-10-15 | 1 | `.gitattributes`: LF for `api/bin/*` and `db/schema.rb` | `test/rspec-harness` (see 1.5) |
 | 2026-10-15 | 3 | Assessment list findings added (P1-8, P1-9, P2-6..P2-9) | `docs/step-3-gap-analysis` · `4f746a8` |
-| 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` · `1631401` |
+| 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` · `b80a6de` |
 | 2026-10-15 | 3 | Candidate-link findings (P1-10, P2-10, C6), reproduced over HTTP | `docs/step-3-gap-analysis` · `b32f1ec` |
-| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `13c60db` |
+| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `4b363ec` |
 | 2026-10-15 | 3 | Findings from the functional tests added (P1-11, P1-12, P2-11) | `docs/step-3-gap-analysis` · `1c36a91` |
-| 2026-10-15 | 4 | Delivery plan: web null-level fix lands before the API change | `docs/step-4-strategy` · `d591121` |
-| 2026-10-16 | 1/5 | Integration tests: Postgres, Redis channel, Rack pipeline, Sidekiq inline; live monitor REST + WebSocket; API contract | `test/integration-tests` · `d272639`, `1821f18` |
-| 2026-10-16 | 1/5 | Unit tests: API services, clients, auth, models, workers; web utils, client, hooks, components | `test/unit-tests` · `3697014`, `04d3ce7` |
-| 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `2ca7c38`, `4f39635`, `6a5c763` |
+| 2026-10-15 | 4 | Delivery plan: web null-level fix lands before the API change | `docs/step-4-strategy` · `814072d` |
+| 2026-10-16 | 3 | Findings from the unit and integration tests added (P1-13, P2-12, P2-13, P3, C7) | `docs/step-3-gap-analysis` · `93101ac` |
+| 2026-10-16 | 1/5 | Integration tests: Postgres, Redis channel, Rack pipeline, Sidekiq inline; live monitor REST + WebSocket; API contract | `test/integration-tests` · `164d12c`, `b0058f9` |
+| 2026-10-16 | 1/5 | Unit tests: API services, clients, auth, models, workers; web utils, client, hooks, components | `test/unit-tests` · `f1aeec2`, `0a96f4d` |
+| 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `ad6c091`, `44474e3`, `d65e3e9` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
@@ -218,7 +219,7 @@ the joins to real infrastructure, and the contracts between the two services.
 were caught: renaming a key in the end message and raising the login limit (API), and renaming the coverage
 message type in the hook (web).
 
-**Found by the integration tests** (not yet in Step 3):
+**Found by the integration tests** (added to Step 3 as P2-12, P2-13 and C7):
 
 - **A session that ends while the monitor is reconnecting never shows as ended.** The end only reaches the monitor
   as the initial `coverage_update` (with `status: "ended"`) after it reconnects, and the hook only reacts to
@@ -259,7 +260,7 @@ panel, comparison table, interview timer, connection status and error boundary. 
 stated reason. Deliberate faults were caught: the buffer's eviction bound and the prompt's skill order (API), the
 timer's warning threshold and the polling hook's latest-function ref (web).
 
-**Found by the unit tests** (not yet in Step 3):
+**Found by the unit tests** (added to Step 3 as P1-13 and two P3 notes):
 
 - **The PDF export crashes for any portfolio with an override.** The generator's own text, `AI: L2 → Override: L4`,
   uses `→`, which Prawn's built-in fonts (Windows-1252 only) can't encode. Evidence quotes with emoji or non-Latin
