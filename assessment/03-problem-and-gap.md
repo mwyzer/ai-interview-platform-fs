@@ -33,6 +33,8 @@ It also doesn't protect the result once it's produced.
   credentials, against a session created 400 days earlier and never started.
 - Rendered the web app's pages under functional tests with only the network faked (see the work log, "Functional
   tests"). Any request a page makes without the test expecting it fails the test, which is how P1-12 surfaced.
+- Ran unit and integration tests against the PDF export, the real Postgres, Redis and Rack stack, and the live
+  monitor's REST and WebSocket channels (see the work log), which surfaced P1-13, P2-12, P2-13 and C7.
 
 Scenario used: *Senior Frontend Engineer* with three skills (React L3, Communication L3, System Design L2). The
 candidate's connection drops at minute 6, after only React was discussed. The model answers honestly with
@@ -78,6 +80,7 @@ broken). **Seam** marks findings that sit between the data computation and the f
 | P1-10 | **Anyone with the invite link can end the interview as "all skills covered".** `POST /sessions/:token/audio_complete` needs no auth and calls `EndHandler` with `all_covered` without checking coverage (the check was removed on purpose; see the comment in `sessions#audio_complete`). | A forwarded or leaked link can end a candidate's interview, live or not yet started. The session is then recorded as fully covered, which falsifies the one signal that says an interview was cut short. It also triggers a paid model call over an empty transcript. | Defect | `api` `SessionsController#audio_complete` | a never-started session: `POST …/audio_complete` with no token → `status: ended, end_reason: all_covered, started_at: nil`; Sidekiq then spent 43 s on a Gemini call and stored a `complete` portfolio with **0 skills** |
 | P1-11 | **A broken or mistyped invite link says the interview is done.** `InterviewPage` treats *any* error loading the link as "complete" and shows "Interview Complete. Thank you. The interview has been recorded." | A candidate who never interviewed is told they did. They wait for a reply that never comes and don't contact the recruiter, so they silently drop out of the process. | Defect | `web` `InterviewPage` | web functional test: `GET /sessions/not-a-token/candidate` → 404 → "has been recorded" |
 | P1-12 | **The hardware check sends the candidate's connection to third parties before the interview.** Unless `VITE_SPEED_TEST_*` is set (it's blank by default), the browser fetches from google.com, cdn.jsdelivr.net and unpkg.com, and uploads 0.5 MB to httpbin.org or postman-echo.com, several times. Nothing tells the candidate. The API already has `/api/v1/speed_test`. | The candidate's IP address and device details go to five undisclosed services before any notice or consent (UU PDP Art. 5, 21). On networks that block those hosts, the check fails and the candidate may not be able to start. | Defect (privacy) | `web` `utils/internetSpeedTest.ts`, `HardwareCheck` | web functional test: 12 third-party requests in the first 1.5 s on the pre-start screen |
+| P1-13 | **The PDF export crashes for any portfolio the assessor has overridden.** The generator's own line `AI: L2 → Override: L4` uses `→`, which Prawn's built-in fonts (Windows-1252 only) can't encode. Evidence quotes with emoji or non-Latin script crash it too. | The assessor gets an error instead of the document they share with the hiring manager, and it hits exactly the portfolios a human reviewed most closely. | Defect | `api` `Exports::PdfGenerator` | unit spec: `Prawn::Errors::IncompatibleStringEncoding` at the override line, and at an evidence line with 🚀 |
 
 ### P2: failure paths and trust signals
 
@@ -94,10 +97,16 @@ broken). **Seam** marks findings that sit between the data computation and the f
 | P2-9 | **The list doesn't say what needs attention.** A row shows the name, time limit and only the latest session. There's no candidate count, nothing awaiting review, no failed portfolio generation, no language or created date, and no search or sort. | To find the work waiting for them, the assessor has to open every assessment one by one. | Missing spec | **seam** `api` `assessments#index` serializer; `web` `AssessmentListPage` |
 | P2-10 | **Invite links never expire.** The token is a 64-character random hex with no expiry and no single use; the API's error says "Invalid or expired invite token", but nothing expires. | A link forwarded in email or WhatsApp stays usable forever: it shows the role and can start or end the session (P1-10). | Missing spec | `api` `Session`, `SessionsController` | a pending session created 400 days ago: `GET /sessions/:token/candidate` → 200 with the role title |
 | P2-11 | **A missing level crashes the whole portfolio page.** `parseLevel(null)` calls `.replace` on `null`; the page is replaced by "Something went wrong." The API can't send `null` today (the column is `NOT NULL`), so it's latent. | Fixing P0-1 in the API alone would take the assessor's review screen down. The API and web halves of that fix must ship together. | Defect | **seam** `web` `parseLevel`, `SkillPortfolioCard`, `OverridePanel` | web functional test: portfolio with `ai_level: null` → error boundary |
+| P2-12 | **The live monitor never shows a session that ended while it was reconnecting.** The end then only arrives in the initial `coverage_update` (`status: "ended"`), and `useCoverageWebSocket` only reacts to `session_status`. | The assessor keeps watching an interview that's over, and isn't pointed to the portfolio. | Defect | **seam** `api` `CoverageWebSocketMiddleware`; `web` `useCoverageWebSocket` | web integration test: initial message with `status: "ended"` → no "Session ended" |
+| P2-13 | **The live monitor gives up reconnecting silently.** After three failed attempts (1, 2 and 4 s) it stops, and the header says "Reconnecting..." forever, with no retry. | The assessor waits on a dead screen with no hint to reload. | Defect | `web` `useCoverageWebSocket`, `LiveMonitorPage` | web integration test: 4 connections closed → still "Reconnecting..." |
 
 ### P3: polish and hygiene
 
 - The override can be saved without a reason. The label reads "You Overridden ✓".
+- The hardware check reports an offline connection as 4 Mbps upload (a "conservative fallback" of 0.5 MB/s, exactly
+  the minimum), so the upload line shows green. Ping still fails the check overall.
+- The hardware check shows Edge as Chrome and Android as Linux (the more general match is checked first). Display
+  only.
 - On the assessment list, clicking a card goes straight to `/assessments/:id/invite`. There's no summary or detail
   view, and no Edit action from the list.
 - `GET /assessments` returns the full `system_prompt` for every row, which the list never uses. It inflates the
@@ -125,6 +134,8 @@ broken). **Seam** marks findings that sit between the data computation and the f
 - **C6: The candidate is whoever holds the link.** There's no login and no check that the person talking is the person
   who was invited. That may be acceptable for a first screening round, but it's a product and trust decision, and
   it should be stated to clients rather than assumed.
+- **C7: CORS allows any origin.** `ALLOWED_ORIGINS` is `"*"` in the sample config. Production needs the web app's
+  origin only, set per environment, and it should be a deploy-time check.
 
 ## What this points to for Step 4
 
