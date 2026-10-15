@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Renders report.html to report.pdf with headless Chrome (or Edge). No other dependencies.
+# Renders report.html to report.pdf with headless Chrome (or Edge). No other dependencies; the Mermaid
+# diagrams load from a CDN, so the build needs a network connection.
 # Usage: assessment/report/build.sh   (set CHROME to override the browser path)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -16,7 +17,15 @@ fi
 
 rm -f report.pdf
 dir="$(pwd -W 2>/dev/null || pwd)"
-"$CHROME" --headless=new --disable-gpu --no-pdf-header-footer \
-  --user-data-dir="$(mktemp -d)" --print-to-pdf="$dir/report.pdf" "file:///${dir#/}/report.html" 2>/dev/null
+page="file:///${dir#/}/report.html"
+# Virtual time lets the diagrams finish rendering before the page is dumped or printed.
+flags=(--headless=new --disable-gpu --virtual-time-budget=20000 --run-all-compositor-stages-before-draw)
+
+# Refuse to print raw diagram source if Mermaid didn't render (offline, CDN down, syntax error).
+"$CHROME" "${flags[@]}" --user-data-dir="$(mktemp -d)" --dump-dom "$page" 2>/dev/null \
+  | grep -q 'data-diagrams="ready"' || { echo "Diagrams did not render (offline?)" >&2; exit 1; }
+
+"$CHROME" "${flags[@]}" --no-pdf-header-footer --user-data-dir="$(mktemp -d)" \
+  --print-to-pdf="$dir/report.pdf" "$page" 2>/dev/null
 [ -s report.pdf ] || { echo "PDF was not written" >&2; exit 1; }
 echo "Wrote $dir/report.pdf"

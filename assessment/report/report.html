@@ -101,7 +101,34 @@
   .shot { border: 1.5px dashed #d9a520; background: var(--todo-bg); border-radius: 1.5mm; height: 38mm; padding: 2.5mm; font-size: 8pt; color: var(--todo); display: flex; flex-direction: column; justify-content: flex-end; break-inside: avoid; }
   .shot strong { color: var(--ink); font-size: 8.4pt; }
   ol.moments li { margin-bottom: 2.4mm; }
+  .diagram { margin: 3mm 0 4mm; text-align: center; break-inside: avoid; }
+  .diagram svg { max-width: 100%; max-height: 105mm; height: auto; }
+  .diagram.tall svg { max-height: 125mm; }
+  .diagram + .caption { margin-top: -2mm; }
+  .caption { font-size: 8pt; color: var(--muted); text-align: center; margin-bottom: 4mm; }
 </style>
+<script type="module">
+  // Diagrams are written in Mermaid and rendered when the page loads; build.sh waits for them before printing.
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: {
+      fontFamily: "Segoe UI, system-ui, sans-serif", fontSize: "13px",
+      primaryColor: "#f4f6f8", primaryBorderColor: "#b9c0ca", primaryTextColor: "#1a1d21",
+      lineColor: "#5b6370", clusterBkg: "#fbfcfd", clusterBorder: "#d9dde3",
+      edgeLabelBackground: "#ffffff",
+    },
+    flowchart: { curve: "basis", padding: 10, nodeSpacing: 28, rankSpacing: 34 },
+  });
+  // Sources sit in script tags so the browser leaves <br/> alone. One at a time: rendering them together in headless Chrome overlapped the diagrams.
+  const blocks = [...document.querySelectorAll('script[type="text/x-mermaid"]')];
+  for (const [i, src] of blocks.entries()) {
+    const { svg } = await mermaid.render(`diagram-${i}`, src.textContent);
+    src.outerHTML = svg;
+  }
+  document.body.dataset.diagrams = "ready";
+</script>
 </head>
 <body>
 
@@ -181,6 +208,37 @@
     writes a <strong>skill portfolio</strong> (level, confidence, evidence quotes, summary), and a
     <strong>fit/gap report</strong> compares it with a vacancy. I asked one question from five angles.</p>
 
+  <div class="diagram tall"><script type="text/x-mermaid">
+flowchart TB
+  subgraph A["Assessor · before"]
+    direction LR
+    a1["Configure skills,<br/>L1–L5 anchors"] --> a2["Create an<br/>invite link"]
+  end
+  subgraph C["Candidate"]
+    direction LR
+    c1["Open the link,<br/>hardware check"] --> c2["Voice interview<br/>with the AI"]
+  end
+  subgraph S["System"]
+    direction LR
+    s1["Coverage map<br/>not_yet → covered"]
+    s2["Portfolio<br/>level · confidence · quotes"]
+    s3["Fit/gap<br/>vs the vacancy"]
+  end
+  subgraph R["Reviewers · after"]
+    direction LR
+    r1["Review, override<br/>with a note"] --> r2["Next round, hire,<br/>or what to probe"]
+  end
+  a2 -->|"email, WhatsApp"| c1
+  c2 <-->|"every turn"| s1
+  c2 -->|"session ends"| s2
+  s2 --> s3
+  s2 --> r1
+  s3 --> r2
+  classDef trust fill:#eef4fd,stroke:#1f5fbf,color:#1a1d21,stroke-width:1.5px
+  class s2,s3,r1 trust
+</script></div>
+  <p class="caption">Blue: where trust is won or lost. Everyone downstream acts on the portfolio, not on the interview.</p>
+
   <div class="grid2">
     <div class="card"><h4>1 · The product, used end to end</h4>
       <p>The center of gravity is the <strong>result review</strong>, not the interview. The interview impresses;
@@ -239,6 +297,27 @@
     <code>"level": null</code> for the other two.<br>
     Stored: React <strong>L3</strong> · Communication <strong>L1</strong> (probes: 0) · System Design <strong>L1</strong> (probes: 0)<br>
     Fit/gap: Communication <strong>gap</strong> · System Design <strong>gap</strong> · "1 skill matches, 0 exceeds, and 2 gaps".</p></div>
+
+  <div class="diagram"><script type="text/x-mermaid">
+flowchart TB
+  e1["Candidate presses<br/>End interview"] --> n
+  e2["Connection drops"] --> n
+  e3["Anyone with the link<br/>ends it as all covered<br/>(P1-10)"] --> n
+  n["Skill never probed<br/>coverage: not_yet"] --> m["Model answers<br/>level: null"]
+  m -->|"clamp(1, 5)"| l1["Stored as L1<br/>(column NOT NULL)"]
+  m -.->|"or leaves it out"| gone["Skill vanishes<br/>(P1-3)"]
+  l1 --> g["Fit/gap:<br/>Gap −2"]
+  l1 --> w["Screen: an L1 badge,<br/>like any rating"]
+  g --> x["Rejected.<br/>Nobody re-checks."]
+  w --> x
+  classDef cause fill:#f4f6f8,stroke:#b9c0ca,color:#1a1d21
+  classDef bug fill:#fdecea,stroke:#b42318,color:#7a1a12,stroke-width:1.5px
+  classDef out fill:#1a1d21,stroke:#1a1d21,color:#ffffff
+  class e1,e2,e3,n cause
+  class l1,g,w,gone bug
+  class x out
+</script></div>
+  <p class="caption">How a rating nobody measured becomes a rejection. Red: the defects (P0-1, P1-1, P1-3).</p>
 
   <p class="small muted"><strong>Type</strong>: missing specification (never defined) vs defective implementation
     (defined, but broken). <span class="tag seam">SEAM</span> marks a break between the API's data and the web's
@@ -324,6 +403,63 @@
       fit/gap screens. Each sub-PR flips its pinned known-defect tests to passing.</p></div>
   </div>
 
+</section>
+
+<!-- ============================== STEP 4 DESIGN ============================== -->
+<section>
+  <h2><span class="step">Step 4 · Design</span>Who decides "assessed", and the order it ships in</h2>
+
+  <p>One place decides, the generator, and every reader (fit/gap, API, screens, PDF) only displays the result.
+    The coverage map is checked first: a rating with zero probes has no evidence by definition, whatever the model
+    says. The model is called <strong>before</strong> the transaction opens, so a slow call never holds the
+    database.</p>
+
+  <div class="diagram"><script type="text/x-mermaid">
+flowchart TD
+  start(["For each configured skill"]) --> q1["Coverage not_yet,<br/>or no coverage row?"]
+  q1 -->|yes| nr["Not assessed<br/>not_reached"]
+  q1 -->|no| q2["In the model's<br/>output?"]
+  q2 -->|no| om["Not assessed<br/>omitted_by_model"]
+  q2 -->|yes| q3["Level is an integer 1–5?<br/>3 · '3' · 'L3' · 3.0"]
+  q3 -->|"no: null, 0, 6, 'N/A', 'high'"| ie["Not assessed<br/>insufficient_evidence"]
+  q3 -->|yes| q4["Any quote found in<br/>a candidate turn?"]
+  q4 -->|yes| ok["Assessed<br/>level + confidence"]
+  q4 -->|no| low["Assessed<br/>confidence: low"]
+  nr --> tx
+  om --> tx
+  ie --> tx
+  ok --> tx
+  low --> tx
+  tx[["One transaction: replace the skills,<br/>carry overrides over by skill identity"]]
+  classDef q fill:#ffffff,stroke:#1a1d21,color:#1a1d21,stroke-width:1.5px
+  class q1,q2,q3,q4 q
+  classDef na fill:#f4f6f8,stroke:#5b6370,color:#1a1d21,stroke-dasharray:4 3
+  classDef yes fill:#e8f5ed,stroke:#157f3b,color:#0f4d25
+  class nr,om,ie na
+  class ok,low yes
+</script></div>
+  <p class="caption">Unverifiable quotes are dropped one by one. Any failure rolls back and leaves the previous portfolio intact.</p>
+
+  <h3>Delivery: umbrella PR, five sub-PRs</h3>
+  <div class="diagram"><script type="text/x-mermaid">
+flowchart LR
+  p1["1 · Tenant<br/>scoping"]
+  p2["2 · Web handles<br/>a null level"]
+  p3["3 · Data model,<br/>generator"]
+  p4["4 · Fit/gap<br/>engine"]
+  p5["5 · Portfolio,<br/>fit/gap screens"]
+  u(["Umbrella PR"])
+  p2 -->|"lands first"| p3
+  p3 --> p4 --> p5
+  p1 --> u
+  p5 --> u
+  classDef pr fill:#ffffff,stroke:#b9c0ca,color:#1a1d21
+  classDef umb fill:#1f5fbf,stroke:#1f5fbf,color:#ffffff
+  class p1,p2,p3,p4,p5 pr
+  class u umb
+</script></div>
+  <p class="caption">2 lands before 3 because a null level crashes the portfolio page today (P2-11). Each sub-PR is
+    reviewable on its own and flips its pinned known-defect tests to passing.</p>
 </section>
 
 <!-- ============================== STEP 5 ============================== -->
