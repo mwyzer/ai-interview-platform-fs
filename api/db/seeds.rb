@@ -77,6 +77,22 @@ else
   puts "  Created organization: id=#{result['id']} scheme=#{result['scheme']}"
 end
 
+# ── Dev admin user ───────────────────────────────────────────────────────────
+#
+# Lets you sign in at /login. Only admins can log in via POST /api/v1/auth/login.
+
+DEV_ADMIN = { email: "admin@example.com", password: "password123" }.freeze
+
+admin = User.find_or_initialize_by(email: DEV_ADMIN[:email])
+if admin.new_record?
+  admin.password = DEV_ADMIN[:password]
+  admin.role     = "admin"
+  admin.save!
+  puts "  Created admin user: #{DEV_ADMIN[:email]} / #{DEV_ADMIN[:password]}"
+else
+  puts "  Admin user already exists: #{DEV_ADMIN[:email]} (skipped)"
+end
+
 # ── B7 Skill Taxonomy (22 pilot skills) ──────────────────────────────────────
 
 B7_SKILLS = [
@@ -381,6 +397,8 @@ puts ""
 puts "Your test organization:"
 puts "  id     : #{org['id']}"
 puts "  scheme : #{org['scheme']}"
+puts ""
+puts "Sign in to the web app with: #{DEV_ADMIN[:email]} / #{DEV_ADMIN[:password]}"
 puts ""
 puts "To mint a JWT for testing, open the Rails console:"
 puts ""
