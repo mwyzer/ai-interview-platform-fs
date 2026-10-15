@@ -13,8 +13,16 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 1 | Setup findings written up | `chore/docker-dev-setup` · `52c36d6` |
 | 2026-10-15 | 1 | Own repo created (`mwyzer/ai-interview-platform`, private); `upstream` kept for the final PR | n/a |
 | 2026-10-15 | 3 | Product spec read, code traced, findings reproduced and written up | `docs/step-3-gap-analysis` · `076cca4` |
-| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` |
-| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | local config only |
+| 2026-10-15 | 3 | Setup log renamed to this work log; AI verification moments added | `docs/step-3-gap-analysis` · `5e19594` |
+| 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` · `b547005`, `e3189a9`, `d126db8` |
+| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | `test/rspec-harness` · `818e281` (log only; key never committed) |
+| 2026-10-15 | 1 | `.gitattributes`: LF for `api/bin/*` and `db/schema.rb` | `test/rspec-harness` (see 1.5) |
+
+**Branches** (all pushed to `origin` = `github.com/mwyzer/ai-interview-platform`, private). They're stacked, so each
+contains the ones before it: `main` → `chore/docker-dev-setup` → `docs/step-3-gap-analysis` → `test/rspec-harness`.
+
+**Local-only changes** (gitignored, never committed): `api/config/application.yml` (secret key base, Gemini key,
+model IDs), `web/.env` (dev JWT), and synthetic test data in the local database.
 
 ---
 
@@ -80,6 +88,18 @@ defined) or a **defective implementation** (defined but broken).
   P2-3 (Faraday never retries POST).
 - **Follow-up for the Tech Lead:** model IDs should come from configuration with a startup check, not hardcoded
   defaults that go stale; and which tier or quota production runs on.
+
+### 1.5 Line endings fixed at the source
+
+- **Problem** (first noted in 1.3): on a Windows checkout, `api/bin/*` had CRLF endings, so Ruby warned
+  `shebang line ending with \r` on every command in the container. Every `rails db:migrate` also rewrote
+  `db/schema.rb` with LF endings, leaving a permanent fake change in `git status`.
+- **Category:** defective implementation (repo configuration). P3, developer friction only.
+- **Fix:** a root `.gitattributes` pins `api/bin/*` and `api/db/schema.rb` to `eol=lf`, and the affected files were
+  checked out again. Scoped to just these paths on purpose: a repo-wide rule would renormalize every file and
+  bury real changes in a huge diff.
+- **Verified:** `file` reports no CRLF in `api/bin/*` or `db/schema.rb`, and `git status` is clean after a migrate
+  run.
 
 ---
 
