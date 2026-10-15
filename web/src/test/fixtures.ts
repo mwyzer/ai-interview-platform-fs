@@ -115,3 +115,49 @@ export const candidateInfo = {
 };
 
 export const notFound = (message: string) => ({ errors: [{ status: 404, message }] });
+
+// Messages on the live monitor's WebSocket, exactly as the API publishes them
+// (pinned by api/spec/integration/coverage_channel_spec.rb).
+const coverageSkill = (id: number, skill_label: string, state: string, probe_count: number, extra: Record<string, unknown> = {}) => ({
+  id, skill_id: null, skill_label, is_discovered: false, state, probe_count, last_signal: null, ...extra,
+});
+
+export const coverageMessages = {
+  // Sent by CoverageWebSocketMiddleware right after auth.
+  initial: (status = "active", end_reason: string | null = null) => ({
+    type: "coverage_update",
+    status,
+    end_reason,
+    skills: [
+      coverageSkill(1, "React", "partial", 2, { skill_id: "SK-ENG-001", last_signal: "Profiled with React DevTools" }),
+      coverageSkill(2, "Communication", "not_yet", 0),
+      coverageSkill(3, "System Design", "not_yet", 0),
+    ],
+    discovered: [] as unknown[],
+  }),
+  // Published by CoverageAnalyzerWorker after each analysis.
+  update: () => ({
+    type: "coverage_update",
+    skills: [
+      coverageSkill(1, "React", "covered", 5, { skill_id: "SK-ENG-001" }),
+      coverageSkill(2, "Communication", "initiated", 1),
+      coverageSkill(3, "System Design", "not_yet", 0),
+    ],
+    discovered: [coverageSkill(4, "Micro-frontend Architecture", "initiated", 1, { is_discovered: true })],
+  }),
+  // Published by Sessions::EndHandler.
+  ended: (end_reason = "time_ceiling") => ({ type: "session_status", status: "ended", end_reason }),
+};
+
+export const activeSession = {
+  session: { ...session, status: "active", end_reason: null, ended_at: null, duration_seconds: null,
+             assessment: { id: 7, name: "Senior Frontend Engineer", time_limit_min: 45 } },
+};
+
+export const transcriptTurns = (from: number, count: number) => ({
+  turns: Array.from({ length: count }, (_, i) => ({
+    id: from + i, turn_number: from + i, speaker: (from + i) % 2 ? "ai" : "candidate",
+    text: `Turn ${from + i}`, audio_start_ms: null, audio_end_ms: null, created_at: "2026-10-01T09:00:00Z",
+  })),
+  total: count,
+});
