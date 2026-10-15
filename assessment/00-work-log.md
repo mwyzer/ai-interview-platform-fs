@@ -23,6 +23,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `4b363ec` |
 | 2026-10-15 | 3 | Findings from the functional tests added (P1-11, P1-12, P2-11) | `docs/step-3-gap-analysis` · `1c36a91` |
 | 2026-10-15 | 4 | Delivery plan: web null-level fix lands before the API change | `docs/step-4-strategy` · `814072d` |
+| 2026-10-16 | 1/5 | Testing overview: layers, inventory, known-defect pins, and the gaps in priority order ([testing.md](testing.md)) | `test/integration-tests` |
 | 2026-10-16 | 3 | Findings from the unit and integration tests added (P1-13, P2-12, P2-13, P3, C7) | `docs/step-3-gap-analysis` · `93101ac` |
 | 2026-10-16 | 1/5 | Integration tests: Postgres, Redis channel, Rack pipeline, Sidekiq inline; live monitor REST + WebSocket; API contract | `test/integration-tests` · `164d12c`, `b0058f9` |
 | 2026-10-16 | 1/5 | Unit tests: API services, clients, auth, models, workers; web utils, client, hooks, components | `test/unit-tests` · `f1aeec2`, `0a96f4d` |

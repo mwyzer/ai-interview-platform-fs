@@ -121,7 +121,8 @@ flowchart TD
 
 ### Progress
 
-Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
+Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md). What's tested, what each test layer is for,
+and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
 
 #### Done
 
