@@ -14,6 +14,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 1 | Own repo created (`mwyzer/ai-interview-platform`, private); `upstream` kept for the final PR | n/a |
 | 2026-10-15 | 3 | Product spec read, code traced, findings reproduced and written up | `docs/step-3-gap-analysis` · `076cca4` |
 | 2026-10-15 | 1/3 | RSpec harness + 67 passing specs + 11 pending specs that pin the Step 3 defects | `test/rspec-harness` |
+| 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | local config only |
 
 ---
 
@@ -57,6 +58,28 @@ defined) or a **defective implementation** (defined but broken).
 - **Wrong default port:** `web/.env.example` points to the API on port 3000, but the API serves on 3001.
 - **Empty Postgres is fine:** the seeds create `public.organizations` themselves, so the platform runs without the
   `rakamin-api` database it normally shares.
+
+### 1.4 Gemini access: the default models no longer exist
+
+- **Where the key lives:** `api/config/application.yml` (gitignored, loaded by Figaro). It's never committed and
+  never printed in logs or scripts.
+- **Severity:** P1 (constraint C1 confirmed). With the repo's defaults, every model call fails, so no interview,
+  coverage analysis or portfolio can run.
+- **Category:** defective implementation (configuration)
+- **Found:** listing models with the key returned HTTP 200, but all three configured IDs are gone:
+  `gemini-2.0-pro-001`, `gemini-2.0-flash-001` and `gemini-2.0-flash-live-001`. `gemini-2.5-*` is still listed,
+  but `generateContent` answers 404 "no longer available to new users". Pro models (`gemini-3.1-pro-preview`,
+  `gemini-4-argon`) answer 429: the key's tier has no Pro quota.
+- **Local config now:** `GEMINI_PRO_MODEL` and `GEMINI_FLASH_MODEL` = `gemini-3.5-flash`; `GEMINI_LIVE_MODEL` =
+  `gemini-3.1-flash-live-preview` (already the code default in `Gemini::LiveClient`, but overridden by the old value
+  in the yml).
+- **Assumption to state in the report:** in local development, the portfolio generator (N10) runs on a Flash model
+  instead of Pro because of quota. Ratings produced locally aren't representative of Pro quality.
+- **Verified:** through the app's own `Gemini::HttpClient`, the Pro slot call returned `{"ok"=>true}`. A second call
+  to the same model seconds later returned **503 "high demand"** and was not retried. That's live confirmation of
+  P2-3 (Faraday never retries POST).
+- **Follow-up for the Tech Lead:** model IDs should come from configuration with a startup check, not hardcoded
+  defaults that go stale; and which tier or quota production runs on.
 
 ---
 
