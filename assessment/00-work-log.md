@@ -18,11 +18,12 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 1 | Gemini API key configured locally; default model IDs found retired | `test/rspec-harness` · `818e281` (log only; key never committed) |
 | 2026-10-15 | 1 | `.gitattributes`: LF for `api/bin/*` and `db/schema.rb` | `test/rspec-harness` (see 1.5) |
 | 2026-10-15 | 3 | Assessment list findings added (P1-8, P1-9, P2-6..P2-9) | `docs/step-3-gap-analysis` · `4f746a8` |
-| 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` |
+| 2026-10-15 | 2 | Domain immersion: 5 pillars, UU PDP mapping, Gemini tier constraint | `docs/step-2-domain-immersion` · `a026e8f` |
+| 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` |
 
 **Branches** (all pushed to `origin` = `github.com/mwyzer/ai-interview-platform`, private). They're stacked, so each
 contains the ones before it: `main` → `chore/docker-dev-setup` → `docs/step-3-gap-analysis` → `test/rspec-harness` →
-`docs/step-2-domain-immersion`.
+`docs/step-2-domain-immersion` → `docs/step-4-strategy`.
 
 **Local-only changes** (gitignored, never committed): `api/config/application.yml` (secret key base, Gemini key,
 model IDs), `web/.env` (dev JWT), and synthetic test data in the local database.
