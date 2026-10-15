@@ -529,6 +529,78 @@ flowchart LR
     wrong or risky, and how it was caught.</p></div>
 </section>
 
+<!-- ============================== PRIVACY ROADMAP ============================== -->
+<section>
+  <h2><span class="step">Privacy roadmap · UU PDP</span>Compliant by default, ready for the decisions only legal can make</h2>
+
+  <p>I don't decide the law. My job is to make the product safe by default, and to make sure that whatever legal
+    decides can be enforced by the system instead of by convention. So the roadmap splits into work that needs no
+    decision (stop the leaks now) and mechanisms whose settings legal fills in (retention, consent wording).</p>
+
+  <h3>What personal data exists, and where it goes</h3>
+  <table>
+    <tr><th style="width:24%">Data</th><th style="width:24%">Lives in</th><th>Goes to</th><th style="width:16%">Retention today</th></tr>
+    <tr><td><strong>Voice audio</strong></td><td>60-second memory buffer on the API</td><td>Google Gemini Live, outside Indonesia</td><td>Not stored by us</td></tr>
+    <tr><td><strong>Transcript</strong></td><td><code>transcript_turns</code></td><td>Gemini, for coverage analysis and the portfolio</td><td>None set</td></tr>
+    <tr><td><strong>Ratings, quotes, summaries</strong> (profiling)</td><td><code>portfolio_skills</code></td><td>Assessors, hiring managers, the PDF export</td><td>None set</td></tr>
+    <tr><td><strong>Candidate name</strong> (optional)</td><td><code>sessions</code></td><td>Portfolio, PDF export</td><td>None set</td></tr>
+    <tr><td><strong>Assessor notes</strong></td><td><code>assessor_overrides</code></td><td>The request log, in plain text (P1-7)</td><td>None set</td></tr>
+    <tr><td><strong>IP and device details</strong></td><td>Not stored</td><td>Five third-party hosts during the hardware check, before any notice (P1-12)</td><td>Their policies</td></tr>
+  </table>
+
+  <div class="diagram"><script type="text/x-mermaid">
+flowchart LR
+  cand["Candidate's<br/>browser"]
+  api["Interview API"]
+  db[("Postgres<br/>transcript, portfolio")]
+  gem["Google Gemini<br/>outside Indonesia"]
+  rev["Assessor and<br/>hiring manager"]
+  pdf["PDF export<br/>leaves the system"]
+  third["5 third-party hosts<br/>(P1-12)"]
+  logs["Request log<br/>(P1-7)"]
+  other["Admin at<br/>another company (P0-2)"]
+  cand -->|"audio, every turn"| api
+  api -->|"audio, transcript"| gem
+  api --> db
+  db --> rev
+  rev --> pdf
+  cand -.->|"IP, device"| third
+  api -.->|"passwords, notes"| logs
+  db -.->|"read and write"| other
+  classDef leak fill:#fdecea,stroke:#b42318,color:#7a1a12,stroke-width:1.5px
+  classDef ext fill:#fff8e6,stroke:#d9a520,color:#5c3d00
+  class third,logs,other leak
+  class gem,pdf ext
+</script></div>
+  <p class="caption">Red, dashed: flows that shouldn't exist. Amber: data that leaves our control and needs a documented basis.</p>
+
+  <h3>The roadmap</h3>
+  <table>
+    <tr><th style="width:21%">Phase</th><th>What I'd build</th><th style="width:14%">UU PDP</th><th style="width:15%">Needs a decision?</th></tr>
+    <tr><td class="n">0 · Stop the leaks</td><td>Tenant scoping (P0-2, sub-PR 1 of this change). Filter passwords and notes from logs (P1-7). Hardware check against our own <code>/speed_test</code> (P1-12). A deploy check that refuses the free model tier in production. CORS limited to the web app's origin.</td><td>Security of processing; Art. 5, 21</td><td>No. Small PRs, ship now</td></tr>
+    <tr><td class="n">1 · Notice and recorded consent</td><td>A notice before the mic opens, in the interview's language: AI interview and AI rating, purpose, who sees it, Google processes the audio, retention, how to ask for deletion. Consent stored as a record (session, notice version, language, time), and a session can't start without one. Declining leads to "contact the recruiter", with no penalty. Fix the broken-link message (P1-11).</td><td>Art. 5, 20–22</td><td>Wording only. The mechanism doesn't wait: the text is versioned</td></tr>
+    <tr><td class="n">2 · A human stays accountable</td><td>No auto-reject, ever. Record who reviewed a portfolio and when, and show it. A channel for the candidate to object. Ratings that say "not assessed" instead of a fabricated L1 (this change).</td><td>Art. 10</td><td>Who handles objections</td></tr>
+    <tr><td class="n">3 · Retention, access, erasure</td><td>Retention configurable per tenant, enforced by a scheduled purge. Erase one candidate's data: transcript, portfolio, overrides, export. Export it for an access request. Every deletion in an audit log.</td><td>Art. 7, 8, 44</td><td><strong>Yes</strong>: the retention period</td></tr>
+    <tr><td class="n">4 · Incident readiness</td><td>An audit log of access to candidate data, an alert on cross-tenant access attempts, and a runbook. Without a log, a breach can't be detected, let alone reported in time.</td><td>Art. 46 (3×24 hours)</td><td>Who notifies</td></tr>
+  </table>
+
+  <div class="callout small"><p><strong>Data minimization in the consent record.</strong> It stores the session,
+    the notice version, the language and the time. It doesn't store the IP address or a device fingerprint, because
+    proving consent doesn't need them.</p></div>
+
+  <h3>What I'd escalate, and what I'd bring</h3>
+  <table>
+    <tr><th style="width:30%">Decision</th><th>Why it isn't an engineering call</th><th style="width:30%">What I bring to make it quick</th></tr>
+    <tr><td><strong>Controller vs processor</strong> between the client company and the platform</td><td>It decides who owns the notice, the objection channel and the erasure flow.</td><td>The data map above</td></tr>
+    <tr><td><strong>Lawful basis</strong>: consent or legitimate interest</td><td>It changes whether declining must be possible without consequence.</td><td>The consent flow, built either way</td></tr>
+    <tr><td><strong>Retention period</strong></td><td>A business and legal trade-off: re-review and disputes vs exposure.</td><td>The purge mechanism, waiting for a number</td></tr>
+    <tr><td><strong>Impact assessment</strong> (Art. 34) and <strong>cross-border basis</strong> for Google (Art. 56)</td><td>Automated profiling with significant effects qualifies as high risk; the transfer needs safeguards.</td><td>Data flow, risk list (Step 3), model tier terms</td></tr>
+    <tr><td><strong>Should candidates see their own portfolio?</strong></td><td>Good for trust and the right of access, but it changes what the product is.</td><td>Effort estimate; the export from phase 3</td></tr>
+  </table>
+  <p class="small muted">Articles refer to Law 27/2022 and are paraphrased; I'm not a lawyer, and the mapping should be
+    checked by legal counsel.</p>
+</section>
+
 <!-- ============================== ASSUMPTIONS ============================== -->
 <section>
   <h2><span class="step">Assumptions and open questions</span>What I decided without being able to ask</h2>
@@ -546,13 +618,11 @@ flowchart LR
 
   <h3>Next, in order</h3>
   <ol>
-    <li><strong>Candidate notice and recorded consent</strong> before the mic opens, in the interview's language
-      (UU PDP Art. 20–22), with two candidate-side fixes: a broken link must not say "recorded" (P1-11), and the
-      hardware check must use our own API (P1-12).</li>
+    <li><strong>Privacy phases 0 and 1</strong> (see the privacy roadmap): stop the leaks, then notice and recorded
+      consent before the mic opens, with the broken-link message (P1-11) and the hardware check (P1-12).</li>
     <li>Server-side lock against duplicate fit/gap jobs (P1-6); retries that actually fire (P2-3); a deploy check for
       the paid model tier.</li>
     <li>Confidence-aware fit/gap verdicts and a decision on past ratings (Option C), with product sign-off.</li>
-    <li>Log filtering for passwords and notes (P1-7).</li>
   </ol>
 </section>
 
