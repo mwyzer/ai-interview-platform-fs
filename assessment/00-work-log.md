@@ -23,6 +23,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-15 | 4 | Strategy: 30 acceptance criteria, options A/B/C compared, Option B chosen | `docs/step-4-strategy` · `13c60db` |
 | 2026-10-15 | 3 | Findings from the functional tests added (P1-11, P1-12, P2-11) | `docs/step-3-gap-analysis` · `1c36a91` |
 | 2026-10-15 | 4 | Delivery plan: web null-level fix lands before the API change | `docs/step-4-strategy` · `d591121` |
+| 2026-10-16 | 1/5 | Unit tests: API services, clients, auth, models, workers; web utils, client, hooks, components | `test/unit-tests` · `3697014`, `04d3ce7` |
 | 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `2ca7c38`, `4f39635`, `6a5c763` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
@@ -30,7 +31,7 @@ the one that changed.
 
 **Branches** (all pushed to `origin` = `github.com/mwyzer/ai-interview-platform`, private). They're stacked, so each
 contains the ones before it: `main` → `chore/docker-dev-setup` → `docs/step-3-gap-analysis` → `test/rspec-harness` →
-`docs/step-2-domain-immersion` → `docs/step-4-strategy` → `test/functional-tests`.
+`docs/step-2-domain-immersion` → `docs/step-4-strategy` → `test/functional-tests` → `test/unit-tests`.
 
 **Local-only changes** (gitignored, never committed): `api/config/application.yml` (secret key base, Gemini key,
 model IDs), `web/.env` (dev JWT), and synthetic test data in the local database.
@@ -186,7 +187,45 @@ branch, show the suite catch it, revert) belongs to Step 5.
 
 **Run:** see the "Running the API tests" section of the root `README.md`.
 
-## Functional tests (API and web)
+## Unit tests (API and web)
+
+Unit tests check one piece on its own, with its edges spelled out. They're the fastest to run and the most precise
+about *where* something broke.
+
+**API** (75 new examples, 3 `pending`). Full suite: 167 examples, 0 failures, 17 pending.
+
+| Area | What the specs pin down |
+|---|---|
+| `Assessments::SystemPromptCompiler` | Every skill and its five anchors in display order; scope lines only when written; the assessment's language, English when unset; PRD rules present; long multi-line anchors intact |
+| `Sessions::EndHandler` | Reason, end time and duration recorded; one portfolio, one job; a second end changes nothing; `error` upgraded by a later manual end but never the reverse; unknown reason → `manual_assessor`; still ends when Redis is down |
+| `Sessions::StartHandler` | Activates the session; one `not_yet` row per skill in order; a reconnect doesn't reset coverage |
+| `JsonWebToken`, `AuthorizeApiRequest` | Round trip; default and caller-set expiry; expired, forged, `alg: none` and garbage tokens refused; role checks for `:assessor`, `:any` and exact roles |
+| `AudioRingBuffer` | Order and size; evicts oldest past capacity; drops an oversized chunk; time slicing; stores a frozen copy |
+| `Gemini::HttpClient` | Runs the real Faraday stack (retry included) with Faraday's test adapter: key in a header, not the URL; JSON, fenced JSON and prose answers; blocked prompt; 429, 500, timeout and connection errors mapped |
+| `Exports::PdfGenerator` | Renders a PDF; fit/gap on its own page only when a report exists; empty portfolio; very long text flows over pages; Indonesian text and typed punctuation |
+| Models, workers | Validations for every model with rules; an assessment with sessions can't be deleted; prompt and fit/gap workers skip missing records and re-raise real failures |
+
+**Web** (57 new tests, 9 `it.fails`), next to their source files: `parseLevel` and labels, `cn`, browser and OS
+detection, the speed test offline, token storage, the axios client (bearer token, envelope unwrapping, sign-out on
+401 but not 500), `usePolling` with fake timers, and the level badge, confidence indicator, skill card, override
+panel, comparison table, interview timer, connection status and error boundary. Full suite: 82 tests, 62 passing,
+20 expected to fail.
+
+**Checked:** every new `pending` and `it.fails` test was run as a normal test and fails on its assertion for the
+stated reason. Deliberate faults were caught: the buffer's eviction bound and the prompt's skill order (API), the
+timer's warning threshold and the polling hook's latest-function ref (web).
+
+**Found by the unit tests** (not yet in Step 3):
+
+- **The PDF export crashes for any portfolio with an override.** The generator's own text, `AI: L2 → Override: L4`,
+  uses `→`, which Prawn's built-in fonts (Windows-1252 only) can't encode. Evidence quotes with emoji or non-Latin
+  script crash it too. The assessor gets a 500 instead of the document they share with the hiring manager. Likely
+  P1: overriding is the human-in-the-loop step, so the most-reviewed portfolios are the ones that can't be exported.
+- **An offline connection is reported as 4 Mbps upload.** When every upload attempt fails, the speed test returns a
+  "conservative fallback" of 0.5 MB/s, exactly the minimum, so the upload line shows green. P3: ping still fails the
+  check overall.
+- **Edge is shown as Chrome, Android as Linux** on the hardware check. P3: display only.
+
 
 Unit and request specs check one piece at a time. Functional tests check a whole path the way a user takes it,
 so they also catch breaks *between* pieces: the seam between `api/` and `web/`, and the hand-off between a request

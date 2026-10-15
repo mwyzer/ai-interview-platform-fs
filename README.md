@@ -59,8 +59,9 @@ cd web && npm install --include=dev && npm test      # or on the host, with Node
 
 `--include=dev` matters if your shell sets `NODE_ENV=production`, which makes npm skip devDependencies.
 
-The tests in `web/src/test/functional` render the whole app at a URL (real routes, guards, services and error
-boundary) with Vitest and Testing Library. Only the network is faked, at the HTTP level, with MSW; a request with no
+Unit tests sit next to the code they test (`*.test.ts(x)` beside the source file): utilities, the API client,
+hooks and components, each on its own. The tests in `web/src/test/functional` render the whole app at a URL (real
+routes, guards, services and error boundary) with Vitest and Testing Library. Only the network is faked, at the HTTP level, with MSW; a request with no
 handler fails the test. Fixtures in `web/src/test/fixtures.ts` follow the exact shape of the API's responses.
 Known defects use `it.fails`: the test passes while the defect exists, and must become `it` in the commit that fixes
 it.
@@ -117,10 +118,14 @@ Rules for working on this repo are in [`GUARDRAILS.md`](GUARDRAILS.md).
         pin known defects
   - [x] LF line endings pinned for `api/bin/*` and `db/schema.rb`
 - [x] **Functional tests** (API and web)
-  - [x] API: whole journeys over HTTP (`api/spec/functional`): 11 passing, 3 `pending` known defects. Full API
-        suite: 92 examples, 14 pending
+  - [x] API: whole journeys over HTTP (`api/spec/functional`): 11 passing, 3 `pending` known defects
   - [x] Web: Vitest + Testing Library + MSW harness; 14 passing page-level tests, 11 `it.fails` known defects
-  - [x] Every known-defect test checked to fail on its assertion; a deliberate fault in each suite was caught
+- [x] **Unit tests** (API and web)
+  - [x] API: prompt compiler, session start/end, JWT, audio buffer, Gemini HTTP client, PDF export, request
+        authorization, model validations, workers: 72 passing, 3 `pending`
+  - [x] Web: utilities, API client, polling hook and components: 48 passing, 9 `it.fails`
+  - [x] Totals: API 167 examples, 17 pending; web 82 tests, 20 expected to fail. Every known-defect test checked to
+        fail on its assertion, and deliberate faults were caught in each suite
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
       AI adoption in Indonesian hiring, UU PDP mapping, Gemini free-tier constraint
 - [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked

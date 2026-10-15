@@ -55,6 +55,8 @@ quietly work around it.
 - **`pending` (API) and `it.fails` (web) mean a known defect.** Each pins one finding from Step 3. When the fix
   lands, the test starts failing; remove the marker in the same commit as the fix. Both accept *any* failure, so
   check each one by running it as a normal test and reading why it fails (AI verification moments 5 and 7).
+- **Unit tests sit beside their source** (`foo.ts` → `foo.test.ts`; API specs mirror `app/` under `spec/`).
+  Functional tests live in `api/spec/functional` and `web/src/test/functional`.
 - **Web tests fake only the network**, at the HTTP level (MSW). Don't mock the app's own services or components.
   A request without a handler fails the test; add a handler rather than loosening that check.
 - **Specs never call Gemini.** Use `spec/support/fake_gemini.rb`. Tests that need the network aren't tests.
