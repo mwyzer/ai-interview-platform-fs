@@ -197,13 +197,20 @@ coverage shows `not_yet`, so the team can see how many results are affected and 
 Brief Option B: an umbrella PR plus focused sub-PRs, each reviewable on its own.
 
 1. **Tenant scoping** for portfolio export, override and fit/gap reads (P0-2). Removes 3 pending specs.
-2. **Data model + generator** (AC-1..AC-12, AC-17..AC-21).
-3. **Fit/gap engine + payload** (AC-13..AC-16).
-4. **Web test runner + portfolio and fit/gap screens** (AC-22..AC-30).
+2. **Web: tolerate a missing level** (AC-23): `parseLevel` returns `null` instead of throwing, and the cards and
+   override panel handle it. This has to land **before or with** sub-PR 3: today a `null` level crashes the whole
+   portfolio page (Step 3, P2-11), so the API change alone would take the review screen down.
+3. **Data model + generator** (AC-1..AC-12, AC-17..AC-21).
+4. **Fit/gap engine + payload** (AC-13..AC-16).
+5. **Portfolio and fit/gap screens** (AC-22, AC-24..AC-30). The web test runner already exists (branch
+   `test/functional-tests`); these change the matching `it.fails` tests to `it`.
 
 ## Follow-ups (not in this change)
 
-- Candidate notice and recorded consent before the mic opens, in the interview language (P2-4). Next in line.
+- Candidate notice and recorded consent before the mic opens, in the interview language (P2-4). Next in line,
+  together with two candidate-side fixes found by the functional tests: a broken invite link must not say the
+  interview "has been recorded" (P1-11), and the hardware check must measure against our own API, not third
+  parties (P1-12).
 - Confidence-aware fit/gap verdicts and a decision on past ratings (Option C).
 - Duplicate fit/gap jobs on the server side (P1-6): the web fix in AC-26 removes the main trigger; a server-side
   lock is still needed.
