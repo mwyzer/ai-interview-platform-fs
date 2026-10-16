@@ -27,18 +27,18 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
 
-### Web (Vitest, Testing Library, MSW): 97 tests, 74 passing, 23 expected to fail
+### Web (Vitest, Testing Library, MSW): 130 tests, 111 passing, 19 expected to fail
 
 | Suite | Tests | Covers |
 |---|---|---|
-| Unit | 58 (10 expected to fail) | `parseLevel` and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card, override panel, comparison table, timer, connection status, error boundary |
-| Functional | 25 (11 expected to fail) | Sign-in and the route guard; assessment list; portfolio review, generating, failed and retry, overrides; fit/gap; the candidate page from a link |
+| Unit | 90 (8 expected to fail) | `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card and override panel (including a skill with no level), comparison table, timer, connection status, error boundary |
+| Functional | 26 (9 expected to fail) | Sign-in and the route guard; assessment list; portfolio review, generating, failed and retry, overrides; fit/gap; the candidate page from a link |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
 
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
 `API_INTEGRATION_URL`, `API_INTEGRATION_EMAIL` and `API_INTEGRATION_PASSWORD`, and must run from the host.
 
-Without the API, the run is 67 passing, 23 expected to fail, 7 skipped.
+Without the API, the run is 104 passing, 19 expected to fail, 7 skipped.
 
 ### How the tests were checked
 
@@ -57,7 +57,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 
 | Finding ([Step 3](03-problem-and-gap.md)) | API (`pending`) | Web (`it.fails`) |
 |---|---|---|
-| P0-1 unassessed skill stored as L1 | generator; functional journey | `parseLevel`; portfolio page |
+| P0-1 unassessed skill stored as L1 | generator; functional journey | ~~`parseLevel`; portfolio page~~ **fixed** in sub-PR 2 |
 | ~~P0-2 cross-tenant read/write~~ **fixed** in sub-PR 1 | export, override, fit/gap read and both fit/gap writes now pass | |
 | P1-1 fit/gap counts unreached skills as gaps | engine; functional journey | |
 | P1-2 web reads `required_level`, API sends `expected_level` | | comparison table; fit/gap page |
@@ -75,9 +75,9 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P2-1 portfolio load error is a blank page | | portfolio page |
 | P2-3 Gemini retries never fire | HTTP client | |
 | P2-4 no notice before the interview | | candidate page |
-| P2-5 fit/gap summary leaves out "not assessed" | | comparison table |
+| P2-5 fit/gap summary leaves out "not assessed" | | comparison table (the discovered-skill level, part of P2-5, is fixed in sub-PR 2) |
 | P2-6 list shows error and empty state together | | assessment list |
-| P2-11 null level crashes the portfolio page | | `parseLevel` |
+| ~~P2-11 null level crashes the portfolio page~~ **fixed** in sub-PR 2 | | `parseLevel` now passes |
 | P2-12 monitor misses an end during reconnect | | live monitor |
 | P2-13 monitor gives up reconnecting silently | | live monitor |
 | P3 (override label, optional reason, Edge, Android, offline upload) | | override panel (×2), hardware utils (×2), speed test |
