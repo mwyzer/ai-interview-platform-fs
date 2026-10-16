@@ -96,8 +96,6 @@ RSpec.describe FitGap::Engine do
     end
 
     it 'AC-13: reports a skill with no level as not assessed, with its reason, not as a gap' do
-      pending 'AC-13: candidate_level - expected_level with a nil level'
-
       expect(comparison_for(run, 'Communication')).to include(
         'result' => 'not_assessed', 'candidate_level' => nil, 'delta' => nil, 'confidence' => nil,
         'not_assessed_reason' => 'not_reached'
@@ -105,14 +103,10 @@ RSpec.describe FitGap::Engine do
     end
 
     it 'AC-13: says when the vacancy asks for a skill the interview was not set up to assess' do
-      pending 'AC-13: no reason for a vacancy skill missing from the portfolio'
-
       expect(comparison_for(run, 'Kubernetes')).to include('result' => 'not_assessed', 'not_assessed_reason' => 'not_in_assessment')
     end
 
     it "AC-14: compares the assessor's rating of an unrated skill like any other, and flags it" do
-      pending 'AC-14: no is_override in the comparison'
-
       create(:assessor_override, portfolio_skill: unrated, ai_level: nil, override_level: 3, assessor_notes: 'Round two')
 
       expect(comparison_for(run, 'Communication')).to include(
@@ -121,16 +115,12 @@ RSpec.describe FitGap::Engine do
     end
 
     it 'AC-15: sends the expected level under both names, the override flag and the confidence' do
-      pending 'AC-15: the payload has expected_level only, and no is_override'
-
       expect(comparison_for(run, 'React')).to include(
         'expected_level' => 3, 'required_level' => 3, 'is_override' => false, 'confidence' => 'high', 'result' => 'gap'
       )
     end
 
     it 'AC-16: counts not-assessed skills in the fallback narrative' do
-      pending 'AC-16: the fallback text leaves out not-assessed skills'
-
       report = run(Gemini::HttpClient::ApiError.new('API returned 503'))
 
       expect(report.overall_narrative).to eq(
@@ -139,8 +129,6 @@ RSpec.describe FitGap::Engine do
     end
 
     it 'tells the narrative model that not-assessed skills were not measured, not weak' do
-      pending 'the narrative prompt lists not-assessed skills without saying what they mean'
-
       client = FakeGemini.new(narrative)
       described_class.new(portfolio:, vacancy:, gemini_client: client).call
 
@@ -148,12 +136,11 @@ RSpec.describe FitGap::Engine do
     end
 
     it "never logs the model's text when the narrative reply can't be read" do
-      pending 'the narrative error log includes the parser message, which quotes the model'
-
       logged = []
       allow(Rails.logger).to receive(:error) { |message| logged << message }
 
-      run('Here is the narrative for Budi Santoso:')
+      # Starts with the personal data: a JSON parser error quotes only the first token of the reply.
+      run('Budi Santoso is a strong communicator.')
 
       expect(logged.join("
 ")).not_to include('Budi')
@@ -162,8 +149,6 @@ RSpec.describe FitGap::Engine do
 
   describe 'known defects (Step 3)' do
     it 'P1-1: reports a skill the interview never reached as not assessed, not as a gap' do
-      pending 'P0-1/P1-1: an unrated skill reaches fit/gap as a fabricated L1'
-
       assessment_with_skills = create(:assessment, :with_skills, organization:)
       ended = create(:session, :ended, assessment: assessment_with_skills)
       create(:transcript_turn, session: ended, text: 'We profiled with React DevTools.')
