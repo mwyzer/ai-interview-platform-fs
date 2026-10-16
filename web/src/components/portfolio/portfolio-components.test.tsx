@@ -137,7 +137,7 @@ describe("a skill the AI could not rate", () => {
     await user.click(screen.getByRole("button", { name: "Save rating" }));
 
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(sent).toMatchObject({ override_level: 2 });
+    expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "" } });
   });
 
   it.fails("shows the assessor's rating next to 'Not assessed' once rated", () => {
