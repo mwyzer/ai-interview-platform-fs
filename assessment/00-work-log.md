@@ -37,6 +37,8 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-16 | 5 | Sub-PR 3: migration + generator: "not assessed" is stored, never a fabricated level (P0-1, P1-3, P1-4, P1-5; AC-1..12, 17..21) | `feat/not-assessed-generator` · `4a4f5ca`, `69aebe4`, `8cb0a9d`, `841fb35`, `5192358` |
 | 2026-10-16 | 5 | Seeded fault test: the clamp put back on purpose, caught by 13 specs, reverted | `feat/not-assessed-generator` · `27f49f3`, `5b34128` |
 | 2026-10-16 | 5 | Sub-PR 4: fit/gap reports not-assessed skills as unknowns, not gaps (P1-1, AC-13..16) | `feat/fitgap-not-assessed` · `bb4b797`, `dedee56`, `054c6b9` |
+| 2026-10-16 | 5 | Sub-PR 5: portfolio and fit/gap screens show "not assessed" with the reason; error, retry, long-text and 375px states (P1-2, P2-1, P2-5; AC-20, 22, 24..30) | `feat/not-assessed-screens` · `5e30533`, `342adec`, `c40c78d`, `8e0a650` |
+| 2026-10-16 | 6 | Report: Step 5 filled in, with screenshots of every state at 1280px and 375px | `feat/not-assessed-screens` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
@@ -473,6 +475,33 @@ with the name, and fail with the leak put back.
 | Narrative | "1 skill matches, 0 exceeds, and 2 gaps" | "…remain unassessed, the candidate should advance… The upcoming round should focus specifically on probing these open areas." |
 
 (React shows an L5 override: that's the cross-tenant write left over from the Step 3 reproduction, synthetic data.)
+
+### Sub-PR 5: the screens show "not assessed" as an unknown (AC-20, AC-22, AC-24..AC-30)
+
+**What changed.** Portfolio: each unrated skill says why in plain language ("Not reached before the interview
+ended", "Not enough evidence to rate", "Missing from the AI's output") and suggests probing it next; a summary
+line counts them and says how the interview ended, without repeating `all_covered`, which anyone with the link can
+send (P1-10). Rating an unrated skill asks where the rating comes from, as the API requires (AC-20). A load failure
+shows an alert with Try again (P2-1); long quotes and summaries collapse behind Show more. Fit/gap: the Required
+column reads `expected_level` (P1-2), unassessed rows say why, the summary counts them apart from gaps (P2-5),
+generation is requested once per visit (P1-6, web side), and after two minutes of waiting an alert with Try again
+replaces the spinner. At 375px cards, headers and comparison rows stack; the app header collapses to icons.
+
+**Tests first** (`5e30533`): new `it.fails` tests for every AC above, each run as a normal test against the old code
+and failing because the feature was missing. Two existing tests changed first, each in its own commit with the
+reason: the add-rating test now types a note (`342adec`), and the comparison-row helper matches the start of the
+skill cell, since the cell now also holds the reason (`c40c78d`). After the change (`8e0a650`) 29 markers come off.
+Web: 146 tests, 126 passing, 13 expected to fail (all outside this change), 7 opt-in skipped; `tsc` clean. API
+unchanged: 263 examples, 0 failures, 6 pending.
+
+**In the browser** (dev stack, synthetic sessions 1 and 6 to 9, Playwright against Chrome): every state at 1280px,
+and portfolio, fit/gap and long text at 375px. At 375px `scrollWidth` equals the viewport on all three pages, which
+closes the check left open in `8e0a650` (the Docker daemon had stopped before the header change could be seen).
+The screenshots are in `report/screenshots/`. The fit/gap "generating" state was captured with Sidekiq stopped,
+then Sidekiq was started again.
+
+**Seen, not changed:** a failed portfolio still offers PDF and JSON export. It predates this work; worth a look
+with the export fixes (P1-13).
 
 ## AI verification moments
 
