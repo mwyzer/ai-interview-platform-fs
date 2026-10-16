@@ -16,11 +16,11 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 195 examples, 0 failures, 17 pending
+### API (RSpec): 200 examples, 0 failures, 14 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
-| Original harness | 78 (11 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker |
+| Original harness | 83 (6 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker |
 | Functional | 14 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, failed narrative, invalid requests; known defects end to end |
 | Unit | 75 (3 pending) | Prompt compiler; session start and end; JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Integration | 28 | Postgres constraints; the Redis coverage channel's exact messages; the Rack pipeline (tenant, CORS, rate limits, WebSocket paths); Sidekiq jobs inline with strict JSON args |
@@ -58,7 +58,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | Finding ([Step 3](03-problem-and-gap.md)) | API (`pending`) | Web (`it.fails`) |
 |---|---|---|
 | P0-1 unassessed skill stored as L1 | generator; functional journey | `parseLevel`; portfolio page |
-| P0-2 cross-tenant read/write | export, override, fit/gap read | |
+| ~~P0-2 cross-tenant read/write~~ **fixed** in sub-PR 1 | export, override, fit/gap read and both fit/gap writes now pass | |
 | P1-1 fit/gap counts unreached skills as gaps | engine; functional journey | |
 | P1-2 web reads `required_level`, API sends `expected_level` | | comparison table; fit/gap page |
 | P1-3 omitted skills vanish | generator | |

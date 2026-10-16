@@ -28,14 +28,22 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-16 | 1/5 | Integration tests: Postgres, Redis channel, Rack pipeline, Sidekiq inline; live monitor REST + WebSocket; API contract | `test/integration-tests` · `164d12c`, `b0058f9` |
 | 2026-10-16 | 1/5 | Unit tests: API services, clients, auth, models, workers; web utils, client, hooks, components | `test/unit-tests` · `f1aeec2`, `0a96f4d` |
 | 2026-10-15 | 1/5 | Functional tests: API journeys over HTTP; web harness (Vitest, Testing Library, MSW) and page tests | `test/functional-tests` · `ad6c091`, `44474e3`, `d65e3e9` |
+| 2026-10-16 | 1 | WebSocket middlewares eager-load correctly; CI runs both suites on every push and PR | `ci/github-actions` · `4c2e510`, `bd51d00` |
+| 2026-10-16 | 6 | Report draft: print-styled HTML built to PDF, Mermaid diagrams, UU PDP privacy roadmap | `docs/report` · `304941a`, `5260958`, `bfb5f86` |
+| 2026-10-16 | 3 | P1-12 widened: under the production CSP the hardware check can never pass; C8 escalated | `docs/report` · `1708513` |
+| 2026-10-16 | 6 | Draft PR opened on `rakamindev` from the public fork `mwyzer/ai-interview-platform-fs` | [PR #160](https://github.com/rakamindev/ai-interview-platform/pull/160) |
+| 2026-10-16 | 5 | Sub-PR 1: tenant scoping (P0-2), including two fit/gap write routes not pinned before | `fix/tenant-scoping` · `d7e58ac`, `ecd3124` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
 
-**Branches** (all pushed to `origin` = `github.com/mwyzer/ai-interview-platform`, private). They're stacked, so each
-contains the ones before it: `main` → `chore/docker-dev-setup` → `docs/step-3-gap-analysis` → `test/rspec-harness` →
-`docs/step-2-domain-immersion` → `docs/step-4-strategy` → `test/functional-tests` → `test/unit-tests` →
-`test/integration-tests`.
+**Branches.** They're stacked, so each contains the ones before it: `main` → `chore/docker-dev-setup` →
+`docs/step-3-gap-analysis` → `test/rspec-harness` → `docs/step-2-domain-immersion` → `docs/step-4-strategy` →
+`test/functional-tests` → `test/unit-tests` → `test/integration-tests` → `ci/github-actions` → `docs/report` →
+`fix/tenant-scoping`. Up to `ci/github-actions` they're on `origin` (`github.com/mwyzer/ai-interview-platform`,
+private). The submission branch is `fullstack-case-study` on the public fork `mwyzer/ai-interview-platform-fs`,
+the head of draft PR #160. The P1-12/C8 update was committed on `docs/report` rather than on
+`docs/step-3-gap-analysis`, to avoid rebasing the whole stack.
 
 **Local-only changes** (gitignored, never committed): `api/config/application.yml` (secret key base, Gemini key,
 model IDs), `web/.env` (dev JWT), and synthetic test data in the local database.
@@ -330,6 +338,39 @@ of life). This machine's shell sets `NODE_ENV=production`, so `npm install` skip
 `--include=dev`.
 
 ---
+
+## Step 5: Implementation
+
+### Sub-PR 1: tenant scoping (P0-2)
+
+**What was wrong.** `Portfolio`, `PortfolioSkill` and `FitGapReport` have no `tenant_id`; they belong to a tenant
+through their session. Five routes looked them up with a bare `find`: export, override, the fit/gap read, and two
+that Step 3 hadn't pinned, `POST fitgap` and `POST regenerate_fitgap`. With its own vacancy, another company could
+queue a fit/gap of someone else's candidate (202) and then read it, or delete and regenerate a report.
+
+**Fix.** A `for_current_tenant` scope on `Portfolio` and `PortfolioSkill` that joins through the session and filters
+on `sessions.tenant_id`; every controller lookup uses it. `Current.tenant_id` raises when no tenant is set, so a
+lookup without one fails closed. No migration: adding and backfilling `tenant_id` on a database shared with
+`rakamin-api` (C3) would be bigger and harder to reverse for the same guarantee. The fit/gap worker still uses
+`Portfolio.find`; it runs outside a request, and its ids only come from the scoped controllers.
+
+**Tests first.** Two new cross-tenant specs use company B's own vacancy, so the portfolio lookup is the only thing
+that can stop them. Three owner specs make sure a fix that returns 404 for everyone can't pass. Against the unfixed
+code (`d7e58ac`), the five cross-tenant examples failed on their status assertions (200, 201, 202, 202, 200) and the
+owner's passed. After the fix (`ecd3124`): 11/11, and the full suite is 200 examples, 0 failures, 14 pending.
+
+**Checked over HTTP** against the dev API, repeating the Step 3 reproduction with an Other Corp token:
+
+| Request | Step 3 | Now |
+|---|---|---|
+| Other Corp `GET portfolios/1/export` | 200, full portfolio | 404 |
+| Other Corp `POST portfolio_skills/1/override` | 201, level set to L5 | 404 |
+| Other Corp `GET portfolios/1/fitgap/1` | 200 | 404 |
+| Test Corp `GET portfolios/1/export` (owner) | 200 | 200 |
+
+The L5 override still on skill 1 in the dev database is left over from the Step 3 reproduction (synthetic data).
+Existing cross-tenant writes in a real database couldn't be told apart from legitimate ones: overrides store
+`overridden_by` but not the tenant. That's worth raising if this ever ran with more than one real tenant.
 
 ## AI verification moments
 
