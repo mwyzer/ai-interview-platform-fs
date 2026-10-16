@@ -145,7 +145,7 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
         passing
   - [x] Web: live monitor over REST + WebSocket (5 passing, 2 `it.fails`); contract test against the running API
         (7 passing, opt-in)
-- [x] **Totals:** API 256 examples, 0 failures, 8 pending. Web 130 tests: 111 passing, 19 expected to fail (104 and 7
+- [x] **Totals:** API 263 examples, 0 failures, 6 pending. Web 130 tests: 111 passing, 19 expected to fail (104 and 7
       skipped without the API). Every known-defect test checked to fail on its assertion; deliberate faults were
       caught in each suite
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
@@ -166,7 +166,8 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
         `it.fails` flip to passing
   - [x] Sub-PR 3: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21): "not assessed" is stored with a
         reason; checked with the real model and a rollback on the dev database
-  - [ ] Sub-PR 4: fit/gap engine + payload (AC-13..AC-16)
+  - [x] Sub-PR 4: fit/gap engine + payload (AC-13..AC-16): not-assessed skills are unknowns, not gaps; checked
+        with the real model
   - [ ] Sub-PR 5: portfolio and fit/gap screens (AC-22, AC-24..AC-30); the web test runner is in place
   - [ ] Known defects in the chosen scope fixed: their `pending` specs and `it.fails` tests flip to passing
   - [x] Seeded fault test: the clamp put back on `scratch/seeded-fault-clamp`, caught by 13 specs, reverted
