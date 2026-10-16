@@ -83,21 +83,17 @@ RSpec.describe 'Tenant isolation', type: :request do
     end
   end
 
-  describe 'portfolio routes (known defect P0-2)' do
+  describe 'portfolio routes, for another organization (P0-2)' do
     # Company B uses its own vacancy, so the only thing that can stop it is the portfolio lookup.
     let(:vacancy_b) { create(:vacancy, organization: company_b) }
 
     it "does not export another organization's portfolio" do
-      pending 'P0-2: PortfoliosController#export uses Portfolio.find without tenant scope'
-
       get "/api/v1/portfolios/#{portfolio.id}/export", params: { format: 'json' }, headers: as_b
 
       expect(response).to have_http_status(:not_found)
     end
 
     it "does not let another organization override a rating" do
-      pending 'P0-2: PortfolioSkillsController looks up PortfolioSkill without tenant scope'
-
       post "/api/v1/portfolio_skills/#{skill.id}/override",
            params: { override: { override_level: 5, assessor_notes: 'cross-tenant' } }.to_json, headers: as_b
 
@@ -106,8 +102,6 @@ RSpec.describe 'Tenant isolation', type: :request do
     end
 
     it "does not read another organization's fit/gap report" do
-      pending 'P0-2: PortfoliosController#show_fitgap uses Portfolio.find without tenant scope'
-
       create(:fit_gap_report, portfolio:, vacancy:)
 
       get "/api/v1/portfolios/#{portfolio.id}/fitgap/#{vacancy.id}", headers: as_b
@@ -116,8 +110,6 @@ RSpec.describe 'Tenant isolation', type: :request do
     end
 
     it "does not run fit/gap on another organization's candidate" do
-      pending 'P0-2: PortfoliosController#fitgap uses Portfolio.find without tenant scope'
-
       post "/api/v1/portfolios/#{portfolio.id}/fitgap", params: { vacancy_id: vacancy_b.id }.to_json, headers: as_b
 
       expect(response).to have_http_status(:not_found)
@@ -125,8 +117,6 @@ RSpec.describe 'Tenant isolation', type: :request do
     end
 
     it "does not regenerate fit/gap on another organization's candidate" do
-      pending 'P0-2: PortfoliosController#regenerate_fitgap uses Portfolio.find without tenant scope'
-
       report = create(:fit_gap_report, portfolio:, vacancy: vacancy_b)
 
       post "/api/v1/portfolios/#{portfolio.id}/regenerate_fitgap", params: { vacancy_id: vacancy_b.id }.to_json,
