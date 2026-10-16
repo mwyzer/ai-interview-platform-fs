@@ -24,6 +24,48 @@ RSpec.describe PortfolioSkill do
     expect(build(:portfolio_skill, competency_summary: nil)).to be_valid
   end
 
+  describe 'a skill that was not assessed (Step 4, Option B)' do
+    let(:not_assessed) do
+      build(:portfolio_skill, ai_level: nil, ai_confidence: nil, competency_summary: nil, evidence: [],
+                              not_assessed_reason: 'not_reached')
+    end
+
+    it 'has no level, no confidence, and a reason' do
+      pending 'ai_level is required'
+
+      expect(not_assessed).to be_valid
+      expect(not_assessed.assessment_status).to eq('not_assessed')
+    end
+
+    it 'accepts only the three reasons' do
+      pending 'not_assessed_reason does not exist'
+
+      %w[not_reached insufficient_evidence omitted_by_model].each do |reason|
+        expect(not_assessed.tap { _1.not_assessed_reason = reason }).to be_valid
+      end
+      expect(not_assessed.tap { _1.not_assessed_reason = 'other' }).not_to be_valid
+    end
+
+    it 'needs a reason when there is no level, and none when there is one' do
+      pending 'not_assessed_reason does not exist'
+
+      expect(not_assessed.tap { _1.not_assessed_reason = nil }).not_to be_valid
+      expect(build(:portfolio_skill, ai_level: 3, not_assessed_reason: 'not_reached')).not_to be_valid
+    end
+
+    it 'cannot carry a confidence without a level' do
+      pending 'ai_level is required'
+
+      expect(not_assessed.tap { _1.ai_confidence = 'high' }).not_to be_valid
+    end
+  end
+
+  it 'reports a rated skill as assessed' do
+    pending 'assessment_status does not exist'
+
+    expect(build(:portfolio_skill, ai_level: 3).assessment_status).to eq('assessed')
+  end
+
   it 'always returns evidence as an array' do
     expect(build(:portfolio_skill, evidence: nil).evidence_quotes).to eq([])
   end
