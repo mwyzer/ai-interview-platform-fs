@@ -8,6 +8,20 @@ describe("parseLevel", () => {
     expect(parseLevel("L4")).toBe(4);
   });
 
+  // AC-23: only a whole level from 1 to 5 counts. Anything else is "no level", never L1.
+  it.each([
+    [3, 3], ["3", 3], ["L3", 3], ["l3", 3], [" L3 ", 3], [3.0, 3], [1, 1], ["L5", 5],
+  ])("reads %j as level %i (AC-23)", (input, expected) => {
+    expect(parseLevel(input)).toBe(expected);
+  });
+
+  it.fails.each([
+    [null], [undefined], [""], ["N/A"], ["high"], ["L"], ["L0"], ["L6"], ["0"], ["6"], ["12"], ["L3.5"],
+    [0], [6], [-1], [2.5], [NaN], [true], [[]], [{}],
+  ])("treats %j as no level (AC-23)", (input) => {
+    expect(parseLevel(input)).toBeNull();
+  });
+
   describe("known defects (P0-1, P2-11)", () => {
     // Anything unreadable becomes L1, the same fabricated rating as the API's clamp.
     it.fails("does not turn an unreadable level into L1", () => {

@@ -55,6 +55,24 @@ describe("Fit/gap report", () => {
     expect(await screen.findByText("Skill Comparison", {}, { timeout: 7000 })).toBeInTheDocument();
   }, 10_000);
 
+  // AC-23 on this page: a discovered skill the AI couldn't rate must not read as "confirmed".
+  it.fails("lists a discovered skill with no level as not assessed", async () => {
+    const unrated = {
+      ...portfolio.skills[3], ai_level: null, ai_confidence: null, evidence: [], competency_summary: null,
+    };
+    serve();
+    server.use(
+      http.get(`${API}/sessions/42/portfolio`, () =>
+        HttpResponse.json({ portfolio: { ...portfolio, skills: [...portfolio.skills.slice(0, 3), unrated] } })
+      )
+    );
+    renderApp(PAGE);
+
+    const item = (await screen.findByText("Micro-frontend Architecture")).parentElement as HTMLElement;
+    expect(within(item).getByText(/not assessed/i)).toBeInTheDocument();
+    expect(within(item).queryByText(/confirmed/)).not.toBeInTheDocument();
+  });
+
   describe("known defects (assessment/03-problem-and-gap.md)", () => {
     // The API sends `expected_level`; the table reads `required_level`.
     it.fails("P1-2: shows the level the vacancy requires", async () => {

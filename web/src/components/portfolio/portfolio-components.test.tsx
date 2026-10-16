@@ -93,6 +93,63 @@ describe("SkillPortfolioCard", () => {
   });
 });
 
+// AC-23: the API will send ai_level: null for a skill it couldn't rate (Step 4, sub-PR 3).
+// The screen must survive it and never show it as a level. The full not-assessed design
+// (reasons, summary line) comes with sub-PR 5.
+describe("a skill the AI could not rate", () => {
+  const unrated = () => skill({ ai_level: null, ai_confidence: null, evidence: [], competency_summary: null });
+
+  it.fails("shows 'Not assessed' instead of a level or a confidence", () => {
+    render(<SkillPortfolioCard skill={unrated()} onOverrideSaved={() => {}} />);
+
+    expect(screen.getByText("Not assessed")).toBeInTheDocument();
+    expect(screen.queryByText(/^L[1-5]$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Confidence:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Only briefly explored/)).not.toBeInTheDocument();
+  });
+
+  it.fails("offers to add a rating, with no level chosen until the assessor picks one", async () => {
+    const user = userEvent.setup();
+    render(<SkillPortfolioCard skill={unrated()} onOverrideSaved={() => {}} />);
+
+    await user.click(screen.getByRole("button", { name: /Add rating/ }));
+
+    for (const level of ["L1", "L2", "L3", "L4", "L5"]) {
+      expect(screen.getByRole("radio", { name: level })).not.toBeChecked();
+    }
+    expect(screen.getByRole("button", { name: "Save rating" })).toBeDisabled();
+  });
+
+  it.fails("saves the level the assessor picked", async () => {
+    let sent: unknown;
+    server.use(
+      http.post(`${API}/portfolio_skills/101/override`, async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({ override: { ...override, ai_level: null, override_level: 2 } }, { status: 201 });
+      })
+    );
+    const onSaved = vi.fn();
+    const user = userEvent.setup();
+    render(<OverridePanel skill={unrated()} onSaved={onSaved} />);
+
+    await user.click(screen.getByRole("button", { name: /Add rating/ }));
+    await user.click(screen.getByRole("radio", { name: "L2" }));
+    await user.click(screen.getByRole("button", { name: "Save rating" }));
+
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(sent).toMatchObject({ override_level: 2 });
+  });
+
+  it.fails("shows the assessor's rating next to 'Not assessed' once rated", () => {
+    const rated = { ...override, ai_level: null, override_level: 2 } as unknown as AssessorOverride;
+    render(<SkillPortfolioCard skill={unrated()} override={rated} onOverrideSaved={() => {}} />);
+
+    const summary = screen.getByText("AI").parentElement as HTMLElement;
+    expect(within(summary).getByText("Not assessed")).toBeInTheDocument();
+    expect(within(summary).getByText("L2")).toBeInTheDocument();
+  });
+});
+
 describe("OverridePanel", () => {
   it("saves the chosen level and note, then reports the saved override", async () => {
     let sent: unknown;
