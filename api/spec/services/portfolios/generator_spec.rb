@@ -303,7 +303,7 @@ RSpec.describe Portfolios::Generator do
       logged = []
       allow(Rails.logger).to receive(:error) { |message| logged << message }
 
-      expect { generate(raw) }.to raise_error(JSON::ParserError)
+      expect { generate(raw) }.to raise_error(described_class::InvalidResponse)
 
       portfolio = session.reload.portfolio
       expect(portfolio).to have_attributes(generation_status: 'failed', generation_error_category: 'model_invalid_response')
@@ -380,10 +380,9 @@ RSpec.describe Portfolios::Generator do
 
       # The second skill row of the next run fails to save.
       saves = 0
-      # any_instance blocks receive the record itself before the call's own arguments.
-      allow_any_instance_of(PortfolioSkill).to receive(:save!).and_wrap_original do |original, record, *args, **opts|
+      allow_any_instance_of(PortfolioSkill).to receive(:save!).and_wrap_original do |original, *args, **opts|
         saves += 1
-        raise ActiveRecord::RecordInvalid, record if saves == 2
+        raise ActiveRecord::RecordInvalid if saves == 2
 
         original.call(*args, **opts)
       end
@@ -401,7 +400,8 @@ RSpec.describe Portfolios::Generator do
       pending 'P1-4: portfolio_skills.destroy_all also destroys assessor_overrides'
 
       portfolio = generate('configured_skills' => [react_entry])
-      create(:assessor_override, portfolio_skill: portfolio.portfolio_skills.sole, override_level: 4)
+      create(:assessor_override, portfolio_skill: portfolio.portfolio_skills.find_by!(skill_label: 'React'),
+                                 override_level: 4)
 
       generate('configured_skills' => [react_entry])
 
@@ -413,7 +413,8 @@ RSpec.describe Portfolios::Generator do
 
       invented = react_entry.merge('evidence' => ['I led a team of 40 engineers migrating to micro-frontends'])
 
-      expect(generate('configured_skills' => [invented]).portfolio_skills.sole.evidence).to be_empty
+      expect(generate('configured_skills' => [invented]).portfolio_skills.find_by!(skill_label: 'React').evidence)
+        .to be_empty
     end
   end
 end

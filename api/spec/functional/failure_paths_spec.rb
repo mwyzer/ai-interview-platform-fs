@@ -54,10 +54,13 @@ RSpec.describe 'Failure paths', type: :request do
     end
 
     it 'marks the portfolio failed when the model answers with something that is not JSON' do
+      pending 'AC-10: the JSON::ParserError, which quotes the model, is re-raised'
+
       stub_gemini(portfolio: 'Sure! Here is the portfolio you asked for:')
       end_interview
 
-      expect { run_jobs(PortfolioGeneratorWorker) }.to raise_error(JSON::ParserError)
+      # Not JSON::ParserError: its message quotes the model's text, and Sidekiq logs every failed job's message.
+      expect { run_jobs(PortfolioGeneratorWorker) }.to raise_error(Portfolios::Generator::InvalidResponse)
 
       get "/api/v1/sessions/#{session.id}/portfolio", headers: headers
       expect(json.dig('portfolio', 'generation_status')).to eq('failed')

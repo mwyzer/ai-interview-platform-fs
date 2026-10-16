@@ -65,7 +65,7 @@ RSpec.describe Exports::PdfGenerator do
     create(:portfolio_skill, portfolio:, skill_label: 'Communication', ai_level: nil, ai_confidence: nil,
                              competency_summary: nil, evidence: [], not_assessed_reason: 'not_reached')
     lines = []
-    allow_any_instance_of(Prawn::Document).to receive(:text).and_wrap_original do |original, _pdf, string, *args, **opts|
+    allow_any_instance_of(Prawn::Document).to receive(:text).and_wrap_original do |original, string, *args, **opts|
       lines << string
       original.call(string, *args, **opts)
     end

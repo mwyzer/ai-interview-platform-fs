@@ -29,15 +29,19 @@ RSpec.describe 'Job pipeline', type: :request do
   end
 
   it 'generates the portfolio inside the request that ends the session' do
+    pending 'AC-2, AC-5: unprobed and omitted skills get no row'
+
     stub_gemini(portfolio: portfolio_output)
     Sessions::StartHandler.new(session).call
     session.transcript_turns.create!(turn_number: 1, speaker: 'candidate', text: 'We profiled with React DevTools.')
+    session.coverage_maps.find_by!(skill_label: 'React').update!(state: 'partial', probe_count: 2)
 
     post "/api/v1/sessions/#{session.id}/end_session", headers:, params: { session: { reason: 'all_covered' } }.to_json
 
     expect(response).to have_http_status(:ok)
     expect(session.reload.portfolio).to have_attributes(generation_status: 'complete')
-    expect(session.portfolio.portfolio_skills.pluck(:skill_label, :ai_level)).to eq([['React', 3]])
+    expect(session.portfolio.portfolio_skills.order(:id).pluck(:skill_label, :ai_level, :not_assessed_reason))
+      .to eq([['React', 3, nil], ['Communication', nil, 'not_reached'], ['System Design', nil, 'not_reached']])
   end
 
   it 'compiles the interviewer prompt inside the request that creates the assessment' do
