@@ -114,8 +114,6 @@ module Portfolios
 
     # Treat model output like user input: parse strictly, never clamp a bad value into range (P0-1).
     def strict_level(value)
-      return value.to_i.clamp(1, 5) if value.respond_to?(:to_i) # SEEDED FAULT: the pre-fix clamp, back on purpose
-
       case value
       when Integer then value if (1..5).cover?(value)
       when Float   then value.to_i if value.finite? && value == value.floor && (1..5).cover?(value.to_i)
