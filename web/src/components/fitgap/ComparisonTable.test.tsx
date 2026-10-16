@@ -8,7 +8,8 @@ const rows = [
   { skill_label: "React", candidate_level: 3, expected_level: 3, result: "match", delta: 0 },
   { skill_label: "Communication", candidate_level: 2, expected_level: 3, result: "gap", delta: -1 },
   { skill_label: "System Design", candidate_level: 3, expected_level: 2, result: "exceed", delta: 1, is_override: true },
-  { skill_label: "Testing", candidate_level: null, expected_level: 2, result: "not_assessed", delta: null },
+  { skill_label: "Testing", candidate_level: null, expected_level: 2, result: "not_assessed", delta: null,
+    not_assessed_reason: "not_reached" },
 ] as unknown as SkillComparison[];
 
 function cells(label: string) {
@@ -51,6 +52,27 @@ describe("ComparisonTable", () => {
     render(<ComparisonTable comparisons={[]} />);
 
     expect(screen.getAllByRole("row")).toHaveLength(1);
+  });
+
+  it.fails("AC-25: says why a skill wasn't assessed and suggests probing it next", () => {
+    render(<ComparisonTable comparisons={rows} />);
+
+    expect(cells("Testing")[0]).toHaveTextContent("Not reached before the interview ended");
+    expect(cells("Testing")[0]).toHaveTextContent("probe it in the next interview");
+  });
+
+  it.fails("AC-25: says when the vacancy asks for a skill this interview didn't cover", () => {
+    const row = { ...rows[3], skill_label: "Kubernetes", not_assessed_reason: "not_in_assessment" } as SkillComparison;
+    render(<ComparisonTable comparisons={[row]} />);
+
+    expect(cells("Kubernetes")[0]).toHaveTextContent("Not part of this interview");
+  });
+
+  it.fails("AC-29: labels each value, so the rows still read when stacked on a phone", () => {
+    render(<ComparisonTable comparisons={rows} />);
+
+    expect(cells("Communication")[1]).toHaveAttribute("data-label", "Required");
+    expect(cells("Communication")[2]).toHaveAttribute("data-label", "Candidate");
   });
 
   describe("known defects", () => {

@@ -114,6 +114,65 @@ describe("Portfolio review", () => {
     expect(within(react).getByRole("button", { name: "Save override" })).toBeEnabled();
   });
 
+  describe("skills that weren't assessed (AC-24)", () => {
+    const unrated = (skillFields: object) => ({
+      ...portfolio.skills[1], ai_level: null, ai_confidence: null, evidence: [], competency_summary: null,
+      assessment_status: "not_assessed", not_assessed_reason: "not_reached", ...skillFields,
+    });
+
+    function serveEnded(end_reason: string, duration_seconds: number) {
+      serve(() => HttpResponse.json({
+        portfolio: { ...portfolio, skills: [portfolio.skills[0], unrated({}), unrated({ id: 103, skill_label: "System Design" })] },
+      }));
+      server.use(http.get(`${API}/sessions/42`, () =>
+        HttpResponse.json({ session: { ...sessionShow.session, end_reason, duration_seconds } })));
+    }
+
+    it.fails("says how many skills weren't assessed, and how the interview ended", async () => {
+      serveEnded("manual_candidate", 6 * 60 + 10);
+      renderApp(PAGE);
+
+      expect(await screen.findByText(
+        "2 of 3 skills weren't assessed. The interview ended after 6 minutes (ended by the candidate)."
+      )).toBeInTheDocument();
+    });
+
+    it.fails("doesn't repeat an end reason that contradicts the result", async () => {
+      // "all_covered" can be sent by anyone with the invite link (P1-10), so it isn't repeated here.
+      serveEnded("all_covered", 6 * 60);
+      renderApp(PAGE);
+
+      expect(await screen.findByText(
+        "2 of 3 skills weren't assessed. The interview ended after 6 minutes, before they were reached."
+      )).toBeInTheDocument();
+    });
+  });
+
+  it.fails("tells the assessor why generation failed, in the API's safe words", async () => {
+    serve(() => HttpResponse.json({
+      portfolio: { ...portfolio, generation_status: "failed", skills: [], generation_error_category: "model_timeout",
+                   generation_error: "Model timeout: the AI didn't answer in time." },
+      error: "Model timeout: the AI didn't answer in time.",
+    }));
+    renderApp(PAGE);
+
+    expect(await screen.findByText("Model timeout: the AI didn't answer in time.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Retry/ })).toBeInTheDocument();
+  });
+
+  it.fails("AC-27: offers a retry when the portfolio can't be loaded, and recovers", async () => {
+    let fail = true;
+    serve(() => (fail ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json({ portfolio })));
+    const { user } = renderApp(PAGE);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't load the portfolio/i);
+
+    fail = false;
+    await user.click(screen.getByRole("button", { name: /Try again/ }));
+
+    expect(await screen.findByText("React", { selector: "span.font-semibold" })).toBeInTheDocument();
+  });
+
   describe("known defects (assessment/03-problem-and-gap.md)", () => {
     // Today a null level doesn't render as L1 here: parseLevel(null) throws and the
     // whole page is replaced by "Something went wrong." The API fix alone would
