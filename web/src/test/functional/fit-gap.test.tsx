@@ -56,7 +56,7 @@ describe("Fit/gap report", () => {
   }, 10_000);
 
   // AC-23 on this page: a discovered skill the AI couldn't rate must not read as "confirmed".
-  it.fails("lists a discovered skill with no level as not assessed", async () => {
+  it("lists a discovered skill with no level as not assessed", async () => {
     const unrated = {
       ...portfolio.skills[3], ai_level: null, ai_confidence: null, evidence: [], competency_summary: null,
     };
@@ -84,7 +84,7 @@ describe("Fit/gap report", () => {
       expect(required).toHaveTextContent("L3");
     });
 
-    it.fails("P2-5: shows a discovered skill's level as a level, not a bare number", async () => {
+    it("P2-5: shows a discovered skill's level as a level, not a bare number", async () => {
       serve();
       renderApp(PAGE);
       await screen.findByText("Micro-frontend Architecture");

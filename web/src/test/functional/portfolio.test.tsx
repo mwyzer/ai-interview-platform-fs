@@ -118,7 +118,7 @@ describe("Portfolio review", () => {
     // Today a null level doesn't render as L1 here: parseLevel(null) throws and the
     // whole page is replaced by "Something went wrong." The API fix alone would
     // break this screen, so both sides of the seam must ship together.
-    it.fails("P0-1: never shows a level for a skill the AI could not rate", async () => {
+    it("P0-1: never shows a level for a skill the AI could not rate", async () => {
       const unrated = { ...portfolio.skills[1], ai_level: null, ai_confidence: null, evidence: [], competency_summary: null };
       serve(() => HttpResponse.json({ portfolio: { ...portfolio, skills: [portfolio.skills[0], unrated] } }));
       renderApp(PAGE);

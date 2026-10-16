@@ -9,7 +9,8 @@ import { portfoliosApi } from "@/services/portfolios";
 import { sessionsApi } from "@/services/sessions";
 import { usePolling } from "@/hooks/usePolling";
 import { ArrowLeft, Download, Loader2, RefreshCw, Zap } from "lucide-react";
-import type { FitGapReport, Portfolio } from "@/types";
+import { LEVEL_LABELS, parseLevel } from "@/utils/constants";
+import type { FitGapReport, Portfolio, PortfolioSkill } from "@/types";
 
 export default function FitGapReportPage() {
   const { id, sessionId, vacancyId } = useParams<{
@@ -193,7 +194,7 @@ export default function FitGapReportPage() {
                       <div key={s.id} className="text-sm flex items-center gap-2">
                         <span className="font-medium">{s.skill_label}</span>
                         <span className="text-muted-foreground">
-                          {s.ai_level} ({s.ai_confidence?.toLowerCase() === "low" ? "low confidence" : "confirmed"})
+                          {discoveredLevel(s)}
                         </span>
                         <span className="text-xs text-muted-foreground">— Not required for this role, may be additive.</span>
                       </div>
@@ -206,4 +207,11 @@ export default function FitGapReportPage() {
       )}
     </div>
   );
+}
+
+/** "L2 (low confidence)", or "not assessed" when the AI gave no readable level. */
+function discoveredLevel(skill: PortfolioSkill): string {
+  const level = parseLevel(skill.ai_level);
+  if (level === null) return "not assessed";
+  return `${LEVEL_LABELS[level]} (${skill.ai_confidence?.toLowerCase() === "low" ? "low confidence" : "confirmed"})`;
 }

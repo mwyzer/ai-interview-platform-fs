@@ -1,10 +1,15 @@
 export const TIME_LIMIT_OPTIONS = [10, 30, 45, 60, 90] as const;
 
-/** Parse "L3" → 3, passthrough number, fallback to 1 */
-export function parseLevel(level: string | number): number {
-  if (typeof level === "number") return level;
-  const n = parseInt(level.replace(/\D/g, ""), 10);
-  return isNaN(n) ? 1 : n;
+/**
+ * Reads a level from the API: 3, "3" and "L3" give 3. Anything that isn't a whole level from 1 to 5
+ * gives null, which means "not assessed". Never guess a level: an unreadable value used to become L1
+ * (Step 3, P0-1), and a missing one crashed the portfolio page (P2-11).
+ */
+export function parseLevel(level: unknown): number | null {
+  if (typeof level === "number") return Number.isInteger(level) && level >= 1 && level <= 5 ? level : null;
+  if (typeof level !== "string") return null;
+  const match = /^\s*L?([1-5])\s*$/i.exec(level);
+  return match ? Number(match[1]) : null;
 }
 
 export const LEVEL_LABELS: Record<number, string> = {

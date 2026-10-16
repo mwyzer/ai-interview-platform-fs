@@ -15,7 +15,7 @@ describe("parseLevel", () => {
     expect(parseLevel(input)).toBe(expected);
   });
 
-  it.fails.each([
+  it.each([
     [null], [undefined], [""], ["N/A"], ["high"], ["L"], ["L0"], ["L6"], ["0"], ["6"], ["12"], ["L3.5"],
     [0], [6], [-1], [2.5], [NaN], [true], [[]], [{}],
   ])("treats %j as no level (AC-23)", (input) => {
@@ -24,12 +24,12 @@ describe("parseLevel", () => {
 
   describe("known defects (P0-1, P2-11)", () => {
     // Anything unreadable becomes L1, the same fabricated rating as the API's clamp.
-    it.fails("does not turn an unreadable level into L1", () => {
+    it("does not turn an unreadable level into L1", () => {
       expect(parseLevel("N/A")).toBeNull();
     });
 
     // A missing level throws (null.replace), which takes down the portfolio page.
-    it.fails("treats a missing level as no level instead of throwing", () => {
+    it("treats a missing level as no level instead of throwing", () => {
       expect(parseLevel(null as unknown as string)).toBeNull();
     });
   });

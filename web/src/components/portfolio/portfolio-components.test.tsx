@@ -99,7 +99,7 @@ describe("SkillPortfolioCard", () => {
 describe("a skill the AI could not rate", () => {
   const unrated = () => skill({ ai_level: null, ai_confidence: null, evidence: [], competency_summary: null });
 
-  it.fails("shows 'Not assessed' instead of a level or a confidence", () => {
+  it("shows 'Not assessed' instead of a level or a confidence", () => {
     render(<SkillPortfolioCard skill={unrated()} onOverrideSaved={() => {}} />);
 
     expect(screen.getByText("Not assessed")).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("a skill the AI could not rate", () => {
     expect(screen.queryByText(/Only briefly explored/)).not.toBeInTheDocument();
   });
 
-  it.fails("offers to add a rating, with no level chosen until the assessor picks one", async () => {
+  it("offers to add a rating, with no level chosen until the assessor picks one", async () => {
     const user = userEvent.setup();
     render(<SkillPortfolioCard skill={unrated()} onOverrideSaved={() => {}} />);
 
@@ -120,7 +120,7 @@ describe("a skill the AI could not rate", () => {
     expect(screen.getByRole("button", { name: "Save rating" })).toBeDisabled();
   });
 
-  it.fails("saves the level the assessor picked", async () => {
+  it("saves the level the assessor picked", async () => {
     let sent: unknown;
     server.use(
       http.post(`${API}/portfolio_skills/101/override`, async ({ request }) => {
@@ -140,7 +140,7 @@ describe("a skill the AI could not rate", () => {
     expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "" } });
   });
 
-  it.fails("shows the assessor's rating next to 'Not assessed' once rated", () => {
+  it("shows the assessor's rating next to 'Not assessed' once rated", () => {
     const rated = { ...override, ai_level: null, override_level: 2 } as unknown as AssessorOverride;
     render(<SkillPortfolioCard skill={unrated()} override={rated} onOverrideSaved={() => {}} />);
 
