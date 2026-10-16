@@ -73,7 +73,7 @@ describe("Fit/gap report", () => {
     expect(within(item).queryByText(/confirmed/)).not.toBeInTheDocument();
   });
 
-  it.fails("AC-26: stops waiting after two minutes and offers a retry", async () => {
+  it("AC-26: stops waiting after two minutes and offers a retry", async () => {
     serve({ ready: () => false });
     renderApp(PAGE);
     await screen.findByText("Generating fit/gap report...");
@@ -86,7 +86,7 @@ describe("Fit/gap report", () => {
     vi.restoreAllMocks();
   }, 10_000);
 
-  it.fails("AC-26: shows an error with a retry when the report can't be fetched", async () => {
+  it("AC-26: shows an error with a retry when the report can't be fetched", async () => {
     serve();
     server.use(http.get(`${API}/portfolios/9/fitgap/5`, () => HttpResponse.json({}, { status: 500 })));
     renderApp(PAGE);
@@ -97,7 +97,7 @@ describe("Fit/gap report", () => {
 
   describe("known defects (assessment/03-problem-and-gap.md)", () => {
     // The API sends `expected_level`; the table reads `required_level`.
-    it.fails("P1-2: shows the level the vacancy requires", async () => {
+    it("P1-2: shows the level the vacancy requires", async () => {
       serve();
       renderApp(PAGE);
       await screen.findByText("Skill Comparison");
@@ -115,7 +115,7 @@ describe("Fit/gap report", () => {
       expect(line).toHaveTextContent("L2");
     });
 
-    it.fails("P1-6: asks the API to generate the report only once while it waits", async () => {
+    it("P1-6: asks the API to generate the report only once while it waits", async () => {
       const calls = serve({ ready: () => false });
       renderApp(PAGE);
       await screen.findByText("Generating fit/gap report...");

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,20 @@ import { usePolling } from "@/hooks/usePolling";
 import { ArrowLeft, Download, Loader2, RefreshCw, Zap } from "lucide-react";
 import { LEVEL_LABELS, parseLevel } from "@/utils/constants";
 import type { FitGapReport, Portfolio, PortfolioSkill } from "@/types";
+
+// Generation normally takes seconds. Past this, stop the spinner and say so (AC-26).
+export const FITGAP_TIMEOUT_MS = 2 * 60_000;
+
+type Problem = "portfolio" | "report" | "timeout";
+
+const PROBLEM_TEXT: Record<Problem, { title: string; detail: string }> = {
+  portfolio: { title: "Couldn't load the portfolio for this report.", detail: "Check your connection, then try again." },
+  report: { title: "Couldn't load the fit/gap report.", detail: "Check your connection, then try again." },
+  timeout: {
+    title: "This is taking longer than expected.",
+    detail: "The report may still be generating. Try again in a moment.",
+  },
+};
 
 export default function FitGapReportPage() {
   const { id, sessionId, vacancyId } = useParams<{
@@ -25,6 +39,11 @@ export default function FitGapReportPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState<"pdf" | "json" | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [problem, setProblem] = useState<Problem | null>(null);
+  // Ask the API to generate at most once per visit: polling used to re-trigger on every 404, and the
+  // duplicate jobs raced each other (P1-6). "Try again" and "Regenerate" are the only ways to ask again.
+  const triggered = useRef(false);
+  const startedAt = useRef<number | null>(null);
 
   const fetchReport = useCallback(async () => {
     if (!portfolio) return;
@@ -32,29 +51,49 @@ export default function FitGapReportPage() {
       const res = await portfoliosApi.getFitGap(portfolio.id, Number(vacancyId));
       setReport(res.data.report);
       setGenerating(false);
+      startedAt.current = null;
     } catch (e: any) {
-      if (e?.response?.status === 404) {
+      if (e?.response?.status !== 404) {
+        setGenerating(false);
+        setProblem("report");
+        return;
+      }
+      if (!triggered.current) {
+        triggered.current = true;
         try {
           await portfoliosApi.triggerFitGap(portfolio.id, Number(vacancyId));
+          startedAt.current = Date.now();
           setGenerating(true);
         } catch {
           setGenerating(false);
+          setProblem("report");
         }
+        return;
+      }
+      if (startedAt.current !== null && Date.now() - startedAt.current > FITGAP_TIMEOUT_MS) {
+        setGenerating(false);
+        setProblem("timeout");
       }
     }
   }, [portfolio, vacancyId]);
 
-  useEffect(() => {
+  const loadPortfolio = useCallback(() => {
+    setLoading(true);
+    setProblem(null);
     sessionsApi
       .getPortfolio(Number(sessionId))
-      .then(async (res) => {
+      .then((res) => {
         const data = res.data as any;
-        if (data.portfolio) {
-          setPortfolio(data.portfolio);
-        }
+        if (data.portfolio) setPortfolio(data.portfolio);
+        else setProblem("portfolio");
       })
+      .catch(() => setProblem("portfolio"))
       .finally(() => setLoading(false));
   }, [sessionId]);
+
+  useEffect(() => {
+    loadPortfolio();
+  }, [loadPortfolio]);
 
   useEffect(() => {
     if (portfolio) fetchReport();
@@ -67,11 +106,27 @@ export default function FitGapReportPage() {
     setRegenerating(true);
     try {
       await portfoliosApi.regenerateFitGap(portfolio.id, Number(vacancyId));
+      triggered.current = true;
+      startedAt.current = Date.now();
+      setProblem(null);
       setReport(null);
       setGenerating(true);
+    } catch {
+      setProblem("report");
     } finally {
       setRegenerating(false);
     }
+  };
+
+  const handleTryAgain = () => {
+    if (!portfolio) {
+      loadPortfolio();
+      return;
+    }
+    setProblem(null);
+    triggered.current = false;
+    startedAt.current = null;
+    fetchReport();
   };
 
   const handleExport = async (format: "pdf" | "json") => {
@@ -105,8 +160,8 @@ export default function FitGapReportPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+      {/* Header: the actions wrap under the title on a phone (AC-29) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Link
@@ -120,7 +175,7 @@ export default function FitGapReportPage() {
         </div>
 
         {portfolio && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={regenerating || generating}>
               {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
               Regenerate
@@ -140,6 +195,19 @@ export default function FitGapReportPage() {
           </div>
         )}
       </div>
+
+      {/* Something went wrong: say what, and offer a way out instead of an endless spinner (AC-26) */}
+      {problem && (
+        <div role="alert" className="border border-destructive/40 rounded-lg p-6 text-center space-y-3">
+          <div>
+            <p className="font-medium">{PROBLEM_TEXT[problem].title}</p>
+            <p className="text-sm text-muted-foreground mt-1">{PROBLEM_TEXT[problem].detail}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleTryAgain}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Try again
+          </Button>
+        </div>
+      )}
 
       {/* Generating */}
       {generating && (
@@ -191,7 +259,7 @@ export default function FitGapReportPage() {
                   {portfolio.skills
                     .filter((s) => s.is_discovered)
                     .map((s) => (
-                      <div key={s.id} className="text-sm flex items-center gap-2">
+                      <div key={s.id} className="text-sm flex flex-wrap items-center gap-x-2">
                         <span className="font-medium">{s.skill_label}</span>
                         <span className="text-muted-foreground">
                           {discoveredLevel(s)}

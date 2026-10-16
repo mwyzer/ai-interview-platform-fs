@@ -142,7 +142,7 @@ describe("a skill the AI could not rate", () => {
     expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "Probed in round two" } });
   });
 
-  it.fails.each([
+  it.each([
     ["not_reached", "Not reached before the interview ended"],
     ["insufficient_evidence", "Not enough evidence to rate"],
     ["omitted_by_model", "Missing from the AI's output"],
@@ -153,7 +153,7 @@ describe("a skill the AI could not rate", () => {
     expect(screen.getByText(/Probe it in the next interview/)).toBeInTheDocument();
   });
 
-  it.fails("AC-20: asks where the rating comes from before saving it", async () => {
+  it("AC-20: asks where the rating comes from before saving it", async () => {
     const user = userEvent.setup();
     render(<OverridePanel skill={unrated()} onSaved={() => {}} />);
 
@@ -234,7 +234,7 @@ describe("OverridePanel", () => {
     expect(within(summary).getByText("L4")).toBeInTheDocument();
   });
 
-  it.fails("labels an override in plain English (known defect, P3: reads 'You Overridden')", () => {
+  it("labels an override in plain English (known defect, P3: reads 'You Overridden')", () => {
     render(<OverridePanel skill={skill()} existingOverride={override} onSaved={() => {}} />);
 
     expect(screen.queryByText(/You Overridden/)).not.toBeInTheDocument();

@@ -12,6 +12,23 @@ export function parseLevel(level: unknown): number | null {
   return match ? Number(match[1]) : null;
 }
 
+// Plain-language reasons a skill has no level (AC-22, AC-25). Wording matches the API's PDF export.
+export const NOT_ASSESSED_REASON_LABELS: Record<string, string> = {
+  not_reached: "Not reached before the interview ended",
+  insufficient_evidence: "Not enough evidence to rate",
+  omitted_by_model: "Missing from the AI's output",
+  not_in_assessment: "Not part of this interview",
+};
+
+// How a session ended, for the portfolio summary. "all_covered" is left out on purpose: anyone with
+// the invite link can send it (Step 3, P1-10), so it's never repeated as a fact.
+export const END_REASON_LABELS: Record<string, string> = {
+  manual_candidate: "ended by the candidate",
+  manual_assessor: "ended by the assessor",
+  time_ceiling: "time limit reached",
+  error: "ended by a connection error",
+};
+
 export const LEVEL_LABELS: Record<number, string> = {
   1: "L1",
   2: "L2",

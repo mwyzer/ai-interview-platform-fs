@@ -14,7 +14,7 @@ describe("ExpandableText", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it.fails("collapses long text behind a Show more button that says whether it's expanded", async () => {
+  it("collapses long text behind a Show more button that says whether it's expanded", async () => {
     const user = userEvent.setup();
     render(<ExpandableText text={long} />);
 
@@ -28,7 +28,7 @@ describe("ExpandableText", () => {
     expect(screen.getByText(long.trim())).not.toHaveClass("line-clamp-4");
   });
 
-  it.fails("breaks a very long unbroken string instead of overflowing", () => {
+  it("breaks a very long unbroken string instead of overflowing", () => {
     render(<ExpandableText text={"a".repeat(600)} />);
 
     expect(screen.getByText("a".repeat(600))).toHaveClass("break-words");

@@ -128,7 +128,7 @@ describe("Portfolio review", () => {
         HttpResponse.json({ session: { ...sessionShow.session, end_reason, duration_seconds } })));
     }
 
-    it.fails("says how many skills weren't assessed, and how the interview ended", async () => {
+    it("says how many skills weren't assessed, and how the interview ended", async () => {
       serveEnded("manual_candidate", 6 * 60 + 10);
       renderApp(PAGE);
 
@@ -137,7 +137,7 @@ describe("Portfolio review", () => {
       )).toBeInTheDocument();
     });
 
-    it.fails("doesn't repeat an end reason that contradicts the result", async () => {
+    it("doesn't repeat an end reason that contradicts the result", async () => {
       // "all_covered" can be sent by anyone with the invite link (P1-10), so it isn't repeated here.
       serveEnded("all_covered", 6 * 60);
       renderApp(PAGE);
@@ -148,7 +148,7 @@ describe("Portfolio review", () => {
     });
   });
 
-  it.fails("tells the assessor why generation failed, in the API's safe words", async () => {
+  it("tells the assessor why generation failed, in the API's safe words", async () => {
     serve(() => HttpResponse.json({
       portfolio: { ...portfolio, generation_status: "failed", skills: [], generation_error_category: "model_timeout",
                    generation_error: "Model timeout: the AI didn't answer in time." },
@@ -160,7 +160,7 @@ describe("Portfolio review", () => {
     expect(screen.getByRole("button", { name: /Retry/ })).toBeInTheDocument();
   });
 
-  it.fails("AC-27: offers a retry when the portfolio can't be loaded, and recovers", async () => {
+  it("AC-27: offers a retry when the portfolio can't be loaded, and recovers", async () => {
     let fail = true;
     serve(() => (fail ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json({ portfolio })));
     const { user } = renderApp(PAGE);
@@ -188,7 +188,7 @@ describe("Portfolio review", () => {
       expect(within(communication).getByText(/not assessed/i)).toBeInTheDocument();
     });
 
-    it.fails("P2-1: tells the assessor when the portfolio can't be loaded, instead of a blank page", async () => {
+    it("P2-1: tells the assessor when the portfolio can't be loaded, instead of a blank page", async () => {
       serve(() => HttpResponse.json({ errors: [{ status: 500 }] }, { status: 500 }));
       renderApp(PAGE);
 

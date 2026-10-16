@@ -80,7 +80,8 @@ export interface Portfolio {
   candidate_id?: number;
   generation_status: "pending" | "generating" | "complete" | "failed";
   generated_at?: string;
-  generation_error?: string;
+  generation_error?: string;  // a safe message from the API, never the raw error
+  generation_error_category?: string | null;
   skills: PortfolioSkill[];
   overrides: AssessorOverride[];
 }
@@ -95,7 +96,12 @@ export interface PortfolioSkill {
   ai_confidence: string | null;  // "high" | "medium" | "low"; null when not assessed
   evidence: string[];
   competency_summary: string | null;
+  assessment_status?: "assessed" | "not_assessed";
+  not_assessed_reason?: NotAssessedReason | null;
 }
+
+/** Why a skill has no level (Step 4, Option B). not_in_assessment only appears in fit/gap. */
+export type NotAssessedReason = "not_reached" | "insufficient_evidence" | "omitted_by_model" | "not_in_assessment";
 
 export interface AssessorOverride {
   id: number;
@@ -130,11 +136,14 @@ export type SkillComparisonResult = "match" | "gap" | "exceed" | "not_assessed";
 
 export interface SkillComparison {
   skill_label: string;
-  required_level: number;
-  candidate_level?: number;
+  expected_level: number;
+  required_level?: number;  // same as expected_level; older reports only have expected_level
+  candidate_level?: number | null;
   result: SkillComparisonResult;
-  delta?: number;
+  delta?: number | null;
+  confidence?: string | null;
   is_override?: boolean;
+  not_assessed_reason?: NotAssessedReason | null;
 }
 
 export interface FitGapReport {
