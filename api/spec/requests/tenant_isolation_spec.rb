@@ -50,7 +50,43 @@ RSpec.describe 'Tenant isolation', type: :request do
     end
   end
 
+  describe 'portfolio routes, for the owning organization' do
+    # The scoping must not lock out the owner: each route still works for company A.
+    it 'exports its own portfolio' do
+      get "/api/v1/portfolios/#{portfolio.id}/export", params: { format: 'json' }, headers: as_a
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig('portfolio', 'skills', 0, 'skill_label')).to eq('React')
+    end
+
+    it 'overrides a rating on its own portfolio' do
+      post "/api/v1/portfolio_skills/#{skill.id}/override",
+           params: { override: { override_level: 4, assessor_notes: 'Probed in round two' } }.to_json, headers: as_a
+
+      expect(response).to have_http_status(:created)
+      expect(skill.reload.assessor_override.override_level).to eq(4)
+    end
+
+    it 'reads, requests and regenerates fit/gap on its own portfolio' do
+      create(:fit_gap_report, portfolio:, vacancy:)
+
+      get "/api/v1/portfolios/#{portfolio.id}/fitgap/#{vacancy.id}", headers: as_a
+      expect(response).to have_http_status(:ok)
+
+      post "/api/v1/portfolios/#{portfolio.id}/fitgap", params: { vacancy_id: vacancy.id }.to_json, headers: as_a
+      expect(response).to have_http_status(:ok)
+
+      post "/api/v1/portfolios/#{portfolio.id}/regenerate_fitgap", params: { vacancy_id: vacancy.id }.to_json,
+                                                                     headers: as_a
+      expect(response).to have_http_status(:accepted)
+      expect(FitGapGeneratorWorker.jobs.size).to eq(1)
+    end
+  end
+
   describe 'portfolio routes (known defect P0-2)' do
+    # Company B uses its own vacancy, so the only thing that can stop it is the portfolio lookup.
+    let(:vacancy_b) { create(:vacancy, organization: company_b) }
+
     it "does not export another organization's portfolio" do
       pending 'P0-2: PortfoliosController#export uses Portfolio.find without tenant scope'
 
@@ -77,6 +113,28 @@ RSpec.describe 'Tenant isolation', type: :request do
       get "/api/v1/portfolios/#{portfolio.id}/fitgap/#{vacancy.id}", headers: as_b
 
       expect(response).to have_http_status(:not_found)
+    end
+
+    it "does not run fit/gap on another organization's candidate" do
+      pending 'P0-2: PortfoliosController#fitgap uses Portfolio.find without tenant scope'
+
+      post "/api/v1/portfolios/#{portfolio.id}/fitgap", params: { vacancy_id: vacancy_b.id }.to_json, headers: as_b
+
+      expect(response).to have_http_status(:not_found)
+      expect(FitGapGeneratorWorker.jobs).to be_empty
+    end
+
+    it "does not regenerate fit/gap on another organization's candidate" do
+      pending 'P0-2: PortfoliosController#regenerate_fitgap uses Portfolio.find without tenant scope'
+
+      report = create(:fit_gap_report, portfolio:, vacancy: vacancy_b)
+
+      post "/api/v1/portfolios/#{portfolio.id}/regenerate_fitgap", params: { vacancy_id: vacancy_b.id }.to_json,
+                                                                     headers: as_b
+
+      expect(response).to have_http_status(:not_found)
+      expect(FitGapReport.exists?(report.id)).to be(true)
+      expect(FitGapGeneratorWorker.jobs).to be_empty
     end
   end
 end
