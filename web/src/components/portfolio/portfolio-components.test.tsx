@@ -135,10 +135,11 @@ describe("a skill the AI could not rate", () => {
 
     await user.click(screen.getByRole("button", { name: /Add rating/ }));
     await user.click(screen.getByRole("radio", { name: "L2" }));
+    await user.type(screen.getByRole("textbox"), "Probed in round two");
     await user.click(screen.getByRole("button", { name: "Save rating" }));
 
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "" } });
+    expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "Probed in round two" } });
   });
 
   it.fails.each([
