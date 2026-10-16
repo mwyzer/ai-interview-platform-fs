@@ -255,7 +255,8 @@ RSpec.describe Portfolios::Generator do
   end
 
   describe 'model failures (AC-10)' do
-    let(:raw) { 'Sure! Here is the portfolio for Budi Santoso, who said his salary is 25 juta:' }
+    # Starts with the personal data: a JSON parser error quotes only the first token of the reply.
+    let(:raw) { 'Budi Santoso, who said his salary is 25 juta, is a strong candidate.' }
 
     before { generate('configured_skills' => [react_entry]) }
 
