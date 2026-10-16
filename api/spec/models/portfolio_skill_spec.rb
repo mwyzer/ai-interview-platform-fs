@@ -56,7 +56,10 @@ RSpec.describe PortfolioSkill do
     it 'cannot carry a confidence without a level' do
       pending 'ai_level is required'
 
-      expect(not_assessed.tap { _1.ai_confidence = 'high' }).not_to be_valid
+      record = not_assessed.tap { _1.ai_confidence = 'high' }
+
+      expect(record).not_to be_valid
+      expect(record.errors[:ai_confidence]).to be_present
     end
   end
 

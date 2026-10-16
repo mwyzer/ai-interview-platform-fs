@@ -23,8 +23,16 @@ RSpec.describe 'Database constraints', type: :integration do
       rejected_by_db { skill.update_column(:ai_level, 6) }
     end
 
-    it 'requires an AI level: there is no "not assessed" state in the schema (P0-1)' do
-      rejected_by_db(ActiveRecord::NotNullViolation) { skill.update_column(:ai_level, nil) }
+    # Step 5 changed this on purpose: "not assessed" is now a state the schema can hold (P0-1),
+    # but only as a whole: no level, no confidence, and one of three reasons.
+    it 'stores a skill with no level only as "not assessed", with a reason' do
+      rejected_by_db { skill.update_columns(ai_level: nil, ai_confidence: nil) }
+      rejected_by_db { skill.update_columns(ai_level: nil, ai_confidence: 'high', not_assessed_reason: 'not_reached') }
+      rejected_by_db { skill.update_columns(ai_level: nil, ai_confidence: nil, not_assessed_reason: 'too_hard') }
+      rejected_by_db { skill.update_columns(not_assessed_reason: 'not_reached') }
+
+      skill.update_columns(ai_level: nil, ai_confidence: nil, competency_summary: nil, not_assessed_reason: 'not_reached')
+      expect(skill.reload).to have_attributes(ai_level: nil, not_assessed_reason: 'not_reached')
     end
 
     it 'keeps override levels between 1 and 5' do
