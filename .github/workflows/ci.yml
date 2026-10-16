@@ -25,7 +25,8 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          # A database that lives only for this job and listens only on the runner: no password at all.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres"
@@ -42,7 +43,6 @@ jobs:
       DB_HOST: localhost
       DB_PORT: "5432"
       DB_USERNAME: postgres
-      DB_PASSWORD: postgres
       REDIS_URL: redis://localhost:6379/1
       # Throwaway values for the test run only; no real secret is needed or used.
       SECRET_KEY_BASE: ci-only-secret-key-base-not-used-anywhere-else-0000000000000000
