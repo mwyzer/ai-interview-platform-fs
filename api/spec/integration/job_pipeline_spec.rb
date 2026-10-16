@@ -29,8 +29,6 @@ RSpec.describe 'Job pipeline', type: :request do
   end
 
   it 'generates the portfolio inside the request that ends the session' do
-    pending 'AC-2, AC-5: unprobed and omitted skills get no row'
-
     stub_gemini(portfolio: portfolio_output)
     Sessions::StartHandler.new(session).call
     session.transcript_turns.create!(turn_number: 1, speaker: 'candidate', text: 'We profiled with React DevTools.')

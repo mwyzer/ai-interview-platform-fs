@@ -81,10 +81,16 @@ module Exports
       pdf.font_size(11) do
         pdf.text "#{skill.skill_label}", style: :bold
 
-        level_text = "Level: #{LEVEL_LABELS[effective_level]}"
-        level_text += " (AI: #{LEVEL_LABELS[skill.ai_level]} → Override: #{LEVEL_LABELS[override.override_level]})" if override
-        level_text += "  |  Confidence: #{CONFIDENCE_LABELS[skill.ai_confidence] || skill.ai_confidence}"
+        level_text = "Level: #{effective_level ? LEVEL_LABELS[effective_level] : 'Not assessed'}"
+        ai_text    = skill.ai_level ? LEVEL_LABELS[skill.ai_level] : 'Not assessed'
+        level_text += " (AI: #{ai_text} → Override: #{LEVEL_LABELS[override.override_level]})" if override
+        # Confidence describes the AI's rating, so there is none without one.
+        level_text += "  |  Confidence: #{CONFIDENCE_LABELS[skill.ai_confidence] || skill.ai_confidence}" if skill.ai_level
         pdf.text level_text
+      end
+
+      unless skill.assessed?
+        pdf.font_size(10) { pdf.text PortfolioSkill::NOT_ASSESSED_REASON_LABELS.fetch(skill.not_assessed_reason, '') }
       end
 
       pdf.move_down 4

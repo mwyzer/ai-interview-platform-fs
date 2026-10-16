@@ -18,8 +18,6 @@ RSpec.describe PortfolioGeneratorWorker do
   end
 
   it 'marks the portfolio failed once Sidekiq gives up retrying, without the raw error text' do
-    pending 'AC-10: the raw Sidekiq error message, which can contain model output, is stored'
-
     portfolio = create(:portfolio, generation_status: 'generating', generation_error_category: 'model_invalid_response')
     message   = { 'args' => [portfolio.session_id], 'retry_count' => 3,
                   'error_message' => "unexpected token at 'Sure! Here is the portfolio'" }

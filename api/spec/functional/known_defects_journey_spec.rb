@@ -37,8 +37,6 @@ RSpec.describe 'Known defects, end to end', type: :request do
     end
 
     it 'P0-1: shows the assessor the skills nobody asked about as having no level' do
-      pending 'P0-1: level.to_i.clamp(1, 5) stores nil as L1'
-
       get "/api/v1/sessions/#{session.id}/portfolio", headers: headers
 
       levels = json.dig('portfolio', 'skills').to_h { [_1['skill_label'], _1['ai_level']] }

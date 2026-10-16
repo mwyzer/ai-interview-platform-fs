@@ -60,8 +60,6 @@ RSpec.describe Exports::PdfGenerator do
   end
 
   it 'labels a skill that was not assessed as such, with no level or confidence' do
-    pending 'the PDF prints "Level: " with no level, and "Confidence: "'
-
     create(:portfolio_skill, portfolio:, skill_label: 'Communication', ai_level: nil, ai_confidence: nil,
                              competency_summary: nil, evidence: [], not_assessed_reason: 'not_reached')
     lines = []

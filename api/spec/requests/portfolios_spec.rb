@@ -21,8 +21,6 @@ RSpec.describe 'Portfolios', type: :request do
   def json = response.parsed_body
 
   it 'AC-19: says for each skill whether it was assessed, and why not' do
-    pending 'AC-19: no assessment_status or not_assessed_reason in the payload'
-
     unrated
     get "/api/v1/sessions/#{session.id}/portfolio", headers: headers
 
@@ -39,8 +37,6 @@ RSpec.describe 'Portfolios', type: :request do
     end
 
     it 'saves it with no AI level underneath' do
-      pending 'AC-20: ai_level is required on overrides'
-
       rate('Probed in the second interview')
 
       expect(response).to have_http_status(:created)
@@ -48,8 +44,6 @@ RSpec.describe 'Portfolios', type: :request do
     end
 
     it 'refuses it without a note' do
-      pending 'AC-20: ai_level is required on overrides'
-
       rate('')
 
       expect(response).to have_http_status(:unprocessable_entity)
@@ -64,8 +58,6 @@ RSpec.describe 'Portfolios', type: :request do
     end
 
     it 'sends the category and a safe message, never the stored error text' do
-      pending 'AC-21: generation_error is sent as stored'
-
       fail_portfolio
       get "/api/v1/sessions/#{session.id}/portfolio", headers: headers
 
@@ -75,8 +67,6 @@ RSpec.describe 'Portfolios', type: :request do
     end
 
     it 'sends a generic message for a failure stored before categories existed' do
-      pending 'AC-21: generation_error is sent as stored'
-
       fail_portfolio
       portfolio.update!(generation_error_category: nil)
 

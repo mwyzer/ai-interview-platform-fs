@@ -22,8 +22,6 @@ RSpec.describe 'portfolios:unprobed_ratings' do
   end
 
   it 'counts L1 ratings for skills that were never probed, and changes nothing' do
-    pending 'the task does not exist yet'
-
     before = PortfolioSkill.order(:id).pluck(:ai_level)
     task.reenable
 

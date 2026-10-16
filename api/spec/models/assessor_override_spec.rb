@@ -10,16 +10,12 @@ RSpec.describe AssessorOverride do
   end
 
   it 'accepts a rating for a skill the AI did not rate, with a note' do
-    pending 'AC-20: ai_level is required on overrides and portfolio skills'
-
     override = build(:assessor_override, portfolio_skill: not_assessed, ai_level: nil, assessor_notes: 'Probed in round two')
 
     expect(override).to be_valid
   end
 
   it 'requires a note when there is no AI level to override' do
-    pending 'AC-20: ai_level is required on overrides and portfolio skills'
-
     override = build(:assessor_override, portfolio_skill: not_assessed, ai_level: nil, assessor_notes: ' ')
 
     expect(override).not_to be_valid
