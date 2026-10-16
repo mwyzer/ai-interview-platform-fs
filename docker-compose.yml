@@ -1,13 +1,13 @@
 name: ai-interview
 
-# Local development only. The database password defaults to the image's usual dev value; set POSTGRES_PASSWORD in a
-# root .env (gitignored) to change it. It only takes effect when the pgdata volume is first created.
+# Local development only. The database password comes from POSTGRES_PASSWORD in a root .env (gitignored; copy
+# .env.example). Postgres applies it when the pgdata volume is first created.
 x-api-env: &api-env
   RAILS_ENV: development
   DB_HOST: postgres
   DB_PORT: "5432"
   DB_USERNAME: postgres
-  DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env and set POSTGRES_PASSWORD}
   REDIS_URL: redis://redis:6379/1
   WEB_CONCURRENCY: "0"
 
@@ -16,7 +16,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env and set POSTGRES_PASSWORD}
     ports:
       - "127.0.0.1:5432:5432" # this machine only, not the local network
     volumes:
