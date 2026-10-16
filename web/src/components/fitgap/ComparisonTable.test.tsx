@@ -12,8 +12,10 @@ const rows = [
     not_assessed_reason: "not_reached" },
 ] as unknown as SkillComparison[];
 
+// The skill cell starts with the label; a skill that wasn't assessed also says why (AC-25).
 function cells(label: string) {
-  return within(screen.getByRole("cell", { name: label }).closest("tr") as HTMLElement).getAllByRole("cell");
+  const cell = screen.getByRole("cell", { name: new RegExp(`^${label}`) });
+  return within(cell.closest("tr") as HTMLElement).getAllByRole("cell");
 }
 
 describe("ComparisonTable", () => {
