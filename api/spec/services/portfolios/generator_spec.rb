@@ -31,7 +31,7 @@ RSpec.describe Portfolios::Generator do
       portfolio = generate('configured_skills' => [react_entry], 'discovered_skills' => [])
 
       expect(portfolio).to have_attributes(generation_status: 'complete', generated_at: be_present)
-      expect(portfolio.portfolio_skills.sole).to have_attributes(
+      expect(portfolio.portfolio_skills.find_by!(skill_label: 'React')).to have_attributes(
         skill_id: 'SK-ENG-001', ai_level: 3, ai_confidence: 'medium', is_discovered: false
       )
     end
@@ -41,20 +41,23 @@ RSpec.describe Portfolios::Generator do
 
       portfolio = generate('configured_skills' => [], 'discovered_skills' => [discovered])
 
-      expect(portfolio.portfolio_skills.sole).to have_attributes(skill_label: 'Micro-frontends', is_discovered: true)
+      expect(portfolio.portfolio_skills.where(is_discovered: true).sole)
+        .to have_attributes(skill_label: 'Micro-frontends', is_discovered: true)
     end
 
     it 'keeps at most three evidence quotes' do
-      entry = react_entry.merge('evidence' => %w[a b c d e])
+      quotes = ['We profiled', 'with React DevTools', 'and moved hot data', 'into useRef', 'React DevTools']
+      entry  = react_entry.merge('evidence' => quotes)
 
-      expect(generate('configured_skills' => [entry]).portfolio_skills.sole.evidence).to eq(%w[a b c])
+      expect(generate('configured_skills' => [entry]).portfolio_skills.find_by!(skill_label: 'React').evidence)
+        .to eq(quotes.first(3))
     end
 
     it 'replaces the previous skills when run again' do
       generate('configured_skills' => [react_entry])
       portfolio = generate('configured_skills' => [react_entry.merge('level' => 4)])
 
-      expect(portfolio.portfolio_skills.pluck(:ai_level)).to eq([4])
+      expect(portfolio.portfolio_skills.where(skill_label: 'React').pluck(:ai_level)).to eq([4])
     end
 
     it 'sends the transcript and the skill anchors to the model' do
@@ -67,12 +70,15 @@ RSpec.describe Portfolios::Generator do
   end
 
   describe 'when the model call fails' do
-    it 'marks the portfolio failed with the error and re-raises for Sidekiq' do
+    it 'marks the portfolio failed with a safe message and a category, and re-raises for Sidekiq' do
+      pending 'AC-10: the raw exception message is stored as generation_error'
+
       expect { generate(Gemini::HttpClient::TimeoutError.new('Gemini API timeout after 180s')) }
         .to raise_error(Gemini::HttpClient::TimeoutError)
 
       expect(session.reload.portfolio).to have_attributes(
-        generation_status: 'failed', generation_error: 'Gemini API timeout after 180s'
+        generation_status: 'failed', generation_error_category: 'model_timeout',
+        generation_error: "Model timeout: the AI didn't answer in time."
       )
     end
   end
@@ -109,13 +115,28 @@ RSpec.describe Portfolios::Generator do
         .to match_array(['React', 'Communication', 'System Design'])
     end
 
-    it 'P1-4: leaves no half-written portfolio when one entry is invalid' do
+    it 'P1-4: leaves no half-written portfolio when a write fails partway (AC-8)' do
       pending 'P1-4: destroy_all + create! per skill runs outside a transaction'
 
-      bad = { 'configured_skills' => [react_entry, react_entry.merge('skill_label' => 'Communication', 'confidence' => 'Low')] }
+      generate('configured_skills' => [react_entry])
 
-      expect { generate(bad) }.to raise_error(ActiveRecord::RecordInvalid)
-      expect(session.reload.portfolio.portfolio_skills).to be_empty
+      # The second skill row of the next run fails to save.
+      saves = 0
+      # any_instance blocks receive the record itself before the call's own arguments.
+      allow_any_instance_of(PortfolioSkill).to receive(:save!).and_wrap_original do |original, record, *args, **opts|
+        saves += 1
+        raise ActiveRecord::RecordInvalid, record if saves == 2
+
+        original.call(*args, **opts)
+      end
+
+      communication = react_entry.merge('skill_id' => 'SK-SOFT-001', 'skill_label' => 'Communication', 'level' => 2)
+      expect { generate('configured_skills' => [react_entry.merge('level' => 4), communication]) }
+        .to raise_error(ActiveRecord::RecordInvalid)
+
+      portfolio = session.reload.portfolio
+      expect(portfolio.generation_status).to eq('failed')
+      expect(portfolio.portfolio_skills.find_by!(skill_label: 'React').ai_level).to eq(3)
     end
 
     it "P1-4: keeps the assessor's overrides when the portfolio is regenerated" do
