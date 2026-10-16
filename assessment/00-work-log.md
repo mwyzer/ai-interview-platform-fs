@@ -319,6 +319,11 @@ login token (web). The web tests passed three runs in a row on the host and two 
   postman-echo.com, several times (12 requests in the first 1.5 s in the test), with no notice. The API already
   has `/api/v1/speed_test`. That's a privacy issue (UU PDP Art. 5 and 21: the candidate isn't told who receives
   their data) and a reliability one (networks that block those hosts fail the check).
+- **Under the production CSP, the same check blocks every candidate** (added 2026-10-16). `web/vercel.json`
+  limits `connect-src` to our own origin and the API. Running the real module in headless Chrome with that header:
+  all 30 third-party requests blocked, download 0 Mbps, ping 999 ms, `passed: false`, so Start stays disabled. With
+  ping and upload pointed at our own origin it still fails, because the download test has no override. Pinned by
+  an `it.fails` unit test; tracked as P1-12 (possibly P0) and constraint C8.
 
 **Environment notes:** the dev image now uses Node 22 (Vitest 5, MSW 3 and jest-dom 7 need it; Node 20 is past end
 of life). This machine's shell sets `NODE_ENV=production`, so `npm install` skips devDependencies unless given

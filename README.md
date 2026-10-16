@@ -139,13 +139,13 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
 - [x] **Unit tests** (API and web)
   - [x] API: prompt compiler, session start/end, JWT, audio buffer, Gemini HTTP client, PDF export, request
         authorization, model validations, workers: 72 passing, 3 `pending`
-  - [x] Web: utilities, API client, polling hook and components: 48 passing, 9 `it.fails`
+  - [x] Web: utilities, API client, polling hook and components: 48 passing, 10 `it.fails`
 - [x] **Integration tests** (API and web)
   - [x] API: Postgres constraints, the Redis coverage channel, the Rack request pipeline, Sidekiq jobs inline: 28
         passing
   - [x] Web: live monitor over REST + WebSocket (5 passing, 2 `it.fails`); contract test against the running API
         (7 passing, opt-in)
-- [x] **Totals:** API 195 examples, 0 failures, 17 pending. Web 96 tests: 74 passing, 22 expected to fail (67 and 7
+- [x] **Totals:** API 195 examples, 0 failures, 17 pending. Web 97 tests: 74 passing, 23 expected to fail (67 and 7
       skipped without the API). Every known-defect test checked to fail on its assertion; deliberate faults were
       caught in each suite
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
@@ -153,7 +153,7 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
 - [x] **Step 3 · Problem and gap** ([03-problem-and-gap.md](assessment/03-problem-and-gap.md)): findings ranked
       P0–P3 and reproduced, including the assessment list (P1-8, P1-9, P2-6..P2-10), the candidate link (P1-10),
       findings from the functional, unit and integration tests (P1-11..P1-13, P2-11..P2-13), and constraint
-      signals C1–C7
+      signals C1–C8
 - [x] **Step 4 · Strategy** ([04-strategy.md](assessment/04-strategy.md)): 30 acceptance criteria, options A/B/C
       compared, Option B chosen, delivery plan
 

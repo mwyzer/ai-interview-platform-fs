@@ -187,11 +187,11 @@
   <table>
     <tr><th style="width:22%">Step</th><th>Outcome</th></tr>
     <tr><td class="n">1 · Setup</td><td>Docker Compose stack; fixed the API crashing on boot; seeded a dev admin.
-      Built the test harness the repo didn't have: <strong>195 API specs</strong> and <strong>96 web tests</strong>
+      Built the test harness the repo didn't have: <strong>195 API specs</strong> and <strong>97 web tests</strong>
       across unit, integration and functional layers, plus CI. Known defects are pinned by tests that fail today.</td></tr>
     <tr><td class="n">2 · Domain</td><td>Five pillars, from the Indonesian hiring market to UU PDP (Law 27/2022).
       Found that the Gemini free tier forbids personal data, so production needs a paid tier.</td></tr>
-    <tr><td class="n">3 · Gap</td><td>2 P0, 13 P1, 13 P2 findings, each reproduced; 7 constraint signals for a Tech Lead.</td></tr>
+    <tr><td class="n">3 · Gap</td><td>2 P0, 13 P1, 13 P2 findings, each reproduced; 8 constraint signals for a Tech Lead.</td></tr>
     <tr><td class="n">4 · Strategy</td><td>30 acceptance criteria written before code; three options compared;
       chose a real "not assessed" state end to end.</td></tr>
     <tr><td class="n">5 · Build</td><td class="missing">To add: what shipped, test counts after the change, the seeded fault result.</td></tr>
@@ -337,7 +337,7 @@ flowchart TB
     <tr><td><span class="tag p1">P1-8/9</span></td><td>Assessment list loads page 1 only; every ended session reads "completed". <span class="tag seam">SEAM</span></td><td>Assessments past the 20th are unreachable; early-ended interviews look complete.</td><td>Defect / spec</td></tr>
     <tr><td><span class="tag p1">P1-10</span></td><td>Anyone with the invite link can end the interview as "all skills covered", no auth.</td><td>A leaked link ends a never-started session and stores a "complete" portfolio with 0 skills.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-11</span></td><td>A broken invite link says "The interview has been recorded."</td><td>A candidate who never interviewed waits for a reply that never comes.</td><td>Defect</td></tr>
-    <tr><td><span class="tag p1">P1-12</span></td><td>The hardware check calls five third-party hosts before any notice.</td><td>The candidate's IP and device details leave before consent.</td><td>Defect</td></tr>
+    <tr><td><span class="tag p1">P1-12</span></td><td>The hardware check depends on third-party hosts. Without a CSP it calls them before any notice; under the repo's own production CSP they're blocked and the check can never pass.</td><td>Either the candidate's IP leaves before consent, or <strong>Start stays disabled for every candidate</strong>. P0 if production serves that CSP (C8).</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-13</span></td><td>PDF export crashes on any overridden portfolio (an <code>→</code> the font can't encode).</td><td>It fails on exactly the portfolios a human reviewed most closely.</td><td>Defect</td></tr>
   </table>
 
@@ -352,6 +352,7 @@ flowchart TB
     <tr><td class="n" style="width:9%">C2</td><td><strong>Auth trusts JWT claims without a user lookup.</strong> Any token signed with the secret shared with <code>rakamin-api</code> is accepted, so tenant isolation rests entirely on model scoping, which is what failed in P0-2.</td></tr>
     <tr><td class="n">C3</td><td><strong>Shared database with another service.</strong> Migrations must be coordinated and reversible.</td></tr>
     <tr><td class="n">C4</td><td><strong>No retention or erasure policy.</strong> A product and legal decision, not an engineering default.</td></tr>
+    <tr><td class="n">C8</td><td><strong>The production web config can't be verified from the repo.</strong> Under the CSP in <code>vercel.json</code>, no candidate can start (P1-12). I'd ask first whether production serves it; if so, it outranks everything else.</td></tr>
     <tr><td class="n">C1, C6, C7</td><td>Model IDs were retired and the free tier forbids personal data; the candidate is whoever holds the link; CORS allows any origin.</td></tr>
   </table>
 </section>
@@ -545,7 +546,7 @@ flowchart LR
     <tr><td><strong>Ratings, quotes, summaries</strong> (profiling)</td><td><code>portfolio_skills</code></td><td>Assessors, hiring managers, the PDF export</td><td>None set</td></tr>
     <tr><td><strong>Candidate name</strong> (optional)</td><td><code>sessions</code></td><td>Portfolio, PDF export</td><td>None set</td></tr>
     <tr><td><strong>Assessor notes</strong></td><td><code>assessor_overrides</code></td><td>The request log, in plain text (P1-7)</td><td>None set</td></tr>
-    <tr><td><strong>IP and device details</strong></td><td>Not stored</td><td>Five third-party hosts during the hardware check, before any notice (P1-12)</td><td>Their policies</td></tr>
+    <tr><td><strong>IP and device details</strong></td><td>Not stored</td><td>Five third-party hosts during the hardware check, before any notice, where no CSP blocks them (P1-12)</td><td>Their policies</td></tr>
   </table>
 
   <div class="diagram"><script type="text/x-mermaid">
@@ -577,7 +578,7 @@ flowchart LR
   <h3>The roadmap</h3>
   <table>
     <tr><th style="width:21%">Phase</th><th>What I'd build</th><th style="width:14%">UU PDP</th><th style="width:15%">Needs a decision?</th></tr>
-    <tr><td class="n">0 · Stop the leaks</td><td>Tenant scoping (P0-2, sub-PR 1 of this change). Filter passwords and notes from logs (P1-7). Hardware check against our own <code>/speed_test</code> (P1-12). A deploy check that refuses the free model tier in production. CORS limited to the web app's origin.</td><td>Security of processing; Art. 5, 21</td><td>No. Small PRs, ship now</td></tr>
+    <tr><td class="n">0 · Stop the leaks</td><td>Tenant scoping (P0-2, sub-PR 1 of this change). Filter passwords and notes from logs (P1-7). All three speed tests against our own API (P1-12): this removes the leak <em>and</em> the production block, so it goes first. A deploy check that refuses the free model tier in production. CORS limited to the web app's origin.</td><td>Security of processing; Art. 5, 21</td><td>No. Small PRs, ship now</td></tr>
     <tr><td class="n">1 · Notice and recorded consent</td><td>A notice before the mic opens, in the interview's language: AI interview and AI rating, purpose, who sees it, Google processes the audio, retention, how to ask for deletion. Consent stored as a record (session, notice version, language, time), and a session can't start without one. Declining leads to "contact the recruiter", with no penalty. Fix the broken-link message (P1-11).</td><td>Art. 5, 20–22</td><td>Wording only. The mechanism doesn't wait: the text is versioned</td></tr>
     <tr><td class="n">2 · A human stays accountable</td><td>No auto-reject, ever. Record who reviewed a portfolio and when, and show it. A channel for the candidate to object. Ratings that say "not assessed" instead of a fabricated L1 (this change).</td><td>Art. 10</td><td>Who handles objections</td></tr>
     <tr><td class="n">3 · Retention, access, erasure</td><td>Retention configurable per tenant, enforced by a scheduled purge. Erase one candidate's data: transcript, portfolio, overrides, export. Export it for an access request. Every deletion in an audit log.</td><td>Art. 7, 8, 44</td><td><strong>Yes</strong>: the retention period</td></tr>

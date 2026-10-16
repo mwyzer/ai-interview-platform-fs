@@ -27,18 +27,18 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
 
-### Web (Vitest, Testing Library, MSW): 96 tests, 74 passing, 22 expected to fail
+### Web (Vitest, Testing Library, MSW): 97 tests, 74 passing, 23 expected to fail
 
 | Suite | Tests | Covers |
 |---|---|---|
-| Unit | 57 (9 expected to fail) | `parseLevel` and labels; `cn`; browser and OS detection; the speed test offline; token storage; the axios client; `usePolling`; level badge, confidence, skill card, override panel, comparison table, timer, connection status, error boundary |
+| Unit | 58 (10 expected to fail) | `parseLevel` and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card, override panel, comparison table, timer, connection status, error boundary |
 | Functional | 25 (11 expected to fail) | Sign-in and the route guard; assessment list; portfolio review, generating, failed and retry, overrides; fit/gap; the candidate page from a link |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
 
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
 `API_INTEGRATION_URL`, `API_INTEGRATION_EMAIL` and `API_INTEGRATION_PASSWORD`, and must run from the host.
 
-Without the API, the run is 67 passing, 22 expected to fail, 7 skipped.
+Without the API, the run is 67 passing, 23 expected to fail, 7 skipped.
 
 ### How the tests were checked
 
@@ -70,7 +70,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P1-9 every ended session reads "completed" | | assessment list |
 | P1-10 invite link ends a session as `all_covered` | functional journey | |
 | P1-11 broken link says "recorded" | | candidate page |
-| P1-12 hardware check calls third parties | | candidate page |
+| P1-12 hardware check calls third parties, and fails under the production CSP | | candidate page; speed test under CSP |
 | P1-13 PDF export crashes on overrides and emoji | PDF generator (×2) | |
 | P2-1 portfolio load error is a blank page | | portfolio page |
 | P2-3 Gemini retries never fire | HTTP client | |
