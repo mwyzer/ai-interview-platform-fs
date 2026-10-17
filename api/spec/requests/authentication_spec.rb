@@ -77,10 +77,8 @@ RSpec.describe 'Authentication', type: :request do
     end
   end
 
-  describe 'parameter logging (known defect P1-7)' do
+  describe 'parameter logging (P1-7, end to end in parameter_logging_spec)' do
     it 'filters passwords out of the request log' do
-      pending 'P1-7: no filter_parameters configured; passwords are logged in plain text'
-
       filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
 
       expect(filter.filter('password' => 'correct-horse-battery')['password']).to eq('[FILTERED]')

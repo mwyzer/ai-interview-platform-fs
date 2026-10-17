@@ -11,7 +11,6 @@ RSpec.describe 'Parameter logging (P1-7)', type: :request do
   def logged = request.filtered_parameters
 
   it 'filters the password and email from a login' do
-    pending 'P1-7: no filter_parameters configured; passwords are logged in plain text'
     create(:user, email: 'assessor@example.test', password: 'correct-horse-battery')
 
     post '/api/v1/auth/login', params: { email: 'assessor@example.test', password: 'correct-horse-battery' }.to_json,
@@ -22,7 +21,6 @@ RSpec.describe 'Parameter logging (P1-7)', type: :request do
   end
 
   it "filters the assessor's notes from an override" do
-    pending 'P1-7: no filter_parameters configured'
     portfolio = create(:portfolio, session: create(:session, :ended, assessment: create(:assessment, organization:)))
     skill     = create(:portfolio_skill, portfolio:)
 
@@ -35,7 +33,6 @@ RSpec.describe 'Parameter logging (P1-7)', type: :request do
   end
 
   it "filters the candidate's name when an assessor creates an invite" do
-    pending 'P1-7: no filter_parameters configured'
     assessment = create(:assessment, organization:)
 
     post "/api/v1/assessments/#{assessment.id}/sessions",
@@ -46,7 +43,6 @@ RSpec.describe 'Parameter logging (P1-7)', type: :request do
   end
 
   it "filters the candidate's invite token, which is all it takes to join their interview" do
-    pending 'P1-7: no filter_parameters configured'
     session = create(:session, assessment: create(:assessment, organization:))
 
     get "/api/v1/sessions/#{session.invite_token}/candidate"
