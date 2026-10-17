@@ -6,6 +6,9 @@ class PortfolioSkill < ApplicationRecord
   belongs_to :portfolio
   has_one :assessor_override, dependent: :destroy
 
+  # Scoped through portfolio -> session, like Portfolio.for_current_tenant.
+  scope :for_current_tenant, -> { joins(portfolio: :session).where(sessions: { tenant_id: Current.tenant_id }) }
+
   validates :skill_label, presence: true
   validates :ai_level, numericality: { only_integer: true, in: 1..5 }
   validates :ai_confidence, inclusion: { in: CONFIDENCE_LEVELS }

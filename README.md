@@ -145,7 +145,7 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
         passing
   - [x] Web: live monitor over REST + WebSocket (5 passing, 2 `it.fails`); contract test against the running API
         (7 passing, opt-in)
-- [x] **Totals:** API 195 examples, 0 failures, 17 pending. Web 97 tests: 74 passing, 23 expected to fail (67 and 7
+- [x] **Totals:** API 200 examples, 0 failures, 14 pending. Web 97 tests: 74 passing, 23 expected to fail (67 and 7
       skipped without the API). Every known-defect test checked to fail on its assertion; deliberate faults were
       caught in each suite
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
@@ -160,7 +160,8 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
 #### Not done yet
 
 - [ ] **Step 5 · Implementation and PR** (Option B: umbrella PR + focused sub-PRs)
-  - [ ] Sub-PR 1: tenant scoping for portfolio export, override and fit/gap reads (P0-2)
+  - [x] Sub-PR 1: tenant scoping for portfolio export, override and fit/gap reads and writes (P0-2); 5 specs flip
+        to passing, checked over HTTP ([work log](assessment/00-work-log.md#step-5-implementation))
   - [ ] Sub-PR 2: web tolerates a missing level (AC-23); must land before or with sub-PR 3 (P2-11)
   - [ ] Sub-PR 3: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21)
   - [ ] Sub-PR 4: fit/gap engine + payload (AC-13..AC-16)
