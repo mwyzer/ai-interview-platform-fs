@@ -144,7 +144,7 @@
 
 <!-- ============================== COVER ============================== -->
 <div class="cover">
-  <div class="draft">DRAFT · VIDEO AND SUB-PR LINKS TO ADD</div>
+  <div class="draft">DRAFT · VIDEO TO ADD</div>
   <div class="kicker">Fullstack Product Engineer · Case study report</div>
   <h1>Making the AI interview honest about what it didn't measure</h1>
   <p class="lead">An AI interviewer turns a voice conversation into a level per skill. Today, a skill nobody asked
@@ -217,6 +217,9 @@
     <tr><td class="n">Test gaps</td><td>Covered the pages and API pieces no test touched: <strong>293 API specs</strong> and
       <strong>149 web tests</strong> now, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
       P2-17), each pinned by a test that fails today.</td></tr>
+    <tr><td class="n">Follow-ups</td><td>Two more sub-PRs from the Step 4 list: the request log filters passwords, notes and
+      candidate names (P1-7), and the server queues one fit/gap job per report (P1-6). <strong>301 API specs</strong>,
+      0 failures.</td></tr>
   </table>
 </section>
 
@@ -697,7 +700,7 @@ flowchart LR
     <tr><td><strong>Transcript</strong></td><td><code>transcript_turns</code></td><td>Gemini, for coverage analysis and the portfolio</td><td>None set</td></tr>
     <tr><td><strong>Ratings, quotes, summaries</strong> (profiling)</td><td><code>portfolio_skills</code></td><td>Assessors, hiring managers, the PDF export</td><td>None set</td></tr>
     <tr><td><strong>Candidate name</strong> (optional)</td><td><code>sessions</code></td><td>Portfolio, PDF export</td><td>None set</td></tr>
-    <tr><td><strong>Assessor notes</strong></td><td><code>assessor_overrides</code></td><td>The request log, in plain text (P1-7)</td><td>None set</td></tr>
+    <tr><td><strong>Assessor notes</strong></td><td><code>assessor_overrides</code></td><td>The request log, in plain text (P1-7; filtered since sub-PR 6)</td><td>None set</td></tr>
     <tr><td><strong>IP and device details</strong></td><td>Not stored</td><td>Five third-party hosts during the hardware check, before any notice, where no CSP blocks them (P1-12)</td><td>Their policies</td></tr>
   </table>
 
@@ -725,12 +728,12 @@ flowchart LR
   class third,logs,other leak
   class gem,pdf ext
 </script></div>
-  <p class="caption">Red, dashed: flows that shouldn't exist. Amber: data that leaves our control and needs a documented basis.</p>
+  <p class="caption">As found in Step 3. Red, dashed: flows that shouldn't exist; two are now closed, cross-tenant access in sub-PR 1 (P0-2) and the request log in sub-PR 6 (P1-7). Amber: data that leaves our control and needs a documented basis.</p>
 
   <h3>The roadmap</h3>
   <table>
     <tr><th style="width:21%">Phase</th><th>What I'd build</th><th style="width:14%">UU PDP</th><th style="width:15%">Needs a decision?</th></tr>
-    <tr><td class="n">0 · Stop the leaks</td><td>Tenant scoping (P0-2, sub-PR 1 of this change). Filter passwords and notes from logs (P1-7). All three speed tests against our own API (P1-12): this removes the leak <em>and</em> the production block, so it goes first. A deploy check that refuses the free model tier in production. CORS limited to the web app's origin.</td><td>Security of processing; Art. 5, 21</td><td>No. Small PRs, ship now</td></tr>
+    <tr><td class="n">0 · Stop the leaks</td><td>Tenant scoping (P0-2, sub-PR 1 of this change). Filter passwords and notes from logs (P1-7, sub-PR 6). All three speed tests against our own API (P1-12): this removes the leak <em>and</em> the production block, so it goes first. A deploy check that refuses the free model tier in production. CORS limited to the web app's origin.</td><td>Security of processing; Art. 5, 21</td><td>No. Small PRs, ship now</td></tr>
     <tr><td class="n">1 · Notice and recorded consent</td><td>A notice before the mic opens, in the interview's language: AI interview and AI rating, purpose, who sees it, Google processes the audio, retention, how to ask for deletion. Consent stored as a record (session, notice version, language, time), and a session can't start without one. Declining leads to "contact the recruiter", with no penalty. Fix the broken-link message (P1-11).</td><td>Art. 5, 20–22</td><td>Wording only. The mechanism doesn't wait: the text is versioned</td></tr>
     <tr><td class="n">2 · A human stays accountable</td><td>No auto-reject, ever. Record who reviewed a portfolio and when, and show it. A channel for the candidate to object. Ratings that say "not assessed" instead of a fabricated L1 (this change).</td><td>Art. 10</td><td>Who handles objections</td></tr>
     <tr><td class="n">3 · Retention, access, erasure</td><td>Retention configurable per tenant, enforced by a scheduled purge. Erase one candidate's data: transcript, portfolio, overrides, export. Export it for an access request. Every deletion in an audit log.</td><td>Art. 7, 8, 44</td><td><strong>Yes</strong>: the retention period</td></tr>
