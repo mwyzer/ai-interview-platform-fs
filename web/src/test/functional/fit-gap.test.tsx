@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { API, server } from "../server";
@@ -73,9 +73,31 @@ describe("Fit/gap report", () => {
     expect(within(item).queryByText(/confirmed/)).not.toBeInTheDocument();
   });
 
+  it("AC-26: stops waiting after two minutes and offers a retry", async () => {
+    serve({ ready: () => false });
+    renderApp(PAGE);
+    await screen.findByText("Generating fit/gap report...");
+
+    const start = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => start + 2 * 60_000 + 1);
+
+    expect(await screen.findByRole("alert", {}, { timeout: 7000 })).toHaveTextContent(/taking longer than expected/i);
+    expect(screen.getByRole("button", { name: /Try again/ })).toBeInTheDocument();
+    vi.restoreAllMocks();
+  }, 10_000);
+
+  it("AC-26: shows an error with a retry when the report can't be fetched", async () => {
+    serve();
+    server.use(http.get(`${API}/portfolios/9/fitgap/5`, () => HttpResponse.json({}, { status: 500 })));
+    renderApp(PAGE);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't load the fit\/gap report/i);
+    expect(screen.getByRole("button", { name: /Try again/ })).toBeInTheDocument();
+  });
+
   describe("known defects (assessment/03-problem-and-gap.md)", () => {
     // The API sends `expected_level`; the table reads `required_level`.
-    it.fails("P1-2: shows the level the vacancy requires", async () => {
+    it("P1-2: shows the level the vacancy requires", async () => {
       serve();
       renderApp(PAGE);
       await screen.findByText("Skill Comparison");
@@ -93,7 +115,7 @@ describe("Fit/gap report", () => {
       expect(line).toHaveTextContent("L2");
     });
 
-    it.fails("P1-6: asks the API to generate the report only once while it waits", async () => {
+    it("P1-6: asks the API to generate the report only once while it waits", async () => {
       const calls = serve({ ready: () => false });
       renderApp(PAGE);
       await screen.findByText("Generating fit/gap report...");

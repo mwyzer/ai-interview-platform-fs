@@ -27,18 +27,18 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
 
-### Web (Vitest, Testing Library, MSW): 130 tests, 111 passing, 19 expected to fail
+### Web (Vitest, Testing Library, MSW): 146 tests, 126 passing, 13 expected to fail, 7 opt-in
 
 | Suite | Tests | Covers |
 |---|---|---|
-| Unit | 90 (8 expected to fail) | `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card and override panel (including a skill with no level), comparison table, timer, connection status, error boundary |
-| Functional | 26 (9 expected to fail) | Sign-in and the route guard; assessment list; portfolio review, generating, failed and retry, overrides; fit/gap; the candidate page from a link |
+| Unit | 100 (5 expected to fail) | `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card (with the not-assessed reason) and override panel (including rating an unrated skill), `ExpandableText`, comparison table (reasons, `data-label`), timer, connection status, error boundary |
+| Functional | 32 (6 expected to fail) | Sign-in and the route guard; assessment list; portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
 
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
 `API_INTEGRATION_URL`, `API_INTEGRATION_EMAIL` and `API_INTEGRATION_PASSWORD`, and must run from the host.
 
-Without the API, the run is 104 passing, 19 expected to fail, 7 skipped.
+Without the API, the run is 126 passing, 13 expected to fail, 7 skipped.
 
 ### How the tests were checked
 
@@ -48,7 +48,7 @@ Without the API, the run is 104 passing, 19 expected to fail, 7 skipped.
 - **Deliberate faults were caught in every suite.** Examples: flipping the fit/gap verdict, the audio buffer's
   eviction bound, the prompt's skill order, the end message's keys, the login rate limit (API); not saving the login
   token, the timer's warning threshold, the polling hook's ref, the coverage message type (web). Each was reverted
-  straight away; the recorded seeded fault test is still to do (below).
+  straight away. The recorded seeded fault test is on `scratch/seeded-fault-clamp` (see the work log, sub-PR 3).
 - **Stable:** the web suite passed repeatedly on the host and in the Docker container.
 
 ## Known defects pinned by tests
@@ -60,11 +60,11 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P0-1 unassessed skill stored as L1~~ **fixed** (web in sub-PR 2, API in sub-PR 3) | generator; functional journey now pass | `parseLevel`; portfolio page now pass |
 | ~~P0-2 cross-tenant read/write~~ **fixed** in sub-PR 1 | export, override, fit/gap read and both fit/gap writes now pass | |
 | ~~P1-1 fit/gap counts unreached skills as gaps~~ **fixed** in sub-PR 4 | engine; functional journey now pass | |
-| P1-2 web reads `required_level`, API sends `expected_level` | | comparison table; fit/gap page |
+| ~~P1-2 web reads `required_level`, API sends `expected_level`~~ **fixed** in sub-PR 5 | | comparison table; fit/gap page now pass |
 | ~~P1-3 omitted skills vanish~~ **fixed** in sub-PR 3 | generator now passes | |
 | ~~P1-4 non-atomic writes wipe overrides~~ **fixed** in sub-PR 3 | generator (×2) now pass | |
 | ~~P1-5 unverified evidence quotes~~ **fixed** in sub-PR 3 | generator now passes | |
-| P1-6 duplicate fit/gap jobs | fit/gap request | fit/gap page |
+| P1-6 duplicate fit/gap jobs (web side **fixed** in sub-PR 5: one request per visit) | fit/gap request (still pending: no server-side lock) | fit/gap page now passes |
 | P1-7 passwords in logs | auth request | |
 | P1-8 list only loads page 1 | | assessment list |
 | P1-9 every ended session reads "completed" | | assessment list |
@@ -72,10 +72,10 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P1-11 broken link says "recorded" | | candidate page |
 | P1-12 hardware check calls third parties, and fails under the production CSP | | candidate page; speed test under CSP |
 | P1-13 PDF export crashes on overrides and emoji | PDF generator (×2) | |
-| P2-1 portfolio load error is a blank page | | portfolio page |
+| ~~P2-1 portfolio load error is a blank page~~ **fixed** in sub-PR 5 | | portfolio page now passes |
 | P2-3 Gemini retries never fire | HTTP client | |
 | P2-4 no notice before the interview | | candidate page |
-| P2-5 fit/gap summary leaves out "not assessed" | | comparison table (the discovered-skill level, part of P2-5, is fixed in sub-PR 2) |
+| ~~P2-5 fit/gap summary leaves out "not assessed"~~ **fixed** (discovered-skill level in sub-PR 2, summary in sub-PR 5) | | comparison table now passes |
 | P2-6 list shows error and empty state together | | assessment list |
 | ~~P2-11 null level crashes the portfolio page~~ **fixed** in sub-PR 2 | | `parseLevel` now passes |
 | P2-12 monitor misses an end during reconnect | | live monitor |
@@ -87,7 +87,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | # | What | Why it matters | Required by the brief? | Effort |
 |---|---|---|---|---|
 | 1 | **CI** (GitHub Actions running both suites on every push and PR) | Today the tests only protect the code when someone remembers to run them. CI makes every test above a gate, and shows the reviewer a green check on the PR. | Yes: "no CI" is part of the baseline to fix | Small |
-| 2 | **Recorded seeded fault test** | Proves the suite catches a regression, with the history visible: break the logic on a scratch branch, show the failing run, revert. Best done in Step 5 on the P0-1 fix, so the fault is a regression of that fix. | Yes, explicitly | Small |
+| 2 | ~~**Recorded seeded fault test**~~ **done** (sub-PR 3) | Proves the suite catches a regression, with the history visible: break the logic on a scratch branch, show the failing run, revert. Best done in Step 5 on the P0-1 fix, so the fault is a regression of that fix. | Yes, explicitly | Small |
 | 3 | **End-to-end in a real browser** (Playwright: real web + real API) | Nothing yet runs both services together in a browser. It can also capture every state at desktop and 375px, which the submission needs as screenshots. | Screenshots are | Medium |
 | 4 | **Accessibility checks** (axe on the existing page tests, plus keyboard paths) | Catches missing labels, roles and keyboard access (P2-8: assessment cards can't be opened with a keyboard). "Poor UI/UX" is a disqualifier. | Indirectly | Small |
 | 5 | **Migration up/down test** | Step 5's migration must be reversible and safe for existing rows; a spec that migrates down and up with data in place proves it. | Yes, for Step 5 | Small |

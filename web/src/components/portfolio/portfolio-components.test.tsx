@@ -97,7 +97,8 @@ describe("SkillPortfolioCard", () => {
 // The screen must survive it and never show it as a level. The full not-assessed design
 // (reasons, summary line) comes with sub-PR 5.
 describe("a skill the AI could not rate", () => {
-  const unrated = () => skill({ ai_level: null, ai_confidence: null, evidence: [], competency_summary: null });
+  const unrated = (reason = "not_reached") =>
+    skill({ ai_level: null, ai_confidence: null, evidence: [], competency_summary: null, not_assessed_reason: reason });
 
   it("shows 'Not assessed' instead of a level or a confidence", () => {
     render(<SkillPortfolioCard skill={unrated()} onOverrideSaved={() => {}} />);
@@ -134,10 +135,36 @@ describe("a skill the AI could not rate", () => {
 
     await user.click(screen.getByRole("button", { name: /Add rating/ }));
     await user.click(screen.getByRole("radio", { name: "L2" }));
+    await user.type(screen.getByRole("textbox"), "Probed in round two");
     await user.click(screen.getByRole("button", { name: "Save rating" }));
 
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "" } });
+    expect(sent).toEqual({ override: { override_level: 2, assessor_notes: "Probed in round two" } });
+  });
+
+  it.each([
+    ["not_reached", "Not reached before the interview ended"],
+    ["insufficient_evidence", "Not enough evidence to rate"],
+    ["omitted_by_model", "Missing from the AI's output"],
+  ])("AC-22: explains a %s skill in plain language, and suggests probing it", (reason, text) => {
+    render(<SkillPortfolioCard skill={unrated(reason)} onOverrideSaved={() => {}} />);
+
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.getByText(/Probe it in the next interview/)).toBeInTheDocument();
+  });
+
+  it("AC-20: asks where the rating comes from before saving it", async () => {
+    const user = userEvent.setup();
+    render(<OverridePanel skill={unrated()} onSaved={() => {}} />);
+
+    await user.click(screen.getByRole("button", { name: /Add rating/ }));
+    await user.click(screen.getByRole("radio", { name: "L3" }));
+
+    expect(screen.getByRole("button", { name: "Save rating" })).toBeDisabled();
+    expect(screen.getByLabelText(/where this rating comes from/i)).toBeRequired();
+
+    await user.type(screen.getByLabelText(/where this rating comes from/i), "Probed in round two");
+    expect(screen.getByRole("button", { name: "Save rating" })).toBeEnabled();
   });
 
   it("shows the assessor's rating next to 'Not assessed' once rated", () => {
@@ -207,7 +234,7 @@ describe("OverridePanel", () => {
     expect(within(summary).getByText("L4")).toBeInTheDocument();
   });
 
-  it.fails("labels an override in plain English (known defect, P3: reads 'You Overridden')", () => {
+  it("labels an override in plain English (known defect, P3: reads 'You Overridden')", () => {
     render(<OverridePanel skill={skill()} existingOverride={override} onSaved={() => {}} />);
 
     expect(screen.queryByText(/You Overridden/)).not.toBeInTheDocument();

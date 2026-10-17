@@ -10,7 +10,34 @@ import { vacanciesApi } from "@/services/vacancies";
 import { portfoliosApi } from "@/services/portfolios";
 import { usePolling } from "@/hooks/usePolling";
 import { ArrowLeft, Download, Loader2, RefreshCw, Zap, FileText } from "lucide-react";
-import type { Portfolio, AssessorOverride, Vacancy } from "@/types";
+import { END_REASON_LABELS, parseLevel } from "@/utils/constants";
+import type { Portfolio, AssessorOverride, Vacancy, Session } from "@/types";
+
+/**
+ * "2 of 3 skills weren't assessed. The interview ended after 6 minutes (ended by the candidate)." (AC-24)
+ * Counts configured skills with no level that nobody has rated yet. The end reason is only repeated when it
+ * can't contradict the result: "all_covered" can be sent by anyone with the invite link (Step 3, P1-10).
+ */
+export function notAssessedSummary(portfolio: Portfolio, overrides: Record<number, AssessorOverride>, session: Session | null) {
+  const configured = portfolio.skills.filter((s) => !s.is_discovered);
+  const missing = configured.filter((s) => parseLevel(s.ai_level) === null && !overrides[s.id]);
+  if (missing.length === 0) return null;
+
+  const total = configured.length;
+  let text = `${missing.length} of ${total} skill${total !== 1 ? "s" : ""} ${missing.length === 1 ? "wasn't" : "weren't"} assessed.`;
+
+  const minutes = session?.duration_seconds != null ? Math.floor(session.duration_seconds / 60) : null;
+  const ending = session?.end_reason ? END_REASON_LABELS[session.end_reason] : undefined;
+  const allUnreached = missing.every((s) => s.not_assessed_reason === "not_reached");
+
+  if (minutes !== null) {
+    const after = `The interview ended after ${minutes} minute${minutes !== 1 ? "s" : ""}`;
+    if (ending) text += ` ${after} (${ending}).`;
+    else if (allUnreached) text += ` ${after}, before ${missing.length === 1 ? "it was" : "they were"} reached.`;
+    else text += ` ${after}.`;
+  }
+  return text;
+}
 
 export default function PortfolioPage() {
   const { id, sessionId } = useParams<{ id: string; sessionId: string }>();
@@ -22,7 +49,9 @@ export default function PortfolioPage() {
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [selectedVacancy, setSelectedVacancy] = useState<string>("");
   const [exporting, setExporting] = useState<"pdf" | "json" | null>(null);
-  const [candidateName, setCandidateName] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const fetchPortfolio = useCallback(async () => {
     const res = await sessionsApi.getPortfolio(Number(sessionId));
@@ -41,15 +70,25 @@ export default function PortfolioPage() {
     }
   }, [sessionId]);
 
+  // The portfolio is what the page is for: if it can't load, say so and offer a retry (AC-27, P2-1).
+  // The session and the vacancy list only add context, so their failures don't block the page.
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await fetchPortfolio();
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchPortfolio]);
+
   useEffect(() => {
-    Promise.all([fetchPortfolio(), vacanciesApi.list(), sessionsApi.get(Number(sessionId))])
-      .then(([, vRes, sRes]) => {
-        setVacancies(vRes.data.vacancies);
-        setCandidateName(sRes.data.session.candidate_name ?? null);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [fetchPortfolio, sessionId]);
+    load();
+    vacanciesApi.list().then((res) => setVacancies(res.data.vacancies)).catch(() => setVacancies([]));
+    sessionsApi.get(Number(sessionId)).then((res) => setSession(res.data.session)).catch(() => setSession(null));
+  }, [load, sessionId]);
 
   // Poll while generating
   usePolling(fetchPortfolio, 5000, generating);
@@ -94,6 +133,16 @@ export default function PortfolioPage() {
     }
   };
 
+  const handleRetryGeneration = async () => {
+    setRetrying(true);
+    try {
+      await sessionsApi.regeneratePortfolio(Number(sessionId));
+      setGenerating(true);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto space-y-4">
@@ -104,10 +153,13 @@ export default function PortfolioPage() {
     );
   }
 
+  const candidateName = session?.candidate_name ?? null;
+  const summary = portfolio?.generation_status === "complete" ? notAssessedSummary(portfolio, overrides, session) : null;
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+      {/* Header: the actions wrap under the title on a phone (AC-29) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-2">
           <Link to={`/assessments/${id}/invite`} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
@@ -120,7 +172,7 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             to={`/assessments/${id}/sessions/${sessionId}/transcript`}
             className="inline-flex items-center gap-1 text-sm border rounded-md px-3 py-1.5 hover:bg-accent transition-colors"
@@ -153,6 +205,19 @@ export default function PortfolioPage() {
         </div>
       </div>
 
+      {/* Load failure */}
+      {loadError && (
+        <div role="alert" className="border border-destructive/40 rounded-lg p-6 text-center space-y-3">
+          <div>
+            <p className="font-medium">Couldn't load the portfolio.</p>
+            <p className="text-sm text-muted-foreground mt-1">Check your connection, then try again.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={load}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Try again
+          </Button>
+        </div>
+      )}
+
       {/* Generating state */}
       {generating && (
         <div className="border rounded-lg p-12 text-center space-y-3">
@@ -168,17 +233,17 @@ export default function PortfolioPage() {
 
       {/* Failed state */}
       {!generating && portfolio?.generation_status === "failed" && (
-        <div className="border border-destructive/40 rounded-lg p-6 text-center space-y-3">
-          <p className="text-sm text-destructive">Portfolio generation failed.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await sessionsApi.regeneratePortfolio(Number(sessionId));
-              setGenerating(true);
-            }}
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
+        <div role="alert" className="border border-destructive/40 rounded-lg p-6 text-center space-y-3">
+          <div>
+            <p className="font-medium">Portfolio generation failed.</p>
+            {/* The API's safe message for the failure category, never the raw error (AC-21). */}
+            {portfolio.generation_error && (
+              <p className="text-sm text-muted-foreground mt-1">{portfolio.generation_error}</p>
+            )}
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRetryGeneration} disabled={retrying}>
+            {retrying ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+            Retry
           </Button>
         </div>
       )}
@@ -186,6 +251,13 @@ export default function PortfolioPage() {
       {/* Ready state */}
       {!generating && portfolio?.generation_status === "complete" && (
         <>
+          {/* How much of the result is unknown, before any single skill (AC-24) */}
+          {summary && (
+            <div className="rounded-lg border border-dashed px-4 py-3">
+              <p className="text-sm text-muted-foreground">{summary}</p>
+            </div>
+          )}
+
           {/* Configured skills */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold">Configured Skills</h2>
@@ -232,9 +304,9 @@ export default function PortfolioPage() {
           <Separator />
 
           {/* Fit/Gap */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select value={selectedVacancy} onValueChange={setSelectedVacancy}>
-              <SelectTrigger className="w-56">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Choose vacancy..." />
               </SelectTrigger>
               <SelectContent>

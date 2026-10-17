@@ -24,13 +24,14 @@ Each service has its own setup guide. Run the API first, then the web app pointe
 
 Runs Postgres, Redis, the API, Sidekiq and the web app together.
 
-1. `cp api/config/application.yml.sample api/config/application.yml` and set `SECRET_KEY_BASE` and `GEMINI_API_KEY`. Database and Redis settings in that file are overridden by `docker-compose.yml`.
-2. `docker compose up --build` — the API creates, migrates and seeds the database on startup.
-3. Mint a dev JWT and put it in `web/.env` as `VITE_DEV_TOKEN`, then `docker compose restart web`:
+1. `cp .env.example .env` and set `POSTGRES_PASSWORD`, `REDIS_PASSWORD` and `DEV_ADMIN_PASSWORD` (letters and digits). Postgres and Redis are only reachable from this machine; you sign in as `admin@example.com` with `DEV_ADMIN_PASSWORD`.
+2. `cp api/config/application.yml.sample api/config/application.yml` and set `SECRET_KEY_BASE` and `GEMINI_API_KEY`. Database and Redis settings in that file are overridden by `docker-compose.yml`.
+3. `docker compose up --build` — the API creates, migrates and seeds the database on startup.
+4. Mint a dev JWT and put it in `web/.env` as `VITE_DEV_TOKEN`, then `docker compose restart web`:
    ```bash
    docker compose exec api bundle exec rails runner "puts JsonWebToken.encode({ user_id: 1, role: 'admin', scheme: 'test-corp' }, 30.days)"
    ```
-4. Open http://localhost:5173 (API on http://localhost:3001).
+5. Open http://localhost:5173 (API on http://localhost:3001).
 
 Stop with `docker compose down`; add `-v` to also wipe the database.
 
@@ -72,7 +73,7 @@ container, Rails' development host check answers 403):
 
 ```bash
 cd web && API_INTEGRATION_URL=http://localhost:3001/api/v1 \
-  API_INTEGRATION_EMAIL=admin@example.com API_INTEGRATION_PASSWORD=password123 npm test
+  API_INTEGRATION_EMAIL=admin@example.com API_INTEGRATION_PASSWORD=<your DEV_ADMIN_PASSWORD> npm test
 ```
 
 It only creates an assessment without sessions and a vacancy, and deletes both. The tests in `web/src/test/functional` render the whole app at a URL (real

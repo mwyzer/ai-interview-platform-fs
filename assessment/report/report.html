@@ -97,9 +97,19 @@
   .cover .meta dd { margin: 0; }
   .missing { color: var(--todo); font-weight: 600; }
 
-  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
-  .shot { border: 1.5px dashed #d9a520; background: var(--todo-bg); border-radius: 1.5mm; height: 38mm; padding: 2.5mm; font-size: 8pt; color: var(--todo); display: flex; flex-direction: column; justify-content: flex-end; break-inside: avoid; }
-  .shot strong { color: var(--ink); font-size: 8.4pt; }
+  /* screenshots: a desktop shot beside its 375px version, then smaller state shots */
+  .shots2, .shots4 { display: grid; gap: 4mm; margin: 3mm 0 4mm; break-inside: avoid; align-items: start; }
+  .shots2 { grid-template-columns: 1fr 42mm; }
+  .shots2.even { grid-template-columns: 1fr 1fr; }
+  .shots4 { grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+  figure { margin: 0; break-inside: avoid; }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 1mm; }
+  figure.phone img { max-height: 120mm; object-fit: cover; object-position: top; }
+  figure img.crop { height: 62mm; object-fit: cover; object-position: top; }
+  .shots4 figure img { max-height: 42mm; object-fit: cover; object-position: top; }
+  .page-break { break-before: page; }
+  figcaption { font-size: 7.8pt; color: var(--muted); margin-top: 1.5mm; line-height: 1.35; }
+  figcaption strong { color: var(--ink); }
   ol.moments li { margin-bottom: 2.4mm; }
   .diagram { margin: 3mm 0 4mm; text-align: center; break-inside: avoid; }
   .diagram svg { max-width: 100%; max-height: 105mm; height: auto; }
@@ -134,7 +144,7 @@
 
 <!-- ============================== COVER ============================== -->
 <div class="cover">
-  <div class="draft">DRAFT · STEP 5 NOT YET IMPLEMENTED</div>
+  <div class="draft">DRAFT · VIDEO AND SUB-PR LINKS TO ADD</div>
   <div class="kicker">Fullstack Product Engineer · Case study report</div>
   <h1>Making the AI interview honest about what it didn't measure</h1>
   <p class="lead">An AI interviewer turns a voice conversation into a level per skill. Today, a skill nobody asked
@@ -142,7 +152,7 @@
     this product, how I found it, the options I weighed, and the change I made across the API and the web app.</p>
   <dl class="meta">
     <dt>Candidate</dt><dd>Muhammad Wyzer</dd>
-    <dt>Pull request</dt><dd class="missing">To add: umbrella PR link on rakamindev/ai-interview-platform</dd>
+    <dt>Pull request</dt><dd><a href="https://github.com/rakamindev/ai-interview-platform/pull/160">rakamindev/ai-interview-platform#160</a> (umbrella) <span class="missing">· sub-PR links to add</span></dd>
     <dt>Video (3–5 min)</dt><dd class="missing">To add: unlisted link</dd>
     <dt>Working docs</dt><dd><code>assessment/</code> in the PR branch: work log, Steps 2–4, testing overview, GUARDRAILS</dd>
     <dt>Date</dt><dd>October 2026</dd>
@@ -194,7 +204,9 @@
     <tr><td class="n">3 · Gap</td><td>2 P0, 13 P1, 13 P2 findings, each reproduced; 8 constraint signals for a Tech Lead.</td></tr>
     <tr><td class="n">4 · Strategy</td><td>30 acceptance criteria written before code; three options compared;
       chose a real "not assessed" state end to end.</td></tr>
-    <tr><td class="n">5 · Build</td><td class="missing">To add: what shipped, test counts after the change, the seeded fault result.</td></tr>
+    <tr><td class="n">5 · Build</td><td>Five sub-PRs: tenant scoping, then "not assessed" through storage, generator,
+      fit/gap and both screens. <strong>263 API specs</strong> (0 failures) and <strong>126 web tests</strong> passing;
+      118 known-defect or new-AC tests flipped to passing. The seeded fault (the clamp put back) was caught by 13 specs.</td></tr>
   </table>
 </section>
 
@@ -467,30 +479,97 @@ flowchart LR
 <section>
   <h2><span class="step">Step 5 · Implementation</span>What shipped</h2>
 
-  <div class="todo"><p>Fill in once the sub-PRs are merged into the umbrella branch:</p>
-    <ul>
-      <li>Umbrella PR link and the 5 sub-PR links, one line each on what they change.</li>
-      <li>Before/after for the reproduction scenario: stored levels and fit/gap verdicts.</li>
-      <li>Test counts after the change; which <code>pending</code> / <code>it.fails</code> tests flipped to passing.</li>
-      <li>Failure paths covered: model timeout, invalid JSON, partial write, duplicate job, long text, junk levels.</li>
-      <li>Migration: up on a database with existing rows (no row changed), down with and without NULL levels.</li>
-    </ul></div>
+  <p class="lead">A skill nobody asked about is now stored, scored and shown as <strong>not assessed, and why</strong>,
+    never as L1. Five sub-PRs, each with its tests written first and checked to fail on their assertion.</p>
+
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:24%">Sub-PR (branch)</th><th>What it changes</th><th style="width:20%">Commits</th></tr>
+    <tr><td class="n">1</td><td><code>fix/tenant-scoping</code></td><td>Every portfolio, skill and fit/gap lookup is scoped to the
+      caller's tenant (P0-2), including two fit/gap write routes Step 3 hadn't pinned. No migration.</td>
+      <td><code>d7e58ac</code> <code>ecd3124</code></td></tr>
+    <tr><td class="n">2</td><td><code>fix/web-null-level</code></td><td>The web reads a missing level as "not assessed" instead
+      of L1 or a crash (AC-23, P2-11). Ships before the API can send one.</td>
+      <td><code>8292c0a</code> <code>79328eb</code> <code>9907398</code></td></tr>
+    <tr><td class="n">3</td><td><code>feat/not-assessed-generator</code></td><td>Reversible migration; the generator stores
+      "not assessed" with a reason, writes atomically and keeps overrides, verifies quotes (P0-1, P1-3..P1-5).</td>
+      <td><code>4a4f5ca</code> <code>69aebe4</code> <code>8cb0a9d</code> <code>841fb35</code> <code>5192358</code></td></tr>
+    <tr><td class="n">4</td><td><code>feat/fitgap-not-assessed</code></td><td>Fit/gap reports an unassessed skill as an unknown,
+      not a gap, and the narrative says so (P1-1).</td>
+      <td><code>bb4b797</code> <code>dedee56</code> <code>054c6b9</code></td></tr>
+    <tr><td class="n">5</td><td><code>feat/not-assessed-screens</code></td><td>Portfolio and fit/gap screens: the reason, a
+      summary line, rating with a required source, error and retry states, long text, 375px (AC-20, AC-22, AC-24..AC-30).</td>
+      <td><code>5e30533</code> <code>342adec</code> <code>c40c78d</code> <code>8e0a650</code></td></tr>
+  </table>
+
+  <h3>Before and after: the Step 3 reproduction</h3>
+  <p>Same synthetic interview (React discussed, two skills never reached), run through the real model on the dev stack.</p>
+  <table>
+    <tr><th></th><th>Communication (role needs L3)</th><th>System Design (role needs L2)</th></tr>
+    <tr><td><strong>Before</strong></td><td>Stored <strong>L1</strong>; fit/gap: <strong>gap</strong></td><td>Stored <strong>L1</strong>; fit/gap: <strong>gap</strong></td></tr>
+    <tr><td><strong>Model's answer now</strong></td><td><code>null</code></td><td><code>null</code></td></tr>
+    <tr><td><strong>After</strong></td><td>Not assessed, <code>not_reached</code>; fit/gap: not assessed</td><td>Not assessed, <code>not_reached</code>; fit/gap: not assessed</td></tr>
+    <tr><td><strong>Narrative</strong></td><td colspan="2">Before: "1 skill matches, 0 exceeds, and 2 gaps". After: the unassessed skills
+      "remain unassessed… the upcoming round should focus specifically on probing these open areas."</td></tr>
+  </table>
+
+  <h3>Tests</h3>
+  <div class="grid3">
+    <div class="card"><div class="stat">263</div><div class="stat-label">API examples, 0 failures. 6 pending, all
+      known defects outside this change (P1-6 server lock, P1-7, P1-10, P1-13 ×2, P2-3).</div></div>
+    <div class="card"><div class="stat">126</div><div class="stat-label">web tests passing; 13 expected to fail (other
+      known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
+    <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
+      across the five sub-PRs (API 5 + 46 + 9, web 29 + 29).</div></div>
+  </div>
+
+  <table>
+    <tr><th style="width:26%">Failure path</th><th>What happens now</th><th style="width:22%">Pinned by</th></tr>
+    <tr><td>Model timeout, 503, rate limit</td><td>Portfolio marked <code>failed</code> with a category and a fixed, safe
+      message; the previous skills stay as they were; Retry. Seen for real: a 503 during the live run.</td><td>Generator spec, API journey, web page</td></tr>
+    <tr><td>Reply isn't JSON, or a level is junk</td><td><code>0, 6, -1, 2.5, "", "N/A", "high", "L3.5"</code> → not assessed
+      (<code>insufficient_evidence</code>); unreadable reply → <code>model_invalid_response</code>. The reply is never logged.</td><td>AC-3, AC-4, privacy specs</td></tr>
+    <tr><td>Partial write</td><td>All rows in one transaction, updated in place by skill, so overrides survive a regenerate (P1-4).</td><td>Generator spec ×2</td></tr>
+    <tr><td>Duplicate fit/gap jobs</td><td>The page requests generation once per visit (P1-6, web). A server-side lock is still open: next on the list.</td><td>Fit/gap page; API spec still pending</td></tr>
+    <tr><td>Quote not in the transcript</td><td>Dropped; a rating left with none drops to low confidence (P1-5).</td><td>Generator spec</td></tr>
+    <tr><td>Load fails, or generation hangs</td><td>Alert with Try again instead of a blank page (P2-1); fit/gap gives up waiting after two minutes.</td><td>Portfolio and fit/gap pages</td></tr>
+    <tr><td>Long text</td><td>Long quotes and summaries collapse behind Show more (<code>aria-expanded</code>); unbroken strings wrap.</td><td><code>ExpandableText</code> tests</td></tr>
+  </table>
+
+  <p><strong>Migration</strong> (AC-17, AC-18). It only relaxes <code>NOT NULL</code> and adds nullable columns, plus three
+    check constraints that keep "not assessed" whole (no level ⇔ a reason; no confidence without a level). On the dev
+    database a digest of every rating and override was identical before, after <code>db:rollback</code> and after
+    <code>db:migrate</code>. Rollback refuses, with counts, while any row has no level, rather than invent one.</p>
 
   <h3>Seeded fault test</h3>
-  <div class="todo"><p>Scratch branch puts the clamp back (<code>level.to_i.clamp(1, 5)</code>); show AC-1/AC-4 failing
-    with their messages; revert with the history visible. Add commit hashes and the failure output.</p></div>
+  <p>On <code>scratch/seeded-fault-clamp</code>, commit <code>27f49f3</code> put the original bug back:
+    <code>value.to_i.clamp(1, 5)</code> in the level parser. <strong>13 specs failed</strong>, each on its assertion
+    (<code>had attributes {:ai_level =&gt; 1}</code>): AC-1, AC-3
+    (<code>"L3"</code>, <code>"l3"</code>), AC-4 (eight junk values), AC-12 and the discovered-skill case. Commit
+    <code>5b34128</code> reverts it; both stay in the history.</p>
+  <div class="callout"><p>The older P0-1 specs did <em>not</em> fail. Their unrated skill was also never probed, so the
+    coverage rule caught it before the parser ran. That is two independent layers, and it's why the new specs use a
+    skill that <em>was</em> probed: a test should be able to see the layer it's named after.</p></div>
 
-  <h3>Screens</h3>
-  <div class="shots">
-    <div class="shot"><strong>Portfolio · all assessed</strong>Desktop</div>
-    <div class="shot"><strong>Portfolio · mixed</strong>Summary line + "Not assessed" cards</div>
-    <div class="shot"><strong>Not assessed card</strong>Reason + "Add rating"</div>
-    <div class="shot"><strong>Fit/gap · mixed</strong>Required column filled; unknowns counted apart</div>
-    <div class="shot"><strong>Generating</strong>Portfolio and fit/gap</div>
-    <div class="shot"><strong>Failed + Retry</strong>Safe error message</div>
-    <div class="shot"><strong>Long text</strong>Collapsed with "Show more"</div>
-    <div class="shot"><strong>375px · portfolio</strong>Mobile</div>
-    <div class="shot"><strong>375px · fit/gap</strong>Stacked rows</div>
+  <h3 class="page-break">Screens</h3>
+  <p class="small">Dev stack, synthetic candidates. React's L5 on the first candidate is an override left from the Step 3
+    cross-tenant reproduction.</p>
+  <div class="shots2">
+    <figure><img src="screenshots/portfolio-mixed.png" alt="Portfolio with one rated and two not-assessed skills"><figcaption><strong>Portfolio, mixed.</strong> The summary says how many skills weren't assessed and why the interview ended; each card gives the reason and a next step.</figcaption></figure>
+    <figure class="phone"><img src="screenshots/mobile-portfolio.png" alt="The same portfolio at 375px"><figcaption><strong>375px.</strong> Header collapses to icons; actions stack. No sideways scroll.</figcaption></figure>
+  </div>
+  <div class="shots2 even">
+    <figure><img src="screenshots/not-assessed-card.png" alt="Add rating panel on a not-assessed skill"><figcaption><strong>Add rating.</strong> Rating a skill the AI didn't rate needs a source; Save waits for it (AC-20).</figcaption></figure>
+    <figure><img class="crop" src="screenshots/long-text.png" alt="Long quote collapsed behind Show more"><figcaption><strong>Long text.</strong> Collapsed behind Show more; a long URL wraps.</figcaption></figure>
+  </div>
+  <div class="shots2">
+    <figure><img src="screenshots/fitgap-mixed.png" alt="Fit/gap with two not-assessed rows"><figcaption><strong>Fit/gap, mixed.</strong> Required is filled again (P1-2); unknowns are counted apart from gaps, and the narrative asks for a probe, not a rejection.</figcaption></figure>
+    <figure class="phone"><img src="screenshots/mobile-fitgap.png" alt="Fit/gap at 375px"><figcaption><strong>375px.</strong> Each row becomes a block with labelled values.</figcaption></figure>
+  </div>
+  <div class="shots4">
+    <figure><img src="screenshots/portfolio-all-assessed.png" alt="Portfolio with every skill rated"><figcaption>All assessed: no summary line.</figcaption></figure>
+    <figure><img src="screenshots/portfolio-generating.png" alt="Portfolio generating"><figcaption>Portfolio generating.</figcaption></figure>
+    <figure><img src="screenshots/fitgap-generating.png" alt="Fit/gap generating"><figcaption>Fit/gap generating; Regenerate disabled.</figcaption></figure>
+    <figure><img src="screenshots/portfolio-failed.png" alt="Portfolio generation failed with Retry"><figcaption>Failed: the safe message and Retry.</figcaption></figure>
   </div>
 </section>
 
@@ -499,7 +578,7 @@ flowchart LR
   <h2><span class="step">AI verification</span>Where the AI was wrong, and how it was caught</h2>
 
   <p>I used an AI assistant throughout. Every claim it made about the system was checked against something
-    observable: a log, a real request, a failure message. Eight moments are logged in the work log; these are the
+    observable: a log, a real request, a failure message. Eleven moments are logged in the work log; these are the
     ones that mattered most.</p>
 
   <ol class="moments">
@@ -526,8 +605,24 @@ flowchart LR
       <em>Caught by</em> the logs and a real request.</li>
   </ol>
 
-  <div class="todo"><p>Add the Step 5 moments: AI-generated code in the generator, migration or screens that was
-    wrong or risky, and how it was caught.</p></div>
+  <h3>During the build</h3>
+  <ol class="moments" start="7">
+    <li><strong>A wrong expectation hidden by the bug it pinned.</strong> The assistant wrote a test expecting the override
+      request body <code>{ override_level: 2 }</code>; the client actually sends <code>{ override: { … } }</code>. Against
+      the old code the test failed earlier, on the <code>null</code> crash, so it looked like a correctly pinned defect.
+      <em>Caught by</em> running the suite after the fix: it was the only test still failing. <em>Fixed</em> in its own
+      commit, with the reason. <em>Rule now:</em> a test that fails on a crash hasn't had its assertions checked yet.</li>
+    <li><strong>A confident claim about a testing library that was false.</strong> For the write-failure spec the
+      assistant stated that RSpec's <code>any_instance</code> blocks receive the record first, and built a stub on it. The
+      stub worked by luck. <em>Caught by</em> a second stub built on the same belief, which recorded <code>nil</code> for
+      every call; a throwaway probe spec settled it. <em>Fixed</em>: both stubs and the comment.</li>
+    <li><strong>Privacy specs that could not fail.</strong> The specs checking that the model's reply never reaches the
+      logs fed replies starting "Sure! Here is the portfolio for…" and checked the name wasn't logged. A JSON parser
+      error only quotes the first token, so the name could never appear: the specs would pass with the leak in place.
+      <em>Caught by</em> a mutation check (put the error message back into the log; the spec still passed).
+      <em>Fixed</em>: the replies now start with the personal data, and the specs fail with the leak put back.
+      <em>Rule now:</em> for a "never X" assertion, first show the test can see X at all.</li>
+  </ol>
 </section>
 
 <!-- ============================== PRIVACY ROADMAP ============================== -->
