@@ -33,6 +33,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-16 | 3 | P1-12 widened: under the production CSP the hardware check can never pass; C8 escalated | `docs/report` · `1708513` |
 | 2026-10-16 | 6 | Draft PR opened on `rakamindev` from the public fork `mwyzer/ai-interview-platform-fs` | [PR #160](https://github.com/rakamindev/ai-interview-platform/pull/160) |
 | 2026-10-16 | 5 | Sub-PR 1: tenant scoping (P0-2), including two fit/gap write routes not pinned before | `fix/tenant-scoping` · `d7e58ac`, `ecd3124` |
+| 2026-10-16 | 5 | Sub-PR 2: the web shows a skill with no level as not assessed (AC-23, P2-11, part of P2-5) | `fix/web-null-level` · `8292c0a`, `79328eb`, `9907398` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
@@ -372,6 +373,35 @@ The L5 override still on skill 1 in the dev database is left over from the Step 
 Existing cross-tenant writes in a real database couldn't be told apart from legitimate ones: overrides store
 `overridden_by` but not the tenant. That's worth raising if this ever ran with more than one real tenant.
 
+### Sub-PR 2: the web tolerates a missing level (AC-23)
+
+**Why before the API.** Sub-PR 3 lets the API send `ai_level: null`. Today the web would crash on it (P2-11), so
+the screen has to survive a null level before one can arrive.
+
+**What changed.** `parseLevel` returns a level only for a whole number from 1 to 5 (`3`, `"3"`, `"L3"`, `" l3 "`)
+and `null` for anything else; it used to return 1 for anything unreadable and throw on `null`. Callers treat `null`
+as not assessed:
+
+- The skill card shows a neutral, dashed **Not assessed** badge (`NotAssessedBadge`), and no confidence line:
+  confidence describes the AI's rating, so there's none without one.
+- The override panel offers **Add rating** with no level preselected, and Save stays disabled until the assessor
+  picks one. Once rated, the summary reads "Not assessed → L2".
+- The fit/gap page's discovered skills read "L2 (low confidence)" or "not assessed", instead of a bare `2` or
+  `null (confirmed)`.
+- Types now match the API: `ai_level: number | string | null`; confidence and summary can be `null`.
+
+The reasons ("not reached", "not enough evidence") and the summary line come with sub-PR 5, once the API sends
+them.
+
+**Tests first** (`8292c0a`): 20 unreadable inputs for `parseLevel`, 4 component tests, 1 fit/gap page test, all
+as `it.fails`. Each was run as a normal test against the old code and failed for the stated reason (`expected 1 to
+be null`, the `null.replace` crash, `(confirmed)`). After the fix (`9907398`) 29 markers come off, including the
+older P0-1, P2-11 and P2-5 pins. Web: 104 passing, 19 expected to fail, 7 skipped without the API; `tsc` clean.
+One of the new tests had a wrong expectation, fixed in its own commit (`79328eb`); see AI verification moment 9.
+
+**Not yet checked in a browser.** The API can't store a null level until sub-PR 3, so the screenshot of this state
+comes with sub-PR 3 or 5.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
@@ -417,3 +447,11 @@ the raw material for the report's "AI verification moment" section.
    hides. **Caught by:** `tsc` flagging the unknown option, then a probe test showing the request was seen as
    unhandled while the test still passed. **Fixed:** the right option, plus collecting unhandled requests and
    failing the test after it. Turning the check on immediately exposed the hardware check's third-party requests.
+9. **A test whose wrong expectation was hidden by the bug it pinned.** *(code generation)* For sub-PR 2 the assistant
+   wrote "saves the level the assessor picked" expecting the request body `{ override_level: 2 }`. The API client
+   actually sends `{ override: { ... } }`, as the existing override test already asserted. Against the old code the
+   test failed earlier, on the `null.replace` crash, so the wrong expectation looked like a correctly pinned defect.
+   **Caught by:** running the suite after the fix: the only test still failing was this one, on
+   `expected { override: ... } to match object { override_level: 2 }`. **Fixed:** in its own commit, with the reason,
+   using the existing test's stricter shape (`toEqual` on the whole body). **Lesson:** a test that fails on a crash
+   hasn't had its assertions checked yet; check them again once the crash is gone.

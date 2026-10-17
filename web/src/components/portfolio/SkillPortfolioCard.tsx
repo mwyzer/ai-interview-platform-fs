@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import LevelBadge from "./LevelBadge";
+import NotAssessedBadge from "./NotAssessedBadge";
 import ConfidenceIndicator from "./ConfidenceIndicator";
 import OverridePanel from "./OverridePanel";
 import { Zap } from "lucide-react";
@@ -17,7 +18,8 @@ export default function SkillPortfolioCard({
   override,
   onOverrideSaved,
 }: SkillPortfolioCardProps) {
-  const effectiveLevel = override?.override_level ?? parseLevel(skill.ai_level);
+  const aiLevel = parseLevel(skill.ai_level);
+  const effectiveLevel = override?.override_level ?? aiLevel;
 
   return (
     <Card>
@@ -25,7 +27,7 @@ export default function SkillPortfolioCard({
         {/* Skill header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <LevelBadge level={effectiveLevel} />
+            {effectiveLevel === null ? <NotAssessedBadge /> : <LevelBadge level={effectiveLevel} />}
             <div className="space-y-0.5">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold">{skill.skill_label}</span>
@@ -35,14 +37,15 @@ export default function SkillPortfolioCard({
                   </span>
                 )}
               </div>
-              <ConfidenceIndicator confidence={skill.ai_confidence} />
+              {/* Confidence describes the AI's rating, so there's none without one. */}
+              {aiLevel !== null && <ConfidenceIndicator confidence={skill.ai_confidence ?? ""} />}
             </div>
           </div>
           <OverridePanel skill={skill} existingOverride={override} onSaved={onOverrideSaved} />
         </div>
 
         {/* Low confidence note */}
-        {skill.ai_confidence?.toLowerCase() === "low" && (
+        {aiLevel !== null && skill.ai_confidence?.toLowerCase() === "low" && (
           <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded px-3 py-2">
             Only briefly explored. Confidence is low — warrants a dedicated session if this skill matters.
           </div>

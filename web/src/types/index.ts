@@ -90,16 +90,17 @@ export interface PortfolioSkill {
   skill_id?: number;
   skill_label: string;
   is_discovered: boolean;
-  ai_level: string;       // "L1" | "L2" | "L3" | "L4" | "L5"
-  ai_confidence: string;  // "high" | "medium" | "low"
+  // The API sends a number from 1 to 5. null means not assessed (Step 4, AC-23); read it with parseLevel.
+  ai_level: number | string | null;
+  ai_confidence: string | null;  // "high" | "medium" | "low"; null when not assessed
   evidence: string[];
-  competency_summary: string;
+  competency_summary: string | null;
 }
 
 export interface AssessorOverride {
   id: number;
   portfolio_skill_id: number;
-  ai_level: number;
+  ai_level: number | null;  // null when the assessor rated a skill the AI didn't
   override_level: number;
   assessor_notes: string;
   overridden_by?: number;
