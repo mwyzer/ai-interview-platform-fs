@@ -504,6 +504,30 @@ then Sidekiq was started again.
 **Seen, not changed:** a failed portfolio still offers PDF and JSON export. It predates this work; worth a look
 with the export fixes (P1-13).
 
+### Filling the test gaps (branch `test/fill-gaps`)
+
+**Why.** A grep for source files no test mentions listed whole pages (assessment new/edit/invite, vacancies,
+transcript) and API pieces (skill library, tenant resolver, coverage analyzer worker). Coverage was then measured
+once by hand, without adding gems or packages: Ruby's built-in `Coverage` around `rspec` (a gitignored hook in
+`api/tmp`), and `@vitest/coverage-v8` installed with `--no-save`. Lines: API 69.7%, web 50.6%.
+
+**What was added.** API, 30 examples: `SkillTaxonomy` validations and endpoints; `TenantResolverMiddleware` (JWT
+claim, then header, then Referer; an unknown scheme falls back to organization 0 when it exists); the coverage
+analyzer worker (updates scoped to the session, discovered skills deduplicated and capped at ten, stale partials
+auto-advanced unless touched this turn, the published message, ended sessions and failures). Web, 32 tests:
+`LevelRadio`, `SkillPicker`, and functional tests for creating and editing an assessment, inviting candidates,
+vacancies and the transcript. Every new test was checked against a fault: three faults put into the worker and
+middleware were each caught, then reverted.
+
+**What they found.** Nine new `it.fails` markers, each run as a normal test and failing on its own assertion:
+P1-14 (removing a skill on an edit form keeps it; an API request spec shows `_destroy` would work), P2-14 (duplicate
+`LevelRadio` ids), P2-15 (the picker drops `skill_id`), P2-16 (required fields fail silently), P2-17 (edit and invite
+pages hide a load failure), and P2-6 again on the vacancy list. Not tested, recorded as P3: the half-built roles, the
+unrouted `SignupPage`, the unmounted `AuthTokenMiddleware`.
+
+**Result.** API 293 examples, 0 failures, 6 pending (71.6% of lines). Web 178 tests: 149 passing, 22 expected to
+fail, 7 opt-in skipped (68.3% of lines). What's left uncovered is mostly the audio path, which needs a live model.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
@@ -571,3 +595,9 @@ the raw material for the report's "AI verification moment" section.
     the message: the specs would pass with the leak in place. **Caught by:** a mutation check (put `e.message` back into
     the log, expect the spec to fail); it passed. **Fixed:** the replies now start with the personal data, and both
     specs fail with the leak put back. **Lesson:** for a "never X" assertion, show the test can see X at all.
+12. **An install that broke the test suite.** *(tooling)* To measure web coverage without touching `package.json`, the
+    assistant ran `npm i --no-save @vitest/coverage-v8`. The shell had `NODE_ENV=production`, so npm left out every
+    devDependency and removed the ones already installed: Vitest and `@vitejs/plugin-react` were gone, and so was the
+    test run. **Caught by:** the coverage run failing on `ERR_MODULE_NOT_FOUND`, and a one-file test run to confirm.
+    `npm ci` alone didn't help, for the same reason. **Fixed:** `npm ci --include=dev`, with `git status` clean.
+    **Lesson:** check the environment before installing anything, and run a test straight after.
