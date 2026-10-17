@@ -34,6 +34,8 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-16 | 6 | Draft PR opened on `rakamindev` from the public fork `mwyzer/ai-interview-platform-fs` | [PR #160](https://github.com/rakamindev/ai-interview-platform/pull/160) |
 | 2026-10-16 | 5 | Sub-PR 1: tenant scoping (P0-2), including two fit/gap write routes not pinned before | `fix/tenant-scoping` · `d7e58ac`, `ecd3124` |
 | 2026-10-16 | 5 | Sub-PR 2: the web shows a skill with no level as not assessed (AC-23, P2-11, part of P2-5) | `fix/web-null-level` · `8292c0a`, `79328eb`, `9907398` |
+| 2026-10-16 | 5 | Sub-PR 3: migration + generator: "not assessed" is stored, never a fabricated level (P0-1, P1-3, P1-4, P1-5; AC-1..12, 17..21) | `feat/not-assessed-generator` · `4a4f5ca`, `69aebe4`, `8cb0a9d`, `841fb35`, `5192358` |
+| 2026-10-16 | 5 | Seeded fault test: the clamp put back on purpose, caught by 13 specs, reverted | `feat/not-assessed-generator` · `27f49f3`, `5b34128` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
@@ -402,6 +404,49 @@ One of the new tests had a wrong expectation, fixed in its own commit (`79328eb`
 **Not yet checked in a browser.** The API can't store a null level until sub-PR 3, so the screenshot of this state
 comes with sub-PR 3 or 5.
 
+### Sub-PR 3: the generator stores "not assessed" (P0-1, AC-1..AC-12, AC-17..AC-21)
+
+**Commits, in order.** Existing specs whose expectations the design changes, each with its reason (`4a4f5ca`);
+new specs for every AC, pending (`69aebe4`); the migration (`8cb0a9d`); four more spec expectations, checked against
+the old code with the implementation stashed (`841fb35`, 256 examples, 0 failures, 66 pending); the implementation
+(`5192358`), where 46 pending specs flip to passing. API: 256 examples, 0 failures, 8 pending, all outside this change.
+
+**How a skill is decided** (`Portfolios::SkillResolver`, pure Ruby): coverage first (never probed → `not_reached`,
+whatever the model said); missing from the answer → `omitted_by_model`; only a whole level 1–5 counts, anything else
+→ `insufficient_evidence`; quotes must be in the candidate's turns, and a rating left with none drops to low
+confidence. The generator calls the model, then writes every row in one transaction, updating rows in place by
+skill identity so overrides stay put. Failures get a category and a fixed message; the raw error is never stored,
+sent or logged, and a non-JSON reply raises `InvalidResponse` because Sidekiq logs every failed job's message.
+
+**Migration** (AC-17, AC-18): only relaxes `NOT NULL` and adds nullable columns, plus three check constraints that
+keep "not assessed" whole. On the dev database a digest of every rating and override was identical before, after
+`db:rollback` and after `db:migrate`. Rollback refuses, with counts, while any row has no level.
+
+**Seeded fault** (`27f49f3`, reverted in `5b34128`, history kept on the branch): `value.to_i.clamp(1, 5)` put back
+into the level parser. 13 specs failed, each on its assertion (`had attributes {:ai_level => 1}`): AC-1, AC-3 (`"L3"`,
+`"l3"`), AC-4 (0, 6, -1, 2.5, `""`, `"N/A"`, `"high"`, `"L3.5"`), AC-12 and the discovered-skill case. The older P0-1
+specs didn't fail: their unrated skill was also never probed, so the coverage rule caught it first. Two layers.
+
+**Checked with the real model** (Gemini, dev database, synthetic session 1: the Step 3 scenario, React partial and
+two skills never probed):
+
+| | React | Communication | System Design |
+|---|---|---|---|
+| Stored by the old generator | L3, override L5 | **L1** (fabricated) | **L1** (fabricated) |
+| What the model answered with the new prompt | 3, 2 quotes | `null` | `null` |
+| Stored now | L3, 2 verified quotes, override L5 kept | not assessed, `not_reached` | not assessed, `not_reached` |
+
+The model followed the new prompt, and the coverage rule reached the same answer. One attempt hit a real 503: the
+portfolio was marked `failed`, category `model_unavailable`, message "The AI model was unavailable or rate-limited.",
+and the previous skills stayed as they were.
+
+**In the browser** (desktop): the two skills show the dashed "Not assessed" badge and "Add rating"; React shows
+L3 → L5. At 375px the page overflows sideways (header, action buttons, the override panel): that predates this
+change and is AC-29, in sub-PR 5.
+
+**Not in this change:** `FitGap::Engine` still subtracts a nil level, so fit/gap fails for a portfolio with a
+not-assessed skill until sub-PR 4. The two must land together.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
@@ -455,3 +500,11 @@ the raw material for the report's "AI verification moment" section.
    `expected { override: ... } to match object { override_level: 2 }`. **Fixed:** in its own commit, with the reason,
    using the existing test's stricter shape (`toEqual` on the whole body). **Lesson:** a test that fails on a crash
    hasn't had its assertions checked yet; check them again once the crash is gone.
+10. **A confident comment about a testing library that was false.** *(code generation)* For the P1-4 write-failure
+    spec the assistant wrote "any_instance blocks receive the record itself before the call's own arguments", and
+    built the stub on it. The stub still worked, by luck: the "record" was always `nil`, and
+    `raise ActiveRecord::RecordInvalid, nil` is valid. **Caught by:** a second stub written on the same belief, a spy
+    on the PDF's `text` calls, which recorded `nil` for every line. **Checked:** a throwaway probe spec showed RSpec
+    yields only the call's own arguments (`save!` none, `text` its string). **Fixed:** both stubs and the comment, in
+    their own commit with the reason. **Lesson:** a passing test built on a wrong belief is still a wrong belief;
+    probe the library when two observations disagree.

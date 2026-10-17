@@ -17,7 +17,7 @@ module Api
         if @portfolio.failed?
           return json_response(
             portfolio: portfolio_json(@portfolio),
-            error: @portfolio.generation_error
+            error: @portfolio.safe_generation_error
           )
         end
 
@@ -36,7 +36,7 @@ module Api
           return json_error("Portfolio can only be regenerated when status is 'failed'", :unprocessable_entity)
         end
 
-        portfolio.update!(generation_status: "pending", generation_error: nil)
+        portfolio.update!(generation_status: "pending", generation_error: nil, generation_error_category: nil)
         PortfolioGeneratorWorker.perform_async(@session.id)
 
         json_response(
@@ -166,7 +166,9 @@ module Api
           candidate_id:      portfolio.candidate_id,
           generation_status: portfolio.generation_status,
           generated_at:      portfolio.generated_at,
-          generation_error:  portfolio.generation_error,
+          # Never the stored text: older rows may hold a raw error that quotes the model (AC-21).
+          generation_error:  portfolio.safe_generation_error,
+          generation_error_category: portfolio.generation_error_category,
           skills:            portfolio.portfolio_skills.map(&method(:portfolio_skill_json)),
           overrides:         portfolio.assessor_overrides.map(&method(:override_json))
         }
@@ -180,6 +182,8 @@ module Api
           is_discovered:     skill.is_discovered,
           ai_level:          skill.ai_level,
           ai_confidence:     skill.ai_confidence,
+          assessment_status: skill.assessment_status,
+          not_assessed_reason: skill.not_assessed_reason,
           evidence:          skill.evidence_quotes,
           competency_summary: skill.competency_summary
         }

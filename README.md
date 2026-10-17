@@ -145,7 +145,7 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
         passing
   - [x] Web: live monitor over REST + WebSocket (5 passing, 2 `it.fails`); contract test against the running API
         (7 passing, opt-in)
-- [x] **Totals:** API 200 examples, 0 failures, 14 pending. Web 130 tests: 111 passing, 19 expected to fail (104 and 7
+- [x] **Totals:** API 256 examples, 0 failures, 8 pending. Web 130 tests: 111 passing, 19 expected to fail (104 and 7
       skipped without the API). Every known-defect test checked to fail on its assertion; deliberate faults were
       caught in each suite
 - [x] **Step 2 · Domain immersion** ([02-domain-immersion.md](assessment/02-domain-immersion.md)): five pillars,
@@ -164,11 +164,13 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
         to passing, checked over HTTP ([work log](assessment/00-work-log.md#step-5-implementation))
   - [x] Sub-PR 2: web tolerates a missing level (AC-23, P2-11): "Not assessed" instead of L1 or a crash; 29
         `it.fails` flip to passing
-  - [ ] Sub-PR 3: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21)
+  - [x] Sub-PR 3: data model + portfolio generator (AC-1..AC-12, AC-17..AC-21): "not assessed" is stored with a
+        reason; checked with the real model and a rollback on the dev database
   - [ ] Sub-PR 4: fit/gap engine + payload (AC-13..AC-16)
   - [ ] Sub-PR 5: portfolio and fit/gap screens (AC-22, AC-24..AC-30); the web test runner is in place
   - [ ] Known defects in the chosen scope fixed: their `pending` specs and `it.fails` tests flip to passing
-  - [ ] Seeded fault test: break the logic on a scratch branch, show the suite catch it, revert with history visible
+  - [x] Seeded fault test: the clamp put back on `scratch/seeded-fault-clamp`, caught by 13 specs, reverted
+        (`27f49f3`, `5b34128`)
   - [ ] AI verification moments written up for the report (6 logged so far in the work log)
   - [ ] Screenshots of every state: assessed, not assessed, mixed, generating, failed, long text, 375px
   - [ ] Umbrella PR opened against `rakamindev/ai-interview-platform`

@@ -59,6 +59,21 @@ RSpec.describe Exports::PdfGenerator do
     expect(render_pdf).to start_with('%PDF-')
   end
 
+  it 'labels a skill that was not assessed as such, with no level or confidence' do
+    create(:portfolio_skill, portfolio:, skill_label: 'Communication', ai_level: nil, ai_confidence: nil,
+                             competency_summary: nil, evidence: [], not_assessed_reason: 'not_reached')
+    lines = []
+    allow_any_instance_of(Prawn::Document).to receive(:text).and_wrap_original do |original, string, *args, **opts|
+      lines << string
+      original.call(string, *args, **opts)
+    end
+
+    render_pdf
+
+    expect(lines).to include('Level: Not assessed')
+    expect(lines.grep(/Confidence/)).to be_empty
+  end
+
   describe 'known defects' do
     it 'exports a portfolio the assessor has overridden' do
       pending 'PDF: the override line uses "→", which the built-in Windows-1252 font cannot encode'

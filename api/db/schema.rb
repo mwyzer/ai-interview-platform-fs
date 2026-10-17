@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_05_05_000002) do
+ActiveRecord::Schema[7.0].define(version: 2026_10_16_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -58,7 +58,7 @@ ActiveRecord::Schema[7.0].define(version: 2026_05_05_000002) do
 
   create_table "assessor_overrides", force: :cascade do |t|
     t.bigint "portfolio_skill_id", null: false
-    t.integer "ai_level", null: false
+    t.integer "ai_level"
     t.integer "override_level", null: false
     t.text "assessor_notes"
     t.bigint "overridden_by", null: false
@@ -112,12 +112,16 @@ ActiveRecord::Schema[7.0].define(version: 2026_05_05_000002) do
     t.string "skill_id", limit: 50
     t.string "skill_label", limit: 255, null: false
     t.boolean "is_discovered", default: false, null: false
-    t.integer "ai_level", null: false
-    t.enum "ai_confidence", null: false, enum_type: "confidence_level"
+    t.integer "ai_level"
+    t.enum "ai_confidence", enum_type: "confidence_level"
     t.jsonb "evidence", default: [], null: false
-    t.text "competency_summary", null: false
+    t.text "competency_summary"
+    t.string "not_assessed_reason", limit: 30
     t.index ["portfolio_id"], name: "index_portfolio_skills_on_portfolio_id"
+    t.check_constraint "(ai_level IS NULL) = (not_assessed_reason IS NOT NULL)", name: "chk_portfolio_skills_reason_iff_no_level"
     t.check_constraint "ai_level >= 1 AND ai_level <= 5", name: "chk_portfolio_skills_ai_level"
+    t.check_constraint "ai_level IS NOT NULL OR ai_confidence IS NULL", name: "chk_portfolio_skills_no_confidence_without_level"
+    t.check_constraint "not_assessed_reason IS NULL OR (not_assessed_reason::text = ANY (ARRAY['not_reached'::character varying, 'insufficient_evidence'::character varying, 'omitted_by_model'::character varying]::text[]))", name: "chk_portfolio_skills_not_assessed_reason"
   end
 
   create_table "portfolios", force: :cascade do |t|
@@ -126,6 +130,7 @@ ActiveRecord::Schema[7.0].define(version: 2026_05_05_000002) do
     t.enum "generation_status", default: "pending", null: false, enum_type: "generation_status"
     t.datetime "generated_at"
     t.text "generation_error"
+    t.string "generation_error_category", limit: 50
     t.index ["candidate_id"], name: "index_portfolios_on_candidate_id"
     t.index ["session_id"], name: "index_portfolios_on_session_id", unique: true
   end
