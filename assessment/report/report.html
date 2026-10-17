@@ -201,12 +201,15 @@
       across unit, integration and functional layers, plus CI. Known defects are pinned by tests that fail today.</td></tr>
     <tr><td class="n">2 · Domain</td><td>Five pillars, from the Indonesian hiring market to UU PDP (Law 27/2022).
       Found that the Gemini free tier forbids personal data, so production needs a paid tier.</td></tr>
-    <tr><td class="n">3 · Gap</td><td>2 P0, 13 P1, 13 P2 findings, each reproduced; 8 constraint signals for a Tech Lead.</td></tr>
+    <tr><td class="n">3 · Gap</td><td>2 P0, 14 P1, 17 P2 findings, each reproduced; 8 constraint signals for a Tech Lead.</td></tr>
     <tr><td class="n">4 · Strategy</td><td>30 acceptance criteria written before code; three options compared;
       chose a real "not assessed" state end to end.</td></tr>
     <tr><td class="n">5 · Build</td><td>Five sub-PRs: tenant scoping, then "not assessed" through storage, generator,
       fit/gap and both screens. <strong>263 API specs</strong> (0 failures) and <strong>126 web tests</strong> passing;
       118 known-defect or new-AC tests flipped to passing. The seeded fault (the clamp put back) was caught by 13 specs.</td></tr>
+    <tr><td class="n">Test gaps</td><td>Covered the pages and API pieces no test touched: <strong>293 API specs</strong> and
+      <strong>149 web tests</strong> now, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
+      P2-17), each pinned by a test that fails today.</td></tr>
   </table>
 </section>
 
@@ -351,12 +354,16 @@ flowchart TB
     <tr><td><span class="tag p1">P1-11</span></td><td>A broken invite link says "The interview has been recorded."</td><td>A candidate who never interviewed waits for a reply that never comes.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-12</span></td><td>The hardware check depends on third-party hosts. Without a CSP it calls them before any notice; under the repo's own production CSP they're blocked and the check can never pass.</td><td>Either the candidate's IP leaves before consent, or <strong>Start stays disabled for every candidate</strong>. P0 if production serves that CSP (C8).</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-13</span></td><td>PDF export crashes on any overridden portfolio (an <code>→</code> the font can't encode).</td><td>It fails on exactly the portfolios a human reviewed most closely.</td><td>Defect</td></tr>
+    <tr><td><span class="tag p1">P1-14</span></td><td>Removing a skill on the assessment or vacancy edit form doesn't remove it: the web leaves it out instead of sending <code>_destroy</code>, and the API keeps it. <span class="tag seam">SEAM</span></td><td>The interviewer still asks about a deleted skill, and on a vacancy it keeps counting in every fit/gap report.</td><td>Defect</td></tr>
   </table>
 
-  <p class="small"><strong>P2 (13)</strong>: failure states are dead ends (endless spinner, blank page); retries never
+  <p class="small"><strong>P2 (17)</strong>: failure states are dead ends (endless spinner, blank page); retries never
     fire because the HTTP client only retries idempotent methods and every model call is a POST; no candidate
     notice or consent; a <code>null</code> level would crash the portfolio page, so the API fix must ship with the web
     fix; invite links never expire; list cards aren't keyboard reachable; the live monitor gives up silently.
+    Found later, while filling test gaps: a level label on the second skill sets the first (duplicate ids, P2-14); the
+    skill picker drops the taxonomy id, so fit/gap can only match by label (P2-15); required fields and some saves fail
+    with no message (P2-16); the edit and invite pages hide a load failure behind an empty form (P2-17).
     <strong>P3</strong>: copy, 375px header, payload size. Full list: <code>assessment/03-problem-and-gap.md</code>.</p>
 
   <h3>Constraint signal: what I'd escalate to a Tech Lead</h3>
@@ -514,10 +521,11 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">263</div><div class="stat-label">API examples, 0 failures. 6 pending, all
-      known defects outside this change (P1-6 server lock, P1-7, P1-10, P1-13 ×2, P2-3).</div></div>
-    <div class="card"><div class="stat">126</div><div class="stat-label">web tests passing; 13 expected to fail (other
-      known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
+    <div class="card"><div class="stat">293</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      plus 30 filling test gaps). 6 pending, all known defects outside this change (P1-6 server lock, P1-7, P1-10,
+      P1-13 ×2, P2-3).</div></div>
+    <div class="card"><div class="stat">149</div><div class="stat-label">web tests passing (126 after sub-PR 5); 22
+      expected to fail (other known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
     <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
       across the five sub-PRs (API 5 + 46 + 9, web 29 + 29).</div></div>
   </div>
@@ -534,6 +542,25 @@ flowchart LR
     <tr><td>Load fails, or generation hangs</td><td>Alert with Try again instead of a blank page (P2-1); fit/gap gives up waiting after two minutes.</td><td>Portfolio and fit/gap pages</td></tr>
     <tr><td>Long text</td><td>Long quotes and summaries collapse behind Show more (<code>aria-expanded</code>); unbroken strings wrap.</td><td><code>ExpandableText</code> tests</td></tr>
   </table>
+
+  <h3>Filling the test gaps</h3>
+  <p>After the five sub-PRs, a search for source files no test mentions still listed whole pages (creating, editing and
+    inviting on an assessment; vacancies; the transcript) and API pieces (the skill library, the tenant resolver, the
+    coverage analyzer worker). Coverage was measured once by hand, without adding gems or packages.</p>
+  <table>
+    <tr><th style="width:26%"></th><th>API</th><th>Web</th></tr>
+    <tr><td class="n">Added</td><td>30 examples: skill library model and endpoints; tenant resolver order (JWT, then
+      header, then Referer); the coverage analyzer worker (session-scoped updates, discovered skills capped at ten,
+      auto-advancing stale partials, failures)</td><td>32 tests: <code>LevelRadio</code>, <code>SkillPicker</code>, and
+      functional tests for the assessment form, invites, vacancies and transcript</td></tr>
+    <tr><td class="n">Line coverage</td><td>69.7% → 71.6%</td><td>50.6% → 68.3%</td></tr>
+    <tr><td class="n">Checked against a fault</td><td colspan="2">Three faults put into the worker and middleware were each
+      caught, then reverted.</td></tr>
+    <tr><td class="n">What's left</td><td colspan="2">Mostly the audio path, which needs a live model.</td></tr>
+  </table>
+  <p>They found five defects, each now an <code>it.fails</code> marker that fails on its own assertion: P1-14, and P2-14
+    to P2-17 (Step 3). The most serious, P1-14, is a seam bug: an API spec shows <code>_destroy</code> works, so the fix
+    is on the web side.</p>
 
   <p><strong>Migration</strong> (AC-17, AC-18). It only relaxes <code>NOT NULL</code> and adds nullable columns, plus three
     check constraints that keep "not assessed" whole (no level ⇔ a reason; no confidence without a level). On the dev
@@ -622,6 +649,15 @@ flowchart LR
       <em>Caught by</em> a mutation check (put the error message back into the log; the spec still passed).
       <em>Fixed</em>: the replies now start with the personal data, and the specs fail with the leak put back.
       <em>Rule now:</em> for a "never X" assertion, first show the test can see X at all.</li>
+    <li><strong>An install that removed the test runner.</strong> To measure web coverage without touching
+      <code>package.json</code>, the assistant ran <code>npm i --no-save</code>. The shell had
+      <code>NODE_ENV=production</code>, so npm removed every devDependency, Vitest included. <em>Caught by</em> the
+      coverage run failing on a missing module. <em>Fixed</em>: <code>npm ci --include=dev</code>, with
+      <code>git status</code> clean. <em>Rule now:</em> check the environment before installing, and run a test straight after.</li>
+    <li><strong>A failure blamed on the wrong test.</strong> A new vacancy test failed on a request it never made. The
+      request came from the test before it, which stopped at the list's heading while the list was still loading.
+      <em>Caught by</em> running the failing test alone: it passed. <em>Fixed</em>: the earlier tests now wait for the
+      list's rows, a stricter assertion, not a weaker one.</li>
   </ol>
 </section>
 
@@ -716,6 +752,8 @@ flowchart LR
   <ol>
     <li><strong>Privacy phases 0 and 1</strong> (see the privacy roadmap): stop the leaks, then notice and recorded
       consent before the mic opens, with the broken-link message (P1-11) and the hardware check (P1-12).</li>
+    <li>Removed skills that stay on edit forms (P1-14), with the label and picker fixes on the same forms (P2-14,
+      P2-15): small, web-only, and already pinned by tests.</li>
     <li>Server-side lock against duplicate fit/gap jobs (P1-6); retries that actually fire (P2-3); a deploy check for
       the paid model tier.</li>
     <li>Confidence-aware fit/gap verdicts and a decision on past ratings (Option C), with product sign-off.</li>

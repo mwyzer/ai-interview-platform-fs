@@ -601,3 +601,8 @@ the raw material for the report's "AI verification moment" section.
     test run. **Caught by:** the coverage run failing on `ERR_MODULE_NOT_FOUND`, and a one-file test run to confirm.
     `npm ci` alone didn't help, for the same reason. **Fixed:** `npm ci --include=dev`, with `git status` clean.
     **Lesson:** check the environment before installing anything, and run a test straight after.
+13. **A failure blamed on the wrong test.** *(tests)* The full web run failed "shows the API's reason when the save is
+    rejected" on an unhandled `GET /vacancies?page=1`, a request that test never makes. **Caught by:** running it alone
+    (it passed). The test before it stopped at the list's heading while the list request was still in flight, so the
+    request reached MSW after its handlers were reset. **Fixed:** the create and edit tests wait for the list's rows.
+    **Lesson:** a test isn't done when the page appears, but when its requests have finished.
