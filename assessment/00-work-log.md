@@ -36,6 +36,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-16 | 5 | Sub-PR 2: the web shows a skill with no level as not assessed (AC-23, P2-11, part of P2-5) | `fix/web-null-level` · `8292c0a`, `79328eb`, `9907398` |
 | 2026-10-16 | 5 | Sub-PR 3: migration + generator: "not assessed" is stored, never a fabricated level (P0-1, P1-3, P1-4, P1-5; AC-1..12, 17..21) | `feat/not-assessed-generator` · `4a4f5ca`, `69aebe4`, `8cb0a9d`, `841fb35`, `5192358` |
 | 2026-10-16 | 5 | Seeded fault test: the clamp put back on purpose, caught by 13 specs, reverted | `feat/not-assessed-generator` · `27f49f3`, `5b34128` |
+| 2026-10-16 | 5 | Sub-PR 4: fit/gap reports not-assessed skills as unknowns, not gaps (P1-1, AC-13..16) | `feat/fitgap-not-assessed` · `bb4b797`, `dedee56`, `054c6b9` |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
@@ -447,6 +448,32 @@ change and is AC-29, in sub-PR 5.
 **Not in this change:** `FitGap::Engine` still subtracts a nil level, so fit/gap fails for a portfolio with a
 not-assessed skill until sub-PR 4. The two must land together.
 
+### Sub-PR 4: fit/gap treats "not assessed" as an unknown (P1-1, AC-13..AC-16)
+
+**What changed** (`FitGap::Engine`): no level means `not_assessed`, with no delta or confidence, and the reason
+(the skill's own, or `not_in_assessment` when the vacancy asks for a skill the interview wasn't set up to assess).
+An assessor's rating counts and is flagged `is_override`. Each comparison also sends `required_level` (same value
+as `expected_level`) for the web until sub-PR 5. The fallback narrative counts not-assessed skills, the narrative
+prompt says they are unknowns and not weaknesses, and an unreadable narrative reply is logged by class only.
+
+**Tests:** specs first (`bb4b797`), most failing on the `nil - expected` crash; after the fix (`054c6b9`) 9 flip to
+passing, including P1-1 in the engine and end to end. API: 263 examples, 0 failures, 6 pending.
+
+**A privacy spec that couldn't fail** (`dedee56`, AI verification moment 11): the "no model text in logs" specs fed
+a reply that didn't start with the personal data, and a JSON parser error only quotes the first token. A mutation
+check (the parser message put back into the log) passed when it should have failed. Both specs now start the reply
+with the name, and fail with the leak put back.
+
+**Checked with the real model** (dev, synthetic session 1 against vacancy 1):
+
+| | Step 3 (before) | Now |
+|---|---|---|
+| Communication (expected L3) | candidate L1, **gap** | not assessed, `not_reached` |
+| System Design (expected L2) | candidate L1, **gap** | not assessed, `not_reached` |
+| Narrative | "1 skill matches, 0 exceeds, and 2 gaps" | "…remain unassessed, the candidate should advance… The upcoming round should focus specifically on probing these open areas." |
+
+(React shows an L5 override: that's the cross-tenant write left over from the Step 3 reproduction, synthetic data.)
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
@@ -508,3 +535,9 @@ the raw material for the report's "AI verification moment" section.
     yields only the call's own arguments (`save!` none, `text` its string). **Fixed:** both stubs and the comment, in
     their own commit with the reason. **Lesson:** a passing test built on a wrong belief is still a wrong belief;
     probe the library when two observations disagree.
+11. **Privacy specs that passed for the wrong reason.** *(code generation)* The specs that check a model's reply never
+    reaches the logs fed replies like "Sure! Here is the portfolio for Budi Santoso…" and checked "Budi" wasn't logged.
+    A JSON parser error only quotes the reply's first token ("unexpected character: 'Sure!'"), so the name was never in
+    the message: the specs would pass with the leak in place. **Caught by:** a mutation check (put `e.message` back into
+    the log, expect the spec to fail); it passed. **Fixed:** the replies now start with the personal data, and both
+    specs fail with the leak put back. **Lesson:** for a "never X" assertion, show the test can see X at all.

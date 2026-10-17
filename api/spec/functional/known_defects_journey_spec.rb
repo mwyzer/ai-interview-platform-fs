@@ -44,8 +44,6 @@ RSpec.describe 'Known defects, end to end', type: :request do
     end
 
     it 'P1-1: reports those skills as not assessed in fit/gap, not as gaps' do
-      pending 'P0-1/P1-1: an unrated skill reaches fit/gap as a fabricated L1'
-
       vacancy = create(:vacancy, organization:)
       create(:vacancy_skill, vacancy:, skill_id: 'SK-SOFT-001', skill_label: 'Communication', expected_level: 3)
       portfolio_id = session.reload.portfolio.id

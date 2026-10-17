@@ -16,7 +16,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 256 examples, 0 failures, 8 pending
+### API (RSpec): 263 examples, 0 failures, 6 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
@@ -59,7 +59,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 |---|---|---|
 | ~~P0-1 unassessed skill stored as L1~~ **fixed** (web in sub-PR 2, API in sub-PR 3) | generator; functional journey now pass | `parseLevel`; portfolio page now pass |
 | ~~P0-2 cross-tenant read/write~~ **fixed** in sub-PR 1 | export, override, fit/gap read and both fit/gap writes now pass | |
-| P1-1 fit/gap counts unreached skills as gaps | engine; functional journey | |
+| ~~P1-1 fit/gap counts unreached skills as gaps~~ **fixed** in sub-PR 4 | engine; functional journey now pass | |
 | P1-2 web reads `required_level`, API sends `expected_level` | | comparison table; fit/gap page |
 | ~~P1-3 omitted skills vanish~~ **fixed** in sub-PR 3 | generator now passes | |
 | ~~P1-4 non-atomic writes wipe overrides~~ **fixed** in sub-PR 3 | generator (×2) now pass | |
