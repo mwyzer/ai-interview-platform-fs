@@ -528,6 +528,20 @@ unrouted `SignupPage`, the unmounted `AuthTokenMiddleware`.
 **Result.** API 293 examples, 0 failures, 6 pending (71.6% of lines). Web 178 tests: 149 passing, 22 expected to
 fail, 7 opt-in skipped (68.3% of lines). What's left uncovered is mostly the audio path, which needs a live model.
 
+### Sub-PR 6: passwords and personal data out of the request log (P1-7)
+
+**What changed.** `filter_parameter_logging.rb` adds Rails' default list (passwords, emails, secrets, tokens, keys)
+plus `assessor_notes` and `candidate_name`, which are personal data under UU PDP. Matching is by partial name, so
+`:token` also covers `invite_token` and `auth_token`.
+
+**Tests first** (`1305216`): four request specs send a real request (login, override with notes, invite with a
+candidate name, the invite link) and check `request.filtered_parameters`, the hash Rails writes to the log. All four
+failed on their filter assertion before the fix. The fix (`4f844a1`) takes them and the older config spec off
+`pending`.
+
+**On the dev stack:** a login with a made-up password logs `[FILTERED]`, and the password appears nowhere in
+`development.log`. Lines written before the fix are still there; the log is local and gitignored.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
