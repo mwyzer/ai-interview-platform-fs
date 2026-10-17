@@ -215,7 +215,8 @@ Brief Option B: an umbrella PR plus focused sub-PRs, each reviewable on its own.
 - Duplicate fit/gap jobs on the server side (P1-6): the web fix in AC-26 removes the main trigger; a server-side
   lock is still needed.
 - Gemini HTTP retries for POST (P2-3), and a deploy check that production uses the paid tier.
-- Parameter filtering for passwords and notes in logs (P1-7).
+- ~~Parameter filtering for passwords and notes in logs (P1-7).~~ Done in sub-PR 6, together with candidate names
+  and invite tokens.
 
 ## Risks and assumptions
 
