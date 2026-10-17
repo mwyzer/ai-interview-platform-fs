@@ -16,7 +16,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 293 examples, 0 failures, 6 pending
+### API (RSpec): 331 examples, 0 failures, 5 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
@@ -24,6 +24,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 | Functional | 14 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, failed narrative, invalid requests; known defects end to end |
 | Unit | 75 (3 pending) | Prompt compiler; session start and end; JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Gap fill | 30 | Skill library model and endpoints; tenant resolver (JWT, header, Referer order, unknown scheme); coverage analyzer worker (applying updates, discovered skills and their cap of ten, auto-advancing stale partials, publishing); keeping or deleting skills on assessment update |
+| Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
 | Integration | 28 | Postgres constraints; the Redis coverage channel's exact messages; the Rack pipeline (tenant, CORS, rate limits, WebSocket paths); Sidekiq jobs inline with strict JSON args |
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
@@ -67,6 +68,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P1-5 unverified evidence quotes~~ **fixed** in sub-PR 3 | generator now passes | |
 | ~~P1-6 duplicate fit/gap jobs~~ **fixed** (web in sub-PR 5: one request per visit; server lock in sub-PR 7) | fit/gap request now passes | fit/gap page now passes |
 | ~~P1-7 passwords in logs~~ **fixed** in sub-PR 6 | auth request; four request-log specs now pass | |
+| C2 login lets the caller pick the company (`X-Tenant-Scheme`) | tenant routes (sign-in) | |
 | P1-8 list only loads page 1 | | assessment list |
 | P1-9 every ended session reads "completed" | | assessment list |
 | P1-10 invite link ends a session as `all_covered` | functional journey | |

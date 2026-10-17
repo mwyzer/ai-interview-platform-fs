@@ -222,8 +222,9 @@
       <strong>149 web tests</strong> now, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
       P2-17), each pinned by a test that fails today.</td></tr>
     <tr><td class="n">Follow-ups</td><td>Two more sub-PRs from the Step 4 list: the request log filters passwords, notes and
-      candidate names (P1-7), and the server queues one fit/gap job per report (P1-6). <strong>301 API specs</strong>,
-      0 failures.</td></tr>
+      candidate names (P1-7), and the server queues one fit/gap job per report (P1-6). <span class="added">Then a
+      route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
+      <strong>331 API specs</strong>, 0 failures.</td></tr>
   </table>
 </section>
 
@@ -382,7 +383,9 @@ flowchart TB
 
   <h3>Constraint signal: what I'd escalate to a Tech Lead</h3>
   <table>
-    <tr><td class="n" style="width:9%">C2</td><td><strong>Auth trusts JWT claims without a user lookup.</strong> Any token signed with the secret shared with <code>rakamin-api</code> is accepted, so tenant isolation rests entirely on model scoping, which is what failed in P0-2.</td></tr>
+    <tr><td class="n" style="width:9%">C2</td><td><strong>Auth trusts JWT claims without a user lookup.</strong> Any token signed with the secret shared with <code>rakamin-api</code> is accepted, so tenant isolation rests entirely on model scoping, which is what failed in P0-2. <span class="added">Worse, login
+      itself takes the company from an <code>X-Tenant-Scheme</code> header and users belong to no company, so any admin
+      can sign in to any company (pinned in sub-PR 8).</span></td></tr>
     <tr><td class="n">C3</td><td><strong>Shared database with another service.</strong> Migrations must be coordinated and reversible.</td></tr>
     <tr><td class="n">C4</td><td><strong>No retention or erasure policy.</strong> A product and legal decision, not an engineering default.</td></tr>
     <tr><td class="n">C8</td><td><strong>The production web config can't be verified from the repo.</strong> Under the CSP in <code>vercel.json</code>, no candidate can start (P1-12). I'd ask first whether production serves it; if so, it outranks everything else.</td></tr>
@@ -533,6 +536,10 @@ flowchart LR
     <tr><td class="n">7</td><td><a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/7"><code>fix/fitgap-single-job</code></a></td><td>Reversible migration; the report row is claimed
       before the job is queued, so one fit/gap job runs per report, and a claim whose job died is taken over (P1-6).</td>
       <td><code>b5ac8bb</code></td></tr>
+    <tr class="added"><td class="n">8</td><td><code>test/tenant-routes</code></td><td>Every API route, called by another
+      company with this company's IDs: 404 and nothing changed. A new route without a case fails the suite. No leaks
+      found; C2 pinned as pending.</td>
+      <td><code>d19c866</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
@@ -548,9 +555,9 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">301</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      30 filling test gaps, 8 in sub-PRs 6 and 7). 4 pending, all known defects outside this change (P1-10,
-      P1-13 ×2, P2-3).</div></div>
+    <div class="card"><div class="stat">331</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8</span>). 5 pending, all known
+      defects outside this change (P1-10, P1-13 ×2, P2-3, <span class="added">C2</span>).</div></div>
     <div class="card"><div class="stat">149</div><div class="stat-label">web tests passing (126 after sub-PR 5); 22
       expected to fail (other known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
     <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
@@ -768,7 +775,8 @@ flowchart LR
       mic opens; a consent record; no session without one.</td><td>Engineering; wording: legal</td><td><span class="tag p0">P0</span></td><td>Not started (phase 1).</td></tr>
     <tr><td class="n">Security of processing</td><td>Another company's admin reads or changes data; secrets in logs.</td>
       <td>Tenant scoping; request-log filtering; the free model tier refused in production.</td><td>Engineering</td>
-      <td><span class="tag p0">P0</span></td><td><strong>Partly.</strong> Scoping (sub-PR 1) and log filter (sub-PR 6) done; tier check not started.</td></tr>
+      <td><span class="tag p0">P0</span></td><td><strong>Partly.</strong> Scoping (sub-PR 1), every route pinned (sub-PR 8) and log filter (sub-PR 6) done.
+      Open: any admin can pick the company at login (C2); tier check not started.</td></tr>
     <tr><td class="n">Art. 56</td><td>Audio and transcripts leave Indonesia with no documented basis.</td><td>A paid tier
       with data terms; a recorded transfer basis.</td><td>Legal; engineering for the tier check</td><td><span class="tag p0">P0</span></td><td>Escalated.</td></tr>
     <tr><td class="n">Art. 10</td><td>A rating acts as a decision nobody reviewed.</td><td>No auto-reject; reviewer,
@@ -781,14 +789,14 @@ flowchart LR
       runbook.</td><td>Engineering on call; notice: the controller</td><td><span class="tag p1">P1</span></td><td>Not started (phase 4).</td></tr>
   </table>
 
-  <h3>Four more pieces of work</h3>
+  <h3>Four more pieces of work, one done</h3>
   <div class="grid2">
-    <div class="card"><h4>Tenant isolation, route by route</h4><p>The isolation spec from sub-PR 1 covers reading
-      assessments, sessions, portfolios and vacancies, plus export, override and fit/gap. Transcript, coverage, ending a
-      session, regenerating a portfolio, and editing or deleting assessments and vacancies aren't in it yet. I'd add
-      one spec that walks every authenticated route as another company's admin, with that company's IDs in the URL
-      and the body, so a new route without a case fails the suite. <strong>Done when:</strong> a user from company A
-      can't read, change or export company B's data, whatever ID they send.</p></div>
+    <div class="card"><h4>Tenant isolation, route by route: done in sub-PR 8</h4><p>A spec walks the route table:
+      another company's admin calls every route with this company's IDs in the URL and the body, and gets 404 with
+      nothing changed; a new route without a case fails the suite. No route leaked, and two planted faults were
+      caught. <strong>Still open (C2):</strong> login lets the caller name the company in a header, and users belong
+      to no company, so any admin can sign in to company A. That needs a user-to-company link in a database shared
+      with <code>rakamin-api</code>: a Tech Lead decision.</p></div>
     <div class="card"><h4>Human review on record</h4><p>Today an override records who and when, asks for a reason
       only when the AI gave no rating, and keeps only the latest change per skill. I'd require a reason for every
       change, keep the full history, record "reviewed by, on" even when nothing changed, and add the candidate's

@@ -566,6 +566,29 @@ garbled `sessions` table, plus a test-DB dump that rewrote an unrelated check co
 it (`SyntaxError` in `schema.rb`). Rebuilt from the committed file plus the three fit/gap lines; the test DB
 loads from it, and the dev DB was already migrated. Temp files older than a day were cleared to make room.
 
+### Sub-PR 8: tenant isolation, route by route (branch `test/tenant-routes`)
+
+**Why.** The isolation spec from sub-PR 1 pinned the routes P0-2 broke. Transcript, coverage, ending a session,
+regenerating a portfolio, and editing or deleting assessments and vacancies weren't in it, and nothing would notice
+a new route added without scoping.
+
+**What was added.** `spec/requests/tenant_routes_spec.rb`, 30 examples. Company B calls each of the 19 routes that
+take a company A record with A's ID in the URL or the body: each must answer 404 and leave A's rows (every column)
+and the job queue as they were. Lists must leave A out; creates land in B even when the body sends A's `tenant_id`;
+B's own assessment and vacancy can't reach A's nested skills, and B's portfolio can't be run against A's vacancy,
+for fit/gap or the PDF. One example walks `Rails.application.routes`: a route with no case, or a case for a route
+that's gone, fails it. Five routes are listed as open, each with its reason (login, the shared skill library, the
+two candidate-link routes).
+
+**Result.** No route leaks: every case passed on the first run, so there was nothing to fix. To show the spec can
+see a leak, two faults were put in and reverted: an unscoped `Vacancy.find` failed show, update and destroy, and an
+unlisted route failed the route check. API: 331 examples, 0 failures, 5 pending.
+
+**Pinned, not fixed (C2).** Login takes the company from the `X-Tenant-Scheme` header, and a user belongs to no
+company, so any admin can sign in to company A and read its data (the pending case gets 200 where it expects 404).
+Fixing it needs a user-to-company link in a database shared with `rakamin-api` (C3): a data-model and product
+decision for the Tech Lead, not a scoping fix.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
