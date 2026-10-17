@@ -542,6 +542,30 @@ failed on their filter assertion before the fix. The fix (`4f844a1`) takes them 
 **On the dev stack:** a login with a made-up password logs `[FILTERED]`, and the password appears nowhere in
 `development.log`. Lines written before the fix are still there; the log is local and gitignored.
 
+### Sub-PR 7: one fit/gap job per report (P1-6, server side)
+
+**What changed.** A reversible migration adds `generation_status` (`generating` or `complete`, existing rows become
+`complete`) and `requested_at` to `fit_gap_reports`. The first request inserts a `generating` row, then queues the
+job; the unique index on (portfolio_id, vacancy_id), the one that made concurrent jobs crash, is now the lock, so a
+second request finds the claim and queues nothing. A claim older than ten minutes (longer than a job and its two
+retries) belongs to a job that died, and the next request takes it over with a conditional update only one caller
+can win. Regenerate and a new override reuse the row instead of deleting it, so asking twice queues one job. Show,
+JSON export and PDF only read complete reports, so the web still gets 404 while it polls: no web change.
+
+**Tests.** The P1-6 spec, pending since Step 3 (`expected: 1, got: 2`), now passes. Four more were written with
+the fix, not before it, so they were not checked against the old code: the claim stays hidden until the job writes
+the report, a stale claim is taken over, repeated regeneration queues one job, and of two claims only one wins.
+API: 301 examples, 0 failures, 4 pending (P1-10, P1-13 ×2, P2-3). Web unchanged.
+
+**Seen, not changed:** if an override lands while a job is already running, the claim is held, so no second job is
+queued and the running one may have read the skills before the override. The next override or a regenerate fixes
+it; a version counter on the claim would close it.
+
+**Disk full mid-change.** C: ran out of space while the migration was dumped, and `schema.rb` was written with a
+garbled `sessions` table, plus a test-DB dump that rewrote an unrelated check constraint. The suite refused to load
+it (`SyntaxError` in `schema.rb`). Rebuilt from the committed file plus the three fit/gap lines; the test DB
+loads from it, and the dev DB was already migrated. Temp files older than a day were cleared to make room.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

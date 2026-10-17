@@ -46,12 +46,57 @@ RSpec.describe 'Fit/gap reports', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
   end
 
-  it 'P1-6: queues only one job while a report is already being generated (known defect)' do
-    pending 'P1-6: every request while generating enqueues another job'
+  describe 'one job per report (P1-6)' do
+    it 'queues only one job while a report is already being generated' do
+      request_fitgap
+      request_fitgap
 
-    request_fitgap
-    request_fitgap
+      expect(response).to have_http_status(:accepted)
+      expect(FitGapGeneratorWorker.jobs.size).to eq(1)
+    end
 
-    expect(FitGapGeneratorWorker.jobs.size).to eq(1)
+    it 'hides the claim until the job has written the report' do
+      create(:vacancy_skill, vacancy:)
+      request_fitgap
+
+      get "/api/v1/portfolios/#{portfolio.id}/fitgap/#{vacancy.id}", headers: headers
+      expect(response).to have_http_status(:not_found)
+
+      allow(Gemini::HttpClient).to receive(:new).and_return(instance_double(Gemini::HttpClient, generate_content:
+        { 'culture_narrative' => 'C.', 'overall_narrative' => 'O.' }))
+      FitGapGeneratorWorker.drain
+
+      get "/api/v1/portfolios/#{portfolio.id}/fitgap/#{vacancy.id}", headers: headers
+      expect(response).to have_http_status(:ok)
+      expect(FitGapReport.sole).to have_attributes(generation_status: 'complete', requested_at: nil)
+    end
+
+    it 'takes over a claim whose job died' do
+      request_fitgap
+      FitGapGeneratorWorker.clear
+      FitGapReport.sole.update_columns(requested_at: (FitGapReport::CLAIM_STALE_AFTER + 1.minute).ago)
+
+      request_fitgap
+
+      expect(FitGapGeneratorWorker.jobs.size).to eq(1)
+    end
+
+    it 'queues one regeneration however often it is asked for' do
+      create(:fit_gap_report, portfolio:, vacancy:)
+
+      2.times do
+        post "/api/v1/portfolios/#{portfolio.id}/regenerate_fitgap", params: { vacancy_id: vacancy.id }.to_json, headers:
+      end
+
+      expect(response).to have_http_status(:accepted)
+      expect(FitGapGeneratorWorker.jobs.size).to eq(1)
+      expect(FitGapReport.sole.generation_status).to eq('generating')
+    end
+
+    it 'lets only one of two racing claims win' do
+      expect(FitGapReport.claim(portfolio_id: portfolio.id, vacancy_id: vacancy.id)).to be(true)
+      expect(FitGapReport.claim(portfolio_id: portfolio.id, vacancy_id: vacancy.id)).to be(false)
+      expect(FitGapReport.claim(portfolio_id: portfolio.id, vacancy_id: vacancy.id, replace: true)).to be(false)
+    end
   end
 end

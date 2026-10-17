@@ -212,8 +212,8 @@ Brief Option B: an umbrella PR plus focused sub-PRs, each reviewable on its own.
   interview "has been recorded" (P1-11), and the hardware check must measure against our own API, not third
   parties (P1-12).
 - Confidence-aware fit/gap verdicts and a decision on past ratings (Option C).
-- Duplicate fit/gap jobs on the server side (P1-6): the web fix in AC-26 removes the main trigger; a server-side
-  lock is still needed.
+- ~~Duplicate fit/gap jobs on the server side (P1-6).~~ Done in sub-PR 7: the report row is claimed before the job
+  is queued.
 - Gemini HTTP retries for POST (P2-3), and a deploy check that production uses the paid tier.
 - ~~Parameter filtering for passwords and notes in logs (P1-7).~~ Done in sub-PR 6, together with candidate names
   and invite tokens.

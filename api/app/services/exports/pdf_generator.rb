@@ -21,7 +21,7 @@ module Exports
       @vacancy     = vacancy
       @session     = portfolio.session
       @assessment  = @session.assessment
-      @fit_gap     = vacancy ? FitGapReport.find_by(portfolio: portfolio, vacancy: vacancy) : nil
+      @fit_gap     = vacancy ? FitGapReport.complete.find_by(portfolio: portfolio, vacancy: vacancy) : nil
     end
 
     # Returns PDF binary string.

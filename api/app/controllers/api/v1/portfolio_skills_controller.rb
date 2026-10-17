@@ -40,9 +40,9 @@ module Api
 
       def regenerate_stale_fitgap_reports
         portfolio = @portfolio_skill.portfolio
-        FitGapReport.where(portfolio_id: portfolio.id).each do |report|
-          vacancy_id = report.vacancy_id
-          report.destroy
+        FitGapReport.where(portfolio_id: portfolio.id).pluck(:vacancy_id).each do |vacancy_id|
+          next unless FitGapReport.claim(portfolio_id: portfolio.id, vacancy_id:, replace: true)
+
           FitGapGeneratorWorker.perform_async(portfolio.id, vacancy_id)
         end
       end
