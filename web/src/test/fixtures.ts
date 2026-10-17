@@ -161,3 +161,56 @@ export const transcriptTurns = (from: number, count: number) => ({
   })),
   total: count,
 });
+
+// SkillTaxonomiesController#skill_json
+const taxonomySkill = (skill_id: string, skill_label: string, category: string) => ({
+  skill_id, skill_label, category,
+  scope_include: `${skill_label} in production work`, scope_exclude: null,
+  l1_anchor: "Needs close guidance.", l2_anchor: "Independent on routine scope.",
+  l3_anchor: "Handles ambiguity and trade-offs.", l4_anchor: "Sets standards for the team.",
+  l5_anchor: "Shapes practice across the org.",
+});
+
+export const skillTaxonomies = {
+  skill_taxonomies: [
+    taxonomySkill("SK-ENG-001", "React", "engineering"),
+    taxonomySkill("SK-ENG-003", "System Design", "engineering"),
+    taxonomySkill("SK-SOFT-001", "Communication", "soft_skills"),
+  ],
+};
+
+// AssessmentsController#assessment_with_skills_json
+export const assessmentWithSkills = {
+  assessment: {
+    ...assessment,
+    skills: [
+      { id: 11, ...taxonomySkill("SK-ENG-001", "React", "engineering"), is_custom: false, expected_level: 3, display_order: 0 },
+      { id: 12, ...taxonomySkill("SK-SOFT-001", "Communication", "soft_skills"), is_custom: false, expected_level: 3, display_order: 1 },
+    ].map(({ category: _category, ...s }) => s),
+  },
+};
+
+// SessionsController#index for one assessment, newest first
+export const assessmentSessions = {
+  sessions: [
+    { ...session, id: 44, candidate_name: "Budi Santoso", status: "pending", end_reason: null, started_at: null, ended_at: null,
+      invite_token: "tok-pending", invite_url: "http://localhost:5173/interview/tok-pending" },
+    { ...session, id: 43, candidate_name: "Sari Wijaya", status: "active", end_reason: null, ended_at: null },
+    { ...session, id: 42, candidate_name: "Test Candidate" },
+    { ...session, id: 41, candidate_name: "Dewi Lestari", end_reason: "error" },
+  ],
+};
+
+// VacanciesController#vacancy_with_skills_json
+export const vacancyWithSkills = {
+  vacancy: {
+    ...vacancies.vacancies[0],
+    competency_expectations: "Strong communicator",
+    skills: [
+      { id: 21, skill_id: null, skill_label: "React", expected_level: 4,
+        l1_anchor: null, l2_anchor: null, l3_anchor: null, l4_anchor: null, l5_anchor: null },
+      { id: 22, skill_id: null, skill_label: "Communication", expected_level: 3,
+        l1_anchor: null, l2_anchor: null, l3_anchor: null, l4_anchor: null, l5_anchor: null },
+    ],
+  },
+};
