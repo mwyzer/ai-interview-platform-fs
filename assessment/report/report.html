@@ -67,6 +67,10 @@
   .todo { border: 1.5px dashed #d9a520; background: var(--todo-bg); color: var(--todo); padding: 3mm 4mm; margin: 2mm 0 4mm; border-radius: 1.5mm; break-inside: avoid; }
   .todo::before { content: "TO FILL IN · "; font-weight: 700; font-size: 7.6pt; letter-spacing: 0.06em; }
   .todo p:last-child, .todo ul:last-child { margin-bottom: 0; }
+  /* Review marker for content added since the last draft; remove the class once it's approved. */
+  .added { background: #eaf3ff; border-left: 2px solid #2563eb; padding: 1mm 3mm; margin-left: -3mm; }
+  div.added::before { content: "ADDED · REVIEW"; display: block; color: #1d4ed8; font-weight: 700; font-size: 7.6pt; letter-spacing: 0.06em; margin-bottom: 1mm; }
+  span.added { padding: 0 1mm; margin: 0; border-left: 0; }
 
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
@@ -753,6 +757,53 @@ flowchart LR
     <tr><td><strong>Impact assessment</strong> (Art. 34) and <strong>cross-border basis</strong> for Google (Art. 56)</td><td>Automated profiling with significant effects qualifies as high risk; the transfer needs safeguards.</td><td>Data flow, risk list (Step 3), model tier terms</td></tr>
     <tr><td><strong>Should candidates see their own portfolio?</strong></td><td>Good for trust and the right of access, but it changes what the product is.</td><td>Effort estimate; the export from phase 3</td></tr>
   </table>
+
+  <div class="added">
+  <h3>Compliance tracker</h3>
+  <p>To close before the product sees a real candidate's data. Owners are roles; who fills each one depends on the
+    controller decision above. Status is as of this branch.</p>
+  <table>
+    <tr><th style="width:12%">UU PDP</th><th style="width:20%">Risk</th><th>Technical control</th><th style="width:13%">Owner</th><th style="width:6%">Prio</th><th style="width:19%">Status</th></tr>
+    <tr><td class="n">Art. 20–22</td><td>Processing with no notice and no lawful basis.</td><td>Versioned notice before the
+      mic opens; a consent record; no session without one.</td><td>Engineering; wording: legal</td><td><span class="tag p0">P0</span></td><td>Not started (phase 1).</td></tr>
+    <tr><td class="n">Security of processing</td><td>Another company's admin reads or changes data; secrets in logs.</td>
+      <td>Tenant scoping; request-log filtering; the free model tier refused in production.</td><td>Engineering</td>
+      <td><span class="tag p0">P0</span></td><td><strong>Partly.</strong> Scoping (sub-PR 1) and log filter (sub-PR 6) done; tier check not started.</td></tr>
+    <tr><td class="n">Art. 56</td><td>Audio and transcripts leave Indonesia with no documented basis.</td><td>A paid tier
+      with data terms; a recorded transfer basis.</td><td>Legal; engineering for the tier check</td><td><span class="tag p0">P0</span></td><td>Escalated.</td></tr>
+    <tr><td class="n">Art. 10</td><td>A rating acts as a decision nobody reviewed.</td><td>No auto-reject; reviewer,
+      time and reason recorded; an objection channel.</td><td>Product and engineering</td><td><span class="tag p1">P1</span></td><td><strong>Partly.</strong> Overrides record who and when.</td></tr>
+    <tr><td class="n">Art. 7, 8, 44</td><td>Data kept forever, with no way to erase or export it.</td><td>Retention per
+      tenant with a scheduled purge; erasure and export per candidate; deletions in an audit log.</td><td>Engineering; the period: legal</td><td><span class="tag p1">P1</span></td><td>Not started (phase 3).</td></tr>
+    <tr><td class="n">Art. 34</td><td>High-risk profiling with no impact assessment.</td><td>The data map and the Step 3
+      risk list as inputs.</td><td>Legal</td><td><span class="tag p1">P1</span></td><td>Escalated.</td></tr>
+    <tr><td class="n">Art. 46</td><td>A breach found late, or never.</td><td>Access audit log, cross-tenant alert,
+      runbook.</td><td>Engineering on call; notice: the controller</td><td><span class="tag p1">P1</span></td><td>Not started (phase 4).</td></tr>
+  </table>
+
+  <h3>Four more pieces of work</h3>
+  <div class="grid2">
+    <div class="card"><h4>Tenant isolation, route by route</h4><p>The isolation spec from sub-PR 1 covers reading
+      assessments, sessions, portfolios and vacancies, plus export, override and fit/gap. Transcript, coverage, ending a
+      session, regenerating a portfolio, and editing or deleting assessments and vacancies aren't in it yet. I'd add
+      one spec that walks every authenticated route as another company's admin, with that company's IDs in the URL
+      and the body, so a new route without a case fails the suite. <strong>Done when:</strong> a user from company A
+      can't read, change or export company B's data, whatever ID they send.</p></div>
+    <div class="card"><h4>Human review on record</h4><p>Today an override records who and when, asks for a reason
+      only when the AI gave no rating, and keeps only the latest change per skill. I'd require a reason for every
+      change, keep the full history, record "reviewed by, on" even when nothing changed, and add the candidate's
+      objection channel (phase 2). The AI supports the assessor; it never decides alone.</p></div>
+    <div class="card"><h4>Rating quality and bias</h4><p>The tests check states and quotes, not whether a level is
+      right. I'd build a set of answers in Indonesian, English, a mix of both, and short but relevant, rated by
+      people, using synthetic or consented data only. Measure agreement between AI and human ratings, the share of
+      invalid quotes, and the gap between languages. It calls the real model, so it runs on a schedule, not in CI.
+      Targets come after the baseline is measured, not before.</p></div>
+    <div class="card"><h4>Monitoring and incident response</h4><p>Phase 4, made concrete: the on-call engineer gets
+      the alert, escalates to the controller's privacy contact within hours, and the 3×24-hour notice clock starts at
+      discovery. Logs keep IDs and event types, never passwords, full transcripts or personal data. Sub-PR 6 filters
+      the request log; a test should also fail if transcript text ever reaches it.</p></div>
+  </div>
+  </div>
   <p class="small muted">Articles refer to Law 27/2022 and are paraphrased; I'm not a lawyer, and the mapping should be
     checked by legal counsel.</p>
 </section>
@@ -761,16 +812,118 @@ flowchart LR
 <section>
   <h2><span class="step">Assumptions and open questions</span>What I decided without being able to ask</h2>
 
-  <p>The brief has no live Q&amp;A, so these are stated rather than assumed silently.</p>
+  <p>The brief has no live Q&amp;A, so these are stated rather than assumed silently. <span class="added">Each one picks the direction
+    that is safer for the candidate and clearer for the assessor: show uncertainty, keep evidence that can be checked,
+    and never hide thin data behind a level. The "Today" column separates what this change built from what is still
+    a call I'd make.</span></p>
+
+  <h3><span class="added">The change I built</span></h3>
   <table>
     <tr><th style="width:30%">Assumption or question</th><th>What I did, and why</th></tr>
     <tr><td><strong>The coverage map may overrule the model</strong> for a skill never probed.</td><td>Assumed yes: a rating with zero probes has no evidence by definition. If the analyzer lags one turn, a skill discussed at the very end may show "not assessed", which is the safe direction. Worth confirming with the Tech Lead.</td></tr>
     <tr><td><strong>Past ratings stay as they are.</strong></td><td>People may have acted on them. A read-only task reports how many L1s have no probes behind them, so the team can decide.</td></tr>
     <tr><td><strong>Keeping <code>required_level</code> beside <code>expected_level</code></strong> for one release.</td><td>Only this web app and the PDF consume the payload today.</td></tr>
     <tr><td><strong>Quotes must be verbatim</strong> to count as evidence.</td><td>Normalized (case, whitespace, quote marks) but exact. A paraphrase is dropped and lowers confidence; it never erases a rating.</td></tr>
-    <tr><td><strong>Indonesian hiring market</strong>: high-volume junior roles, non-technical assessors, two languages, unstable connections.</td><td class="missing">To confirm against my own experience of hiring and being hired in Indonesia.</td></tr>
-    <tr><td><strong>Who is the data controller</strong>, and on which lawful basis.</td><td>Escalated. It decides who owns the candidate notice and the erasure flow.</td></tr>
   </table>
+
+  <div class="added">
+  <h3>Assessment</h3>
+  <table>
+    <tr><th style="width:28%">Assumption or question</th><th>My call, and why</th><th style="width:28%">Today</th></tr>
+    <tr><td><strong>A short answer can still be evidence.</strong></td><td>Length isn't competence. A one-sentence answer
+      supports a low-to-mid level unless a follow-up probes it; thin evidence shows as low confidence, not a fail.</td>
+      <td><strong>Partly.</strong> A rating left with no verified quote drops to low confidence (P1-5). No rule on
+      answer length.</td></tr>
+    <tr><td><strong>A transcription error must never change a verdict silently.</strong></td><td>When transcript quality
+      is doubtful (accent, noise, a weak signal), the report says so and asks the assessor to check the quotes before
+      relying on the rating. The rating stays.</td><td><strong>Not yet.</strong> We keep no quality signal from the speech
+      pipeline. For now the check is that every quote must appear verbatim in the transcript.</td></tr>
+    <tr><td><strong>Re-assessment on request</strong>, without a new interview.</td><td>Not in this release. Transcript,
+      ratings and quotes are kept, so a person can review. An automatic re-run waits on cost, consistency and an audit
+      trail.</td><td>Assessors can regenerate a portfolio, and overrides survive it. The candidate has no way to ask.</td></tr>
+    <tr><td><strong>No rating of personality, voice or appearance.</strong></td><td>Only the skills in the rubric are
+      rated. Demographics, emotion, accent and physical traits are never inputs: it keeps the rating job-related and
+      cuts a source of bias.</td><td><strong>Holds by construction.</strong> The portfolio is generated from transcript
+      text and the rubric only; no audio reaches it, and there is no video.</td></tr>
+    <tr><td><strong>A skill the role doesn't require can't lower the outcome.</strong></td><td>Only required skills drive
+      fit/gap. Nice-to-have skills are shown apart, so a junior doesn't look weak for lacking advanced
+      experience.</td><td><strong>Not yet.</strong> Every configured skill has a required level; there is no
+      nice-to-have tier.</td></tr>
+    <tr><td><strong>One strong answer can't cover a skill never asked about.</strong></td><td>The overall result can't
+      be better than the evidence on required skills. A core skill not assessed makes it <em>incomplete</em>, not
+      <em>fit</em>.</td><td><strong>Per skill, built:</strong> not assessed is its own verdict (sub-PR 4). The overall
+      narrative is still the model's; capping it is next in line.</td></tr>
+    <tr><td><strong>Response time isn't a competence signal.</strong></td><td>Thinking time, answering in a second
+      language or a slow connection is never penalized.</td><td><strong>Holds.</strong> Duration is stored on the session
+      and never sent to the rating.</td></tr>
+    <tr><td><strong>A leading question still counts as a probe</strong>, flagged.</td><td>If the interviewer nearly gave
+      the answer, confidence drops: the evidence may reflect help rather than the candidate's own
+      ability.</td><td><strong>Not yet.</strong> Coverage counts probes, not how leading they were.</td></tr>
+  </table>
+
+  <h3>Privacy and data</h3>
+  <table>
+    <tr><th style="width:28%">Assumption or question</th><th>My call, and why</th><th style="width:28%">Today</th></tr>
+    <tr><td><strong>Consent to AI analysis is its own choice</strong>, not folded into general terms.</td><td>Separate
+      choices for audio processing by Google, AI rating and retention, recorded with the time, notice version and
+      session.</td><td><strong>Not yet.</strong> Privacy phase 1.</td></tr>
+    <tr><td><strong>Declining AI analysis doesn't end the candidacy.</strong></td><td>Otherwise consent isn't freely
+      given. The candidate gets a human-assessed route instead.</td><td>Phase 1 sends a decline to "contact the
+      recruiter", with no penalty. A full alternative route depends on the lawful basis (escalated).</td></tr>
+    <tr><td><strong>Raw audio goes before the report does.</strong></td><td>Data minimization and storage limitation:
+      keep what a decision needs, for as long as it needs it.</td><td><strong>Already true for audio:</strong> it is
+      never stored, only buffered in memory. Transcript and report wait for a retention period (phase 3).</td></tr>
+    <tr><td><strong>No training on candidate data</strong> without a separate permission.</td><td>Training or product
+      improvement needs its own opt-in, anonymized data or synthetic data. Anything else reuses data beyond the purpose
+      of hiring.</td><td>We train nothing. The model tier's terms matter, hence the phase 0 check that refuses the free
+      tier in production.</td></tr>
+    <tr><td><strong>Erasure covers every derived copy.</strong></td><td>Erasing a candidate removes or anonymizes the
+      transcript, ratings, overrides, fit/gap and anything traceable to them.</td><td><strong>Not yet.</strong> Phase 3.
+      A PDF already exported can't be recalled; the notice has to say so.</td></tr>
+    <tr><td><strong>The platform processes on the client's instruction</strong> (processor, not controller).</td>
+      <td>Provisional. It decides who answers candidate requests, owns the notice and handles a breach.</td>
+      <td>Escalated to legal.</td></tr>
+    <tr><td><strong>Access follows the role.</strong></td><td>Recruiters read reports, hiring managers the summary and
+      evidence, admins the configuration; engineers don't open production transcripts by default.</td><td><strong>Not
+      yet.</strong> One admin role does all of it. Tenant scoping (sub-PR 1) is the first boundary.</td></tr>
+  </table>
+
+  <h3>Operating in Indonesia</h3>
+  <table>
+    <tr><th style="width:28%">Assumption or question</th><th>My call, and why</th><th style="width:28%">Today</th></tr>
+    <tr><td><strong>Mixing Indonesian and English is the norm</strong>, not the exception.</td><td>The transcript and
+      the model handle a switch inside one answer. Quotes are shown as said, so the assessor can check the original
+      meaning.</td><td><strong>Partly.</strong> Quotes are verbatim in any language, but the interviewer is still told
+      never to switch language (Step 2).</td></tr>
+    <tr><td><strong>Candidates use low-cost phones on mobile networks.</strong></td><td>A light page, automatic
+      reconnect and a connection indicator. A technical failure must never read as weak communication.</td>
+      <td><strong>Partly.</strong> A dropped connection now gives "not assessed, not reached", never L1 (this change).
+      No reconnect or indicator yet.</td></tr>
+    <tr><td><strong>A non-technical assessor reads the report in minutes.</strong></td><td>The first screen holds the
+      verdict, the required skills, confidence and the one to three strongest quotes; detail goes below.</td>
+      <td><strong>Partly.</strong> The summary line ("2 of 3 skills weren't assessed") and plain-language reasons
+      are there.</td></tr>
+    <tr><td><strong>Many applicants, few roles each.</strong></td><td>Optimize reading one candidate's report, not an
+      analytics dashboard. Aggregates come once individual review is stable.</td><td>The scope of this change.</td></tr>
+    <tr><td><strong>"L1" and "L3" mean nothing outside engineering.</strong></td><td>Plain labels (not yet seen, basic,
+      capable, strong), with the role's definition on hover or tap.</td><td><strong>Not yet.</strong> Levels show as
+      L1–L5 with the role's rubric.</td></tr>
+    <tr><td><strong>The recruiter may decide on information outside the system.</strong></td><td>The AI recommends; the
+      decision and its reason belong to a person. Hiring is never decided by the AI.</td><td>Adding a rating the AI
+      didn't give requires a note. Recording who reviewed, and when, is phase 2.</td></tr>
+  </table>
+
+  <h3>To confirm with the Tech Lead</h3>
+  <ul>
+    <li>Can "not assessed" appear in a final report, or should the interviewer have to probe the skill before the
+      session ends?</li>
+    <li>Who may read a raw transcript, and is that access logged?</li>
+    <li>How long are transcript and report kept for a candidate who isn't hired?</li>
+    <li>Is an automatic re-assessment needed, or is manual review enough?</li>
+    <li>Should consent allow a partial "no", such as transcription yes, AI rating no?</li>
+    <li>Can a client's policy or a local retention duty override the default erasure rules?</li>
+  </ul>
+  </div>
 
   <h3>Next, in order</h3>
   <ol>
