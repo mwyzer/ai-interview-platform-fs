@@ -517,6 +517,13 @@ flowchart LR
     <tr><td class="n">5</td><td><code>feat/not-assessed-screens</code></td><td>Portfolio and fit/gap screens: the reason, a
       summary line, rating with a required source, error and retry states, long text, 375px (AC-20, AC-22, AC-24..AC-30).</td>
       <td><code>5e30533</code> <code>342adec</code> <code>c40c78d</code> <code>8e0a650</code></td></tr>
+    <tr><td colspan="4" class="small">Two follow-ups from the Step 4 list, stacked on top of the five:</td></tr>
+    <tr><td class="n">6</td><td><code>fix/filter-log-params</code></td><td>Passwords, emails, tokens, assessor notes and
+      candidate names are <code>[FILTERED]</code> in the request log (P1-7).</td>
+      <td><code>1305216</code> <code>4f844a1</code></td></tr>
+    <tr><td class="n">7</td><td><code>fix/fitgap-single-job</code></td><td>Reversible migration; the report row is claimed
+      before the job is queued, so one fit/gap job runs per report, and a claim whose job died is taken over (P1-6).</td>
+      <td><code>b5ac8bb</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
@@ -532,8 +539,8 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">293</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      plus 30 filling test gaps). 6 pending, all known defects outside this change (P1-6 server lock, P1-7, P1-10,
+    <div class="card"><div class="stat">301</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7). 4 pending, all known defects outside this change (P1-10,
       P1-13 ×2, P2-3).</div></div>
     <div class="card"><div class="stat">149</div><div class="stat-label">web tests passing (126 after sub-PR 5); 22
       expected to fail (other known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
@@ -548,7 +555,8 @@ flowchart LR
     <tr><td>Reply isn't JSON, or a level is junk</td><td><code>0, 6, -1, 2.5, "", "N/A", "high", "L3.5"</code> → not assessed
       (<code>insufficient_evidence</code>); unreadable reply → <code>model_invalid_response</code>. The reply is never logged.</td><td>AC-3, AC-4, privacy specs</td></tr>
     <tr><td>Partial write</td><td>All rows in one transaction, updated in place by skill, so overrides survive a regenerate (P1-4).</td><td>Generator spec ×2</td></tr>
-    <tr><td>Duplicate fit/gap jobs</td><td>The page requests generation once per visit (P1-6, web). A server-side lock is still open: next on the list.</td><td>Fit/gap page; API spec still pending</td></tr>
+    <tr><td>Duplicate fit/gap jobs</td><td>The page requests generation once per visit (P1-6, web), and the server queues one job per report: the
+      first request claims the row (sub-PR 7).</td><td>Fit/gap page; fit/gap request specs</td></tr>
     <tr><td>Quote not in the transcript</td><td>Dropped; a rating left with none drops to low confidence (P1-5).</td><td>Generator spec</td></tr>
     <tr><td>Load fails, or generation hangs</td><td>Alert with Try again instead of a blank page (P2-1); fit/gap gives up waiting after two minutes.</td><td>Portfolio and fit/gap pages</td></tr>
     <tr><td>Long text</td><td>Long quotes and summaries collapse behind Show more (<code>aria-expanded</code>); unbroken strings wrap.</td><td><code>ExpandableText</code> tests</td></tr>
@@ -765,8 +773,7 @@ flowchart LR
       consent before the mic opens, with the broken-link message (P1-11) and the hardware check (P1-12).</li>
     <li>Removed skills that stay on edit forms (P1-14), with the label and picker fixes on the same forms (P2-14,
       P2-15): small, web-only, and already pinned by tests.</li>
-    <li>Server-side lock against duplicate fit/gap jobs (P1-6); retries that actually fire (P2-3); a deploy check for
-      the paid model tier.</li>
+    <li>Retries that actually fire (P2-3); a deploy check for the paid model tier.</li>
     <li>Confidence-aware fit/gap verdicts and a decision on past ratings (Option C), with product sign-off.</li>
   </ol>
 </section>

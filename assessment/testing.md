@@ -65,7 +65,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P1-3 omitted skills vanish~~ **fixed** in sub-PR 3 | generator now passes | |
 | ~~P1-4 non-atomic writes wipe overrides~~ **fixed** in sub-PR 3 | generator (×2) now pass | |
 | ~~P1-5 unverified evidence quotes~~ **fixed** in sub-PR 3 | generator now passes | |
-| P1-6 duplicate fit/gap jobs (web side **fixed** in sub-PR 5: one request per visit) | fit/gap request (still pending: no server-side lock) | fit/gap page now passes |
+| ~~P1-6 duplicate fit/gap jobs~~ **fixed** (web in sub-PR 5: one request per visit; server lock in sub-PR 7) | fit/gap request now passes | fit/gap page now passes |
 | ~~P1-7 passwords in logs~~ **fixed** in sub-PR 6 | auth request; four request-log specs now pass | |
 | P1-8 list only loads page 1 | | assessment list |
 | P1-9 every ended session reads "completed" | | assessment list |
