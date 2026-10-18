@@ -1,23 +1,8 @@
 ---
-# Advisories bundle-audit may skip, each with the reason. Everything here needs a major upgrade (Rails 7.0 -> 7.2 or
-# 8, puma 5 -> 7 or 8), escalated in assessment/07-next-steps.md. Remove an entry the day its upgrade lands; any new
-# advisory still fails CI (job security).
+# Advisories bundle-audit may skip, each with the reason. Everything here needs a major upgrade (puma 5 -> 7 or 8),
+# escalated in assessment/07-next-steps.md. Remove an entry the day its upgrade lands; any new advisory still fails
+# CI (job security).
 ignore:
-  # Rails 7.0 is end-of-life (2025-04-01); fixed only in 7.1/7.2/8.x.
-  - GHSA-v55j-83pf-r9cq # actionview: XSS in tag helpers. API only: no templates or tag helpers render HTML.
-  - GHSA-76r7-hhxj-r776 # activerecord: ANSI escape injection in logs. Logs are read by operators only.
-  - GHSA-cg4j-q9v8-6v38 # activesupport: ReDoS in number_to_delimited. Not called by this app.
-  - GHSA-89vf-4333-qx8v # activesupport: XSS in SafeBuffer#%. No HTML is rendered.
-  - GHSA-2j26-frm8-cmj9 # activesupport: DoS in number helpers. Not called by this app.
-  # Active Storage ships with the rails gem but isn't loaded (config/application.rb loads only Active Model,
-  # Active Record and Action Controller), so none of these can be reached.
-  - GHSA-r4mg-4433-c7g3
-  - GHSA-qcfx-2mfw-w4cg
-  - GHSA-r46p-8f7g-vvvg
-  - GHSA-9xrj-h377-fr87
-  - GHSA-73f9-jhhh-hr5m
-  - GHSA-p9fm-f462-ggrg
-  - GHSA-xr9x-r78c-5hrm
   # puma 5: both are in the PROXY protocol v1 parser, which is off (config/puma.rb doesn't enable it).
   - GHSA-qpgp-93vx-g8v8
   - GHSA-2vqw-3mp8-cgmx
