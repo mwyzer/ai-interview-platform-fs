@@ -40,6 +40,51 @@ RSpec.describe 'Authentication', type: :request do
     end
   end
 
+  # Until users belong to a company (C2), a deployment serves one company, named on the server. The login
+  # header can't move a user to another one.
+  describe 'login with the company set on the server (LOGIN_TENANT_SCHEME)' do
+    # Not the first row: the old fallback takes the first organization, so it can't pass by accident.
+    let!(:server_set) { create(:organization) }
+    let!(:other)      { create(:organization) }
+    let!(:user)       { create(:user, password: 'correct-horse-battery') }
+
+    before do
+      @previous = ENV.fetch('LOGIN_TENANT_SCHEME', nil)
+      ENV['LOGIN_TENANT_SCHEME'] = server_set.scheme
+    end
+
+    after { ENV['LOGIN_TENANT_SCHEME'] = @previous }
+
+    def login_naming(scheme)
+      headers = { 'Content-Type' => 'application/json' }
+      headers['X-Tenant-Scheme'] = scheme if scheme
+      post '/api/v1/auth/login', params: { email: user.email, password: 'correct-horse-battery' }.to_json, headers:
+    end
+
+    it 'signs in to the server-set company when the request names none' do
+      pending 'C2 mitigation: login ignores LOGIN_TENANT_SCHEME and picks the first organization'
+      login_naming(nil)
+
+      expect(response).to have_http_status(:ok)
+      expect(JsonWebToken.decode(response.parsed_body['token'])['scheme']).to eq(server_set.scheme)
+    end
+
+    it 'refuses a login that names another company, with the same message as a wrong password' do
+      pending 'C2 mitigation: login takes the company from the X-Tenant-Scheme header'
+      login_naming(other.scheme)
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(response.parsed_body.dig('errors', 0, 'message')).to eq('Invalid email or password')
+    end
+
+    it 'accepts a login that names the server-set company' do
+      login_naming(server_set.scheme)
+
+      expect(response).to have_http_status(:ok)
+      expect(JsonWebToken.decode(response.parsed_body['token'])['scheme']).to eq(server_set.scheme)
+    end
+  end
+
   describe 'protected endpoints' do
     it 'returns 401 without a token' do
       get '/api/v1/assessments', headers: { 'X-Tenant-Scheme' => organization.scheme }
