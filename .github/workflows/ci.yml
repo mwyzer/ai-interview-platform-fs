@@ -74,8 +74,21 @@ jobs:
       - name: Set up the test database
         run: bundle exec rails db:create db:schema:load
 
-      - name: Run specs
+      # With line coverage (SimpleCov). The floor is a point under the coverage measured when it was added: the
+      # suite fails if coverage drops, without inventing a target.
+      - name: Run specs, with coverage
+        env:
+          COVERAGE: "1"
+          COVERAGE_FLOOR: "61"
         run: bundle exec rspec --format progress
+
+      - name: Upload the coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: api/coverage/
+          if-no-files-found: ignore
 
   web:
     name: Web (type check + Vitest)
@@ -103,8 +116,61 @@ jobs:
 
       # The API contract test needs a running API and is skipped here
       # (API_INTEGRATION_URL is not set).
-      - name: Run tests
-        run: npm test
+      - name: Run tests, with coverage
+        env:
+          COVERAGE_FLOOR: "67"
+        run: npm run test:coverage
+
+      - name: Upload the coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: web/coverage/
+          if-no-files-found: ignore
+
+  security:
+    name: Security scans (Brakeman, bundle-audit, npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+          working-directory: api
+
+      # Fails on any warning in the code. The one known warning (Rails 7.0 end of life) is in
+      # api/config/brakeman.ignore, with the reason.
+      - name: Brakeman
+        working-directory: api
+        run: bundle exec brakeman --no-pager --exit-on-warn
+
+      # Fails on any gem with a known advisory. The advisories that need a major upgrade are listed, each with its
+      # reason, in api/.bundler-audit.yml.
+      - name: bundle-audit
+        working-directory: api
+        run: bundle exec bundle-audit check --update
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # What ships to users: production dependencies, failing on high or critical.
+      - name: npm audit (production dependencies)
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high
+
+      # Build and test tooling: reported, not blocking.
+      - name: npm audit (all dependencies, report only)
+        working-directory: web
+        continue-on-error: true
+        run: npm audit
 
   e2e:
     name: E2E (Playwright, 1280px and 375px)
