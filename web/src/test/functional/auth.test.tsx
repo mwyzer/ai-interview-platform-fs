@@ -52,4 +52,19 @@ describe("Signing in", () => {
     expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
     expect(localStorage.getItem("auth_token")).toBeNull();
   });
+
+  it("lets the assessor reveal and hide the password they typed", async () => {
+    const { user } = renderApp("/login", { token: null });
+    const password = screen.getByLabelText("Password");
+
+    await user.type(password, "correct-horse-battery");
+    expect(password).toHaveAttribute("type", "password");
+
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(password).toHaveValue("correct-horse-battery");
+
+    await user.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(password).toHaveAttribute("type", "password");
+  });
 });
