@@ -92,7 +92,7 @@ targets; it's fine to land between 3:45 and 4:15.
 
 **On screen:** the fork's PR list with green checks.
 
-> It's delivered as an umbrella PR with fourteen focused sub-PRs. CI runs the API and web suites, the browser tests
+> It's delivered as an umbrella PR with fifteen focused sub-PRs. CI runs the API and web suites, the browser tests
 > at desktop and phone width with an accessibility check on every page, and security scans.
 
 > One AI moment worth showing: my first phone-width check couldn't fail, because the emulated phone zoomed out to
