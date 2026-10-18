@@ -61,21 +61,15 @@ RSpec.describe Session do
       end
     end
 
-    describe 'known defect (P1-15)' do
-      it 'points at the web app, not the API, when APP_BASE_URL is unset' do
-        pending 'P1-15: the default is the API (localhost:3001), which has no /interview route'
-
-        with_base_url(nil) do
-          expect(session.invite_url).to eq("http://localhost:5173/interview/#{session.invite_token}")
-        end
+    it 'points at the web app, not the API, when APP_BASE_URL is unset (P1-15)' do
+      with_base_url(nil) do
+        expect(session.invite_url).to eq("http://localhost:5173/interview/#{session.invite_token}")
       end
+    end
 
-      it 'gives one slash when APP_BASE_URL ends with one' do
-        pending 'P1-15: a trailing slash in APP_BASE_URL gives //interview/'
-
-        with_base_url('https://interview.example.com/') do
-          expect(session.invite_url).to eq("https://interview.example.com/interview/#{session.invite_token}")
-        end
+    it 'gives one slash when APP_BASE_URL ends with one (P1-15)' do
+      with_base_url('https://interview.example.com/') do
+        expect(session.invite_url).to eq("https://interview.example.com/interview/#{session.invite_token}")
       end
     end
   end
