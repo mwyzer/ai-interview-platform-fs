@@ -785,6 +785,52 @@ the CI floor goes from 61 to 76, a point under as before. A first measurement re
 API container had been restarted mid-run, which killed it and left a partial result; re-run in full. A full run logs "Sidekiq connecting to Redis"; the existing
 EndHandler spec logs the same, and jobs still go to the in-memory array (`Sidekiq::Testing.fake!`).
 
+### Sub-PR 16: Rails 7.0 → 8.1 (branch `chore/rails-8-upgrade`)
+
+**Why.** Rails 7.0 left support on 2025-04-01; twelve of the fourteen advisories sub-PR 13 had to skip were in Rails.
+The plan in `07-next-steps.md` was one minor version at a time.
+
+**How.** 7.0 → 7.1.6 → 7.2.3 → 8.0.5.1, the suite green before each commit; only 7.1 needed a code change
+(`show_exceptions = false` became `:none`, the same setting). `load_defaults` moved last, in its own commit, after
+checking the 7.1–8.0 default changes against the code: no app code loaded via `$LOAD_PATH`, no `Rails.cache`,
+encryption, signed IDs or ActiveJob. Rack stays 2.2, so the WebSocket middlewares see the same hijack API. Dev server
+checked: login 200, `/api/v1/assessments` 200, WebSocket upgrade 101.
+
+**What CI found.** The first run failed two jobs, both for good reasons:
+- **Brakeman:** 8.0's support ends 2026-11-07. Ignoring it would have swapped one end-of-life for another, so the
+  upgrade went on to **8.1.4**, with `load_defaults 8.1` (the API has no redirects; JSON no longer escaping
+  U+2028/2029 only matters for JSON inside HTML).
+- **E2E: `e2e:seed` found no company.** The migrations put `organizations` in `public` (it's created before the
+  `ai_interview` schema exists) and every other table in `ai_interview`, and `schema.rb` couldn't record that. The
+  7.0 dump built every table in `public` on a fresh database; the 8.0 dump starts with `create_schema "ai_interview"`
+  and built every table there. The seeds write `public.organizations`, `Organization` read the empty
+  `ai_interview.organizations`. The specs didn't notice because factories go through the model. Rails 8.1 dumps
+  schema-qualified names, so `schema.rb` (dumped from the dev database: same columns, indexes and foreign keys) now
+  builds the migrated layout. Checked by running CI's E2E database step on a scratch database (`DATABASE_URL`,
+  which also keeps Rails off the test database), then dropping it.
+
+**Checked.** API 382 examples, 0 failures, 3 pending, no deprecation warnings; coverage 77.78%; `zeitwerk:check`;
+Brakeman no warnings, empty ignore file; `bundle-audit` no vulnerabilities, two puma ignores left. CI green on all
+four jobs. Left: puma 5 → 7 (`07-next-steps.md`).
+
+### Sub-PR 17: invite links open the web app (P1-15, branch `fix/invite-url`)
+
+**Found.** The user opened an invite link copied from the Invite page, `http://localhost:3001/interview/…`, and got a
+404. Port 3001 is the API; the interview page is in the web app (5173). `Session#invite_url` builds the link from
+`APP_BASE_URL` and falls back to the API's address, and `api/README.md` described the variable as the "backend base
+URL", so a setup that follows the README breaks every link an assessor copies. CI never saw it: the E2E job sets
+`APP_BASE_URL` to the web app. Production would boot without it and send every candidate to localhost.
+
+**Pinned (`fab8560`).** Three pending specs, each failing on its assertion: the default (got `localhost:3001`), a
+trailing slash (got `//interview/`), production guards (nothing raised). The guard and boot specs' "ready" settings
+gained `APP_BASE_URL` in a commit of its own (`36f252a`); it was ignored until the fix, so they pass before and after.
+
+**Fixed (`11681b6`).** The default is the web app (`http://localhost:5173`), a trailing slash is dropped, and ProductionGuards
+refuses to boot without `APP_BASE_URL`. README corrected. The local `application.yml` (gitignored) now points at
+5173; the dev link for session 16 checked after a restart.
+
+**Checked.** API 386 examples, 0 failures, 3 pending; coverage 77.80%.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
