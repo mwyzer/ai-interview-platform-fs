@@ -9,7 +9,9 @@ require 'open3'
 RSpec.describe 'Booting in production' do
   def boot(env)
     base = { 'RAILS_ENV' => 'production', 'SECRET_KEY_BASE' => 'boot-check-only' }
-    out, status = Open3.capture2e(base.merge(env), 'bin/rails', 'runner', 'puts "booted"', chdir: Rails.root.to_s)
+    # Through the Ruby that runs the suite: a checkout made on Windows doesn't keep bin/rails executable.
+    out, status = Open3.capture2e(base.merge(env), Gem.ruby, 'bin/rails', 'runner', 'puts "booted"',
+                                  chdir: Rails.root.to_s)
     [out, status]
   end
 
