@@ -33,14 +33,16 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
 
-### E2E (Playwright): 14 tests, 7 per width (1280px and 375px)
+### E2E (Playwright): 28 tests, 14 per width (1280px and 375px)
 
 | Spec | Covers |
 |---|---|
 | `portfolio.spec.ts` | Mixed (summary line, two "Not assessed" with reasons, Add rating), all assessed (no summary), failed (safe message, Retry), generating, long text (Show more, `aria-expanded`) |
 | `fitgap.spec.ts` | Unknowns counted apart and never as gaps, with the reason; at 375px the header hides and each value carries its column name; the waiting state |
+| `pages.spec.ts` | Login, the assessment list, the invite page and the vacancy list (sub-PR 12) |
+| `keyboard.spec.ts` | Without a mouse: Show more; an Add rating filled in up to Save; opening an assessment from the list (P2-8) (sub-PR 12) |
 
-Every test also checks that nothing is wider than the screen, against the configured viewport (see AI verification
+Every page is also checked with axe (WCAG 2.1 A/AA, serious and critical), and every test checks that nothing is wider than the screen, against the configured viewport (see AI verification
 moment 14). The built web app runs against the real API with synthetic data from `rails e2e:seed`, and nothing calls
 the model. Run: see "Running the E2E tests" in the [README](../README.md); CI job `e2e`.
 
@@ -103,6 +105,8 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P2-15 skill picker drops the taxonomy skill id | | `SkillPicker` |
 | P2-16 required fields fail silently | | assessment form (custom skill); vacancy form (role title) |
 | P2-17 edit and invite pages hide a load failure | | assessment form; invite page |
+| ~~P2-8 assessment cards not reachable by keyboard~~ **fixed** in sub-PR 12 | | E2E keyboard spec now passes |
+| ~~P2-18 low contrast~~, ~~P2-19 unnamed controls~~ **fixed** in sub-PR 12 | | E2E axe on every page |
 | P3 (override label, optional reason, Edge, Android, offline upload) | | override panel (×2), hardware utils (×2), speed test |
 
 ## What's missing, in priority order
@@ -112,7 +116,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | 1 | **CI** (GitHub Actions running both suites on every push and PR) | Today the tests only protect the code when someone remembers to run them. CI makes every test above a gate, and shows the reviewer a green check on the PR. | Yes: "no CI" is part of the baseline to fix | Small |
 | 2 | ~~**Recorded seeded fault test**~~ **done** (sub-PR 3) | Proves the suite catches a regression, with the history visible: break the logic on a scratch branch, show the failing run, revert. Best done in Step 5 on the P0-1 fix, so the fault is a regression of that fix. | Yes, explicitly | Small |
 | 3 | ~~**End-to-end in a real browser** (Playwright: real web + real API)~~ **done** (sub-PR 10, below) | Nothing yet runs both services together in a browser. It can also capture every state at desktop and 375px, which the submission needs as screenshots. | Screenshots are | Medium |
-| 4 | **Accessibility checks** (axe on the existing page tests, plus keyboard paths) | Catches missing labels, roles and keyboard access (P2-8: assessment cards can't be opened with a keyboard). "Poor UI/UX" is a disqualifier. | Indirectly | Small |
+| 4 | ~~**Accessibility checks** (axe on the existing page tests, plus keyboard paths)~~ **done** (sub-PR 12: axe on every E2E page, keyboard specs) | Catches missing labels, roles and keyboard access (P2-8: assessment cards can't be opened with a keyboard). "Poor UI/UX" is a disqualifier. | Indirectly | Small |
 | 5 | **Migration up/down test** | Step 5's migration must be reversible and safe for existing rows; a spec that migrates down and up with data in place proves it. | Yes, for Step 5 | Small |
 | 6 | **Coverage reports in CI** (SimpleCov, `@vitest/coverage-v8`) | Measured once by hand (Ruby's `Coverage`, and the Vitest provider installed without saving): lines went from 69.7% to 71.6% (API) and 50.6% to 68.3% (web) with the gap-fill tests, which closed the gaps listed here before. What's left untouched is the audio path (below), `SignupPage` (unreachable, P3) and `StatusIndicator`/`VoiceBars`; on the API, `vacancies_controller` is at 76%. Adding the gems/packages would make it a CI report. | No | Small |
 | 7 | **Security scans** (`brakeman`, `bundle audit`, `npm audit`) | Cheap static checks for known vulnerable patterns and dependencies; fits into CI. | No | Small |

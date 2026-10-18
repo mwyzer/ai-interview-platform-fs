@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect, type Locator, type Page } from "@playwright/test";
 import { SEED_FILE, type Seed } from "./session";
 
@@ -49,6 +50,24 @@ export async function expectNoHorizontalScroll(page: Page) {
   }, screen);
   expect(scrollWidth, `the page is wider than the ${screen}px screen`).toBeLessThanOrEqual(screen);
   expect(sticksOut, "elements reach past the right edge of the screen").toEqual([]);
+}
+
+/**
+ * Known accessibility defects, each tied to a finding, so a skipped rule is visible and has an owner. Empty means axe
+ * checks every rule on every page.
+ */
+export const KNOWN_A11Y_DEFECTS: { rule: string; finding: string }[] = [];
+
+/** axe (WCAG 2.1 A and AA): no serious or critical violation on the page as it is now. */
+export async function expectAccessible(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .disableRules(KNOWN_A11Y_DEFECTS.map((d) => d.rule))
+    .analyze();
+  const serious = results.violations
+    .filter((v) => v.impact === "serious" || v.impact === "critical")
+    .map((v) => `${v.id} (${v.impact}): ${v.help} at ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`);
+  expect(serious, "accessibility violations (axe)").toEqual([]);
 }
 
 /**

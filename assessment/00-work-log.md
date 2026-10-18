@@ -641,6 +641,12 @@ data that existed in one local database. 375px was checked by eye, because jsdom
 **Tests.** 14 passed locally. The width check was shown to fail on a planted fault (a 600px table at 375px), after a
 first version that couldn't fail (verification moment 14).
 
+**On GitHub.** The `e2e` job passed on its first run. The same push showed the API job red since sub-PR 9:
+`production_boot_spec` ran `bin/rails` directly, which is stored without its executable bit, so Linux refused it
+("Permission denied"). It only ever ran in Docker, where the bind mount reports every file as executable, and the CI
+result of sub-PR 9 wasn't checked after its push. Fixed on sub-PR 9's branch (`fd6f34a`, run through `Gem.ruby`)
+and merged forward.
+
 ### Sub-PR 11: the login error shows, and the password can be revealed (branch `fix/login-feedback`)
 
 **Why.** Signing in on the dev stack with a mistyped password only refreshed the form, with no message. The API was
@@ -656,6 +662,32 @@ fine: the right password got 200, a wrong one 401.
 reload has no test: jsdom doesn't navigate when `location.href` is set, which is why the existing wrong-password test
 passed with the bug in place. Checked instead in headless Chrome against the dev stack: with a wrong password the
 message shows and the page loads once (no reload), and the eye button switches the field to `type="text"`.
+
+### Sub-PR 12: accessibility checks (branch `test/a11y-axe`)
+
+**Why.** "Poor UI/UX" is a disqualifier, AC-30 (keyboard and screen reader) was checked by hand, and P2-8 (assessment
+cards that can't be reached with a keyboard) was still open.
+
+**What was added.**
+- **axe** (`@axe-core/playwright` 4.13.0) on every E2E page at both widths, plus login, the assessment list, the
+  invite page and the vacancy list. It fails on serious or critical WCAG 2.1 A/AA violations. A rule can only be
+  skipped through `KNOWN_A11Y_DEFECTS`, each entry tied to a finding.
+- **Keyboard specs:** Show more; an Add rating filled in up to Save, without pressing it (a save would queue a model
+  call); and opening an assessment from the list.
+
+**What it found, pinned first (`4a91b24`), then fixed.**
+- **P2-18, contrast.** The primary teal, darkened from the brand `#01959f` to `#007780`: white on it goes from 3.55
+  to 5.09:1, and it on its own tint from 3.28 to 4.61. Red becomes red 700 (3.76 to 6.47). The 12px green and amber
+  status text moves to the 700 shades (3.18-3.29 to 5.02). The level labels lose their 70% opacity (2.82-3.47 to
+  4.58-8.23). Every ratio was computed before the change, not guessed. Changing the brand teal is a design decision;
+  the user approved it.
+- **P2-19, no accessible name.** The vacancy picker, and the icon-only back arrows on nine pages, now have one.
+- **P2-8.** The assessment card is a link: reachable with Tab, opened with Enter, announced as a link, and it can be
+  opened in a new tab. Its `test.fail()` marker comes off in the same commit.
+
+**A test that failed for the wrong reason.** At 375px the keyboard rating test failed on `toBeChecked`: with touch
+emulation, arrow keys move focus in the level picker but don't select. It now presses Space, which selects a radio on
+every device, and checks the focus first.
 
 ## AI verification moments
 

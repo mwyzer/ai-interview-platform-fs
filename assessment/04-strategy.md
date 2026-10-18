@@ -88,7 +88,7 @@ harness and fails today; the others are new.
 | AC-27 | Portfolio load fails (network or 5xx) | An error state with Retry, not a blank page. | component test |
 | AC-28 | Long evidence quotes and summaries | They wrap without breaking the layout, and anything over 4 lines is collapsed with "Show more". | component test + screenshot |
 | AC-29 | At 375px wide | The fit/gap table becomes stacked rows, and the header actions wrap. No horizontal scroll. | screenshot |
-| AC-30 | Keyboard and screen reader | "Not assessed" is announced as text, not conveyed only by color; Show more and Add rating are reachable with Tab. | manual check |
+| AC-30 | Keyboard and screen reader | "Not assessed" is announced as text, not conveyed only by color; Show more and Add rating are reachable with Tab. | manual check; automated in sub-PR 12 (axe, keyboard E2E) |
 
 ---
 

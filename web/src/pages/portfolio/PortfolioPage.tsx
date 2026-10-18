@@ -161,7 +161,7 @@ export default function PortfolioPage() {
       {/* Header: the actions wrap under the title on a phone (AC-29) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-2">
-          <Link to={`/assessments/${id}/invite`} className="text-muted-foreground hover:text-foreground">
+          <Link to={`/assessments/${id}/invite`} className="text-muted-foreground hover:text-foreground" aria-label="Back to the candidates">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
@@ -306,7 +306,7 @@ export default function PortfolioPage() {
           {/* Fit/Gap */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select value={selectedVacancy} onValueChange={setSelectedVacancy}>
-              <SelectTrigger className="w-full sm:w-56">
+              <SelectTrigger className="w-full sm:w-56" aria-label="Vacancy to compare against">
                 <SelectValue placeholder="Choose vacancy..." />
               </SelectTrigger>
               <SelectContent>
