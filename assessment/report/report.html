@@ -907,7 +907,8 @@ flowchart LR
     <tr><td><strong>Candidates use low-cost phones on mobile networks.</strong></td><td>A light page, automatic
       reconnect and a connection indicator. A technical failure must never read as weak communication.</td>
       <td><strong>Partly.</strong> A dropped connection now gives "not assessed, not reached", never L1 (this change).
-      No reconnect or indicator yet.</td></tr>
+      The interview page reconnects three times (1, 2, 4 s) and shows the connection state; the model's side resumes
+      where it left off. A drop longer than about seven seconds still ends the interview.</td></tr>
     <tr><td><strong>A non-technical assessor reads the report in minutes.</strong></td><td>The first screen holds the
       verdict, the required skills, confidence and the one to three strongest quotes; detail goes below.</td>
       <td><strong>Partly.</strong> The summary line ("2 of 3 skills weren't assessed") and plain-language reasons
