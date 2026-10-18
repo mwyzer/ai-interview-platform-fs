@@ -62,7 +62,6 @@ RSpec.describe 'Authentication', type: :request do
     end
 
     it 'signs in to the server-set company when the request names none' do
-      pending 'C2 mitigation: login ignores LOGIN_TENANT_SCHEME and picks the first organization'
       login_naming(nil)
 
       expect(response).to have_http_status(:ok)
@@ -70,7 +69,6 @@ RSpec.describe 'Authentication', type: :request do
     end
 
     it 'refuses a login that names another company, with the same message as a wrong password' do
-      pending 'C2 mitigation: login takes the company from the X-Tenant-Scheme header'
       login_naming(other.scheme)
 
       expect(response).to have_http_status(:unauthorized)
