@@ -217,6 +217,9 @@ Brief Option B: an umbrella PR plus focused sub-PRs, each reviewable on its own.
 - Gemini HTTP retries for POST (P2-3), and a deploy check that production uses the paid tier.
 - ~~Parameter filtering for passwords and notes in logs (P1-7).~~ Done in sub-PR 6, together with candidate names
   and invite tokens.
+- Users linked to a company (C2). Sub-PR 8 checked every route for cross-tenant access and found no leak, but login
+  takes the company from the `X-Tenant-Scheme` header, so any admin can sign in to any company. Pinned as pending;
+  the fix needs a data-model decision in the database shared with `rakamin-api`.
 
 ## Risks and assumptions
 
