@@ -1,116 +1,120 @@
 # Video script (about 4 minutes)
 
-About 550 spoken words, at a calm pace. Each scene says what's on screen, then what to say. The timings are
-targets; it's fine to land between 3:45 and 4:15.
+The brief asks the video to show **problem clarity**, **the end-to-end user flow**, and **the feature enhancements**,
+and the Product Team reviews it. So it walks the product as an assessor uses it, with very little code: the
+engineering depth is in the PR.
+
+About 570 spoken words at a calm pace. Each scene gives what's on screen, then what to say. Landing anywhere between
+3:45 and 4:30 is fine.
 
 ## Before recording
 
-1. Start the stack with `docker compose up -d`, then run `docker compose exec api bin/rails e2e:seed` (the synthetic
-   candidates "E2E Mixed" and others).
-2. **Stop Sidekiq** (`docker compose stop sidekiq`), so no click can queue a real model call.
-3. In the browser, sign in as `admin@example.com`. Open these four tabs:
-   - **Tab 1:** the portfolio of **E2E Mixed**
-   - **Tab 2:** its fit/gap report
-   - **Tab 3:** the assessment list
-   - **Tab 4:** the PDF report (`assessment/report/report.pdf`) at the "Step 3" findings table
-4. Keep DevTools ready with device mode at **375px** (Ctrl+Shift+M).
-5. Have a terminal ready with the seeded fault, as recorded:
-   ```sh
-   git show 27f49f3
-   ```
-   It's the one-line change that put `value.to_i.clamp(1, 5)` back. Also open the work log at "Seeded fault"
-   (sub-PR 3), which records the 13 specs that failed, each on its assertion. Showing the recorded run is honest and
-   needs no live setup: the Docker API runs the main checkout, so a live run on the scratch branch would need the stack
-   rebuilt from it.
-6. Have the fork's PR list open (`mwyzer/ai-interview-platform-fs/pulls`) with green checks, and PR #160.
+1. **Stack and data:**
+   - `docker compose up -d`, then `docker compose exec api bin/rails e2e:seed` (the synthetic candidates "E2E Mixed"
+     and others).
+   - **Stop Sidekiq** (`docker compose stop sidekiq`), so no click can queue a real model call.
+2. **Code version:** record on the newest branch of the stack (`chore/rails-8-upgrade`, sub-PR 16), so what's on
+   screen matches what the video says.
+3. **Browser tabs, signed out to start:**
+   - **Tab 1:** the login page
+   - **Tab 2:** the report PDF (`assessment/report/report.pdf`), at the Step 3 reproduction ("Before" and "After")
+   - **Tab 3:** the fork's PR list (`mwyzer/ai-interview-platform-fs/pulls`), with green checks
+4. **375px:** keep DevTools ready in device mode at 375px (Ctrl+Shift+M).
+5. **The seeded fault:** have a terminal ready with `git show 27f49f3`. It's the one-line change that put the old
+   `clamp(1, 5)` back; the work log's "Seeded fault" (sub-PR 3) records the 13 specs it failed.
+6. **The candidate's page:** don't run a live interview. That sends audio to the model, and the seeded session
+   already shows the result. Show the candidate's page up to the hardware check, then go back.
 
 ## Scenes
 
-### 1. The problem (0:00–0:30)
+### 1. Opening (0:00–0:20)
 
-**On screen:** the report, at the Step 3 findings table (P0-1, P1-1).
+**On screen:** the report's title page, with the PR #160 link.
 
-> This AI interviewer turns a voice conversation into a level per skill. When I used it end to end, I found its
-> most important flaw: a skill nobody asked about was stored as **L1**, the lowest level, and the fit/gap report
-> counted it as a **gap**. A candidate whose interview ended early looked weak at things they were never asked. And
-> the people reading the report had no way to tell "measured low" from "never measured".
+> This is an AI interviewer: a candidate talks with it, and it turns the conversation into a level for each skill.
+> In this case study I found where it was unfair, fixed it end to end, and made the rest of the product safer to
+> ship. Everything is in one umbrella pull request with sixteen focused sub-PRs.
 
-### 2. Why this, and not something else (0:30–0:55)
+### 2. The problem (0:20–1:00)
 
-**On screen:** the report's Step 4 options table (A/B/C).
+**On screen:** Tab 2, the Step 3 reproduction: Communication and System Design stored as L1, and fit/gap reporting
+"gap".
 
-> Step 2 and 3 pointed the same way: everyone downstream acts on the portfolio, not on the interview, and a false
-> low is silent. So I made "not assessed" a real state, end to end, from the database to the screen. I chose the
-> option that makes every output honest without changing how ratings are computed, and left the bigger verdict
-> change for a product decision.
+> When I used it end to end, I found its most important flaw. A skill nobody asked about was stored as L1, the lowest
+> level, and the fit/gap report counted it as a gap. So a candidate whose interview ended early, or who used the
+> "end anytime" option the page offers, looked weak at things they were never asked. And the assessor reading the
+> report couldn't tell "measured low" from "never measured". The candidate never chose this tool, and a wrong result
+> changes a real person's year. That's the one I fixed first.
 
-### 3. The result, on screen (0:55–1:55)
+### 3. The flow, end to end (1:00–2:35)
 
-**On screen:** Tab 1, the portfolio of E2E Mixed.
+**On screen:** Tab 1, the login page. Type a wrong password.
 
-> Here's the same kind of interview now. At the top, a summary: two of three skills weren't assessed, and the
-> interview ended after six minutes, ended by the candidate.
+> Here's the product as an assessor uses it. A wrong password now says so, instead of quietly reloading the page,
+> and the password can be shown.
 
-**Point at** the "Not assessed" badge and its reason.
+**Sign in.** The assessment list. **Press Tab** until the assessment card is focused, then **press Enter**.
 
-> Each one says it in words, never as a level, with the reason: not reached before the interview ended, or not
-> enough evidence to rate. And what to do next: probe it in the next interview.
+> The assessment list. Each card is now a real link, so it opens with the keyboard too.
+
+**On screen:** the invite page. Point at "Copy link".
+
+> From here the assessor invites a candidate and sends them a link.
+
+**Open** the candidate link in a new tab: the role title and the hardware check. Then close it.
+
+> The candidate opens it, checks their microphone, and talks with the AI. I won't run a live interview here; this is
+> one that's already finished.
+
+**On screen:** the portfolio of "E2E Mixed".
+
+> At the top, a summary: two of three skills weren't assessed, and the interview ended after six minutes, ended by
+> the candidate. Each of those skills says "Not assessed" in words, never as a level, with the reason, and what to do
+> next: probe it in the next interview.
 
 **Click** "Add rating" on Communication. Don't save.
 
-> An assessor can still add a rating, but with nothing from the AI underneath, they have to say where it comes
-> from. Save stays disabled until they do.
+> If the assessor has evidence from somewhere else, they can add a rating. With nothing from the AI underneath, they
+> have to say where it comes from: Save stays disabled until they do.
 
-**On screen:** Tab 2, the fit/gap report.
+**Cancel.** Choose the vacancy, then **Run Fit/Gap Analysis**.
 
-> Fit/gap now treats these as unknowns, not gaps: one match, two not assessed, zero gaps.
+> Fit/gap now treats those skills as unknowns, not gaps: one match, two not assessed, and no gap at all.
 
-**Switch** to 375px.
+**Click** PDF on the fit/gap page. **Switch** to 375px.
 
-> And on a phone, the table becomes stacked rows that still read without the header.
+> The export works, even with overrides or unusual characters. And on a phone, the table becomes stacked rows that
+> still read without the header.
 
-### 4. How it works (1:55–2:45)
+### 4. What else changed (2:35–3:15)
 
-**On screen:** `api/app/services/portfolios/skill_resolver.rb`, scrolled to `configured_row` and `strict_level`.
+**On screen:** the report's sub-PR table, scrolled slowly.
 
-> In the API, every skill goes through one decision. Coverage comes first: if the interview never probed it, it's
-> "not reached", whatever the model says. Then the level is parsed strictly: only a whole level from one to five
-> counts. The old code clamped anything into range, which is how "null" became L1. Evidence quotes must appear word
-> for word in what the candidate said, or confidence drops.
+> The rest is work the assessor doesn't see, but needs. One company could read and change another company's
+> candidates; now every route is checked. Passwords and candidate names went into the logs; not any more. Fit/gap
+> could run the same paid job twice; now it runs once. Text that was too faint to read, and buttons with no name for
+> a screen reader, are fixed. And production didn't even start: it now boots, refuses the free model tier, and runs
+> on Rails 8.
 
-**On screen:** the migration's check constraints.
+### 5. Proof (3:15–3:45)
 
-> The database enforces it too: a skill has a reason exactly when it has no level. And everything is written in one
-> transaction, so an assessor's override survives a regeneration.
+**On screen:** the terminal with `git show 27f49f3`, then Tab 3, the PR list with green checks.
 
-### 5. Proving it (2:45–3:25)
+> To prove the tests guard the fix, I put the original bug back on a scratch branch. Thirteen tests failed, each on
+> its assertion, and the revert is in the history. CI now runs both test suites, the screens in a real browser at
+> desktop and phone width with an accessibility check on every page, and security scans. One AI moment worth naming:
+> my first phone-width check couldn't fail. I caught it by planting a too-wide table first, then fixed the check.
 
-**On screen:** `git show 27f49f3`, then the work log's "Seeded fault" (sub-PR 3).
-
-> To prove the tests guard this, I put the original bug back on a scratch branch: the clamp. Thirteen specs fail,
-> each on its assertion. Then I reverted it, and both commits stay in the history.
-
-**On screen:** the fork's PR list with green checks.
-
-> It's delivered as an umbrella PR with fifteen focused sub-PRs. CI runs the API and web suites, the browser tests
-> at desktop and phone width with an accessibility check on every page, and security scans.
-
-> One AI moment worth showing: my first phone-width check couldn't fail, because the emulated phone zoomed out to
-> fit. I caught it by planting a too-wide table first, and fixed the check.
-
-### 6. What else, and what's open (3:25–4:00)
+### 6. What's open, and closing (3:45–4:05)
 
 **On screen:** the report's "What I'd escalate" table.
 
-> Along the way I closed the risks that needed no one's decision: one company could read another's candidates;
-> passwords and candidate names went into the logs; fit/gap jobs ran twice; production didn't even boot. What's
-> left is written down with my recommendation: linking users to their company, consent before the microphone opens
-> under UU PDP, and the Rails upgrade. Each one comes with its next steps, ready to build.
->
+> What's left needs a decision from someone else, so each one is written down with my recommendation: linking every
+> user to their company, and a consent step before the microphone opens, under Indonesia's personal data law.
 > Thanks for watching.
 
 ## After recording
 
 - Upload as **unlisted** (YouTube unlisted, Loom, or Drive with link sharing).
-- Send me the link. I'll put it in the report and in PR #160, remove the blue review marker and the DRAFT banner,
-  and rebuild the PDF.
+- Send me the link. I'll put it in the report and in PR #160, remove the blue review marker and the DRAFT banner, and
+  rebuild the PDF.
