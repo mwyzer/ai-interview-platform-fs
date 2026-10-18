@@ -6,7 +6,7 @@ ruby '3.3.2'
 
 gem 'pg', '~> 1.3'
 gem 'puma', '~> 5.6'
-gem 'rails', '~> 7.1.0'
+gem 'rails', '~> 7.2.0'
 
 # Auth
 gem 'bcrypt', '~> 3.1.7'
@@ -48,7 +48,7 @@ group :development, :test do
   gem 'factory_bot_rails'
   gem 'faker'
   gem 'pry-rails'
-  gem 'rspec-rails', '~> 6.1'
+  gem 'rspec-rails', '~> 7.1'
 
   # Security scans, run in CI (job security): code patterns, and gems with known advisories.
   gem 'brakeman', '8.1.0', require: false
