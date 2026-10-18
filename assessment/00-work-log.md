@@ -652,7 +652,7 @@ fine: the right password got 200, a wrong one 401.
 - **`LoginPage.tsx`**: an eye button (lucide `Eye`/`EyeOff`) shows or hides the password. It is a `type="button"`,
   so it doesn't submit, and carries "Show password"/"Hide password" plus `aria-pressed`.
 
-**Tests.** The toggle test was committed first (`d37c3c9`) and failed on the missing "Show password" button. The
+**Tests.** The toggle test was committed first (`ea1300b`) and failed on the missing "Show password" button. The
 reload has no test: jsdom doesn't navigate when `location.href` is set, which is why the existing wrong-password test
 passed with the bug in place. Checked instead in headless Chrome against the dev stack: with a wrong password the
 message shows and the page loads once (no reload), and the eye button switches the field to `type="text"`.
