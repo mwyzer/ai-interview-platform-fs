@@ -258,20 +258,35 @@ dataset.
 
 ## Upgrade Rails and puma (found by the security scans, sub-PR 13)
 
-**Why.** Rails 7.0 left support on 2025-04-01, and puma 5 has two advisories fixed only in 7 and 8. Fourteen gem
-advisories remain, all listed with their reasons in `api/.bundler-audit.yml`. Nine can't be reached in this app
-(Active Storage isn't loaded; puma's PROXY protocol is off). The other five are in Action View and Active Support, and
-need the upgrade.
+**Why.** Rails 7.0 left support on 2025-04-01, and puma 5 has two advisories fixed only in 7 and 8. The security scans
+of sub-PR 13 left fourteen gem advisories skipped, each with its reason in `api/.bundler-audit.yml`: twelve in Rails,
+two in puma.
+
+### ~~Rails 7.0 → 8.1~~ done (sub-PR 16)
+
+- One minor version at a time, 7.0 → 7.1 → 7.2 → 8.0 → 8.1 (8.1.4), with the suite green before each commit.
+  `load_defaults` moved last, in commits of its own. It went past 8.0 because Brakeman fails on it: 8.0's support
+  ends 2026-11-07.
+- The twelve Rails advisories and Brakeman's end-of-life ignore are gone; `config/brakeman.ignore` is empty.
+- **Found on the way:** `schema.rb` couldn't record that `organizations` is in `public` and every other table in
+  `ai_interview`, so a database built from it (CI's) had the wrong layout, and since the 8.0 dump `e2e:seed`
+  couldn't find the seeded company. Rails 8.1 dumps schema-qualified names; `schema.rb` now matches the migrated
+  layout. Worth a look from the Tech Lead because the database is shared with `rakamin-api` (C3): this app's
+  `schema.rb` describes a `public` table it doesn't own.
+
+### Puma 5 → 7
 
 **Steps.**
-1. Upgrade Rails 7.0 → 7.1 → 7.2, one minor version at a time, with `rails app:update` and the suite green at
-   each step.
-2. Then upgrade puma to 7, and check `config/puma.rb` and the WebSocket middleware, which hooks into Rack.
-3. Remove each entry from `.bundler-audit.yml` and `config/brakeman.ignore` in the commit that fixes it.
+1. Upgrade puma to 7. Puma 6+ allows Rack 3, which Rails 8.1 supports, so take Rack 3 in the same or the next step.
+2. Check `config/puma.rb`, and the two WebSocket middlewares, which take over the connection through Rack's hijack
+   API (`faye-websocket`).
+3. Remove the two puma entries from `.bundler-audit.yml` in the commit that fixes them.
 
-**Tests.** The full API suite, the E2E job, and the production boot spec at each step.
+**Tests.** The full API suite, including the audio proxy specs (sub-PR 15), the E2E job, and the production boot
+spec; then a live interview in the dev stack, since the specs fake both sockets.
 
-**Decision.** Tech Lead: when to do it, given the database shared with `rakamin-api` (C3). **Size.** Medium to large.
+**Decision.** Tech Lead: when to deploy it, given the database shared with `rakamin-api` (C3). **Size.** Small to
+medium.
 
 ## Phase 5 · On screen and in the interview
 
