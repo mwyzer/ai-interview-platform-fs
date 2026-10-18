@@ -3,7 +3,8 @@
 The brief's baseline was "RSpec has no specs, web has no test runner, no CI". This page records what has been built
 since, what each layer is for, and what's still missing, in priority order. For each API change traced from the
 code to the tests that prove it, see [05-api-walkthrough.md](05-api-walkthrough.md) and
-[06-web-walkthrough.md](06-web-walkthrough.md).
+[06-web-walkthrough.md](06-web-walkthrough.md); for what's planned, with its tests, see
+[07-next-steps.md](07-next-steps.md).
 
 ## The layers
 

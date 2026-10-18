@@ -163,6 +163,7 @@ and what's still missing is in [`assessment/testing.md`](assessment/testing.md).
 - [ ] **Step 5 · Implementation and PR** (Option B: umbrella PR + focused sub-PRs). The API changes, step by step,
       from request to test: [05-api-walkthrough.md](assessment/05-api-walkthrough.md); the web changes:
       [06-web-walkthrough.md](assessment/06-web-walkthrough.md)
+      What's not built yet, in the order I'd build it: [07-next-steps.md](assessment/07-next-steps.md)
   - [x] Sub-PR 1: tenant scoping for portfolio export, override and fit/gap reads and writes (P0-2); 5 specs flip
         to passing, checked over HTTP ([work log](assessment/00-work-log.md#step-5-implementation))
   - [x] Sub-PR 2: web tolerates a missing level (AC-23, P2-11): "Not assessed" instead of L1 or a crash; 29
