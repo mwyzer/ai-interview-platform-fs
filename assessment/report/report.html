@@ -165,7 +165,9 @@
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/6">6</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/7">7</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/8">8</a>,
-      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/9">9</a></dd>
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/9">9</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/11">10</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/10">11</a></dd>
     <dt>Video (3–5 min)</dt><dd class="missing">To add: unlisted link</dd>
     <dt>Working docs</dt><dd><code>assessment/</code> in the PR branch: work log, Steps 2–4, testing overview, GUARDRAILS</dd>
     <dt>Date</dt><dd>October 2026</dd>
@@ -547,6 +549,14 @@ flowchart LR
       Found on the way: production didn't boot at all (an Active Job setting the app never loads), now fixed and
       tested by booting it.</td>
       <td><code>c59b784</code> <code>6a855f2</code> <code>5220a2e</code></td></tr>
+    <tr class="added"><td class="n">10</td><td><a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/11"><code>test/e2e-playwright</code></a></td><td>Synthetic data for
+      every screen state (<code>rails e2e:seed</code>) and Playwright tests in a real browser at 1280px and 375px, with a
+      CI job; the screenshots below come from it.</td>
+      <td><code>e92b9e2</code> <code>7c90446</code> <code>371b649</code></td></tr>
+    <tr class="added"><td class="n">11</td><td><a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/10"><code>fix/login-feedback</code></a></td><td>A wrong password
+      now shows "Invalid email or password." instead of reloading the page, and an eye button shows or hides the
+      password.</td>
+      <td><code>ea1300b</code> <code>842118a</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
