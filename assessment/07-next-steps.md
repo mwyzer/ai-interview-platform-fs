@@ -21,6 +21,7 @@ are the floor before the product sees a real candidate's data (UU PDP); the rest
 | 3 · Data lifecycle | 3.1 Retention, erasure and export per candidate | Legal: the retention period | Medium |
 | | 3.2 Audit log, alerts and an incident runbook | Who is on call, who notifies | Medium |
 | 4 · Rating quality | 4.1 Quality and bias evaluation against human raters | Product: target numbers, after the baseline | Large |
+| Upgrades | ~~Rails 7.0 → 8.1~~ **done** (sub-PR 16); puma 5 → 7 | Tech Lead: when to deploy (C3) | Small to medium |
 | 5 · On screen and in the interview | 5.1–5.6 Level labels, nice-to-have tier, capped verdict, transcript warning, longer reconnect window, mixed language | Product, for 5.2 and 5.3 | Small each |
 
 ---
