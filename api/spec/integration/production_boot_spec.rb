@@ -20,8 +20,9 @@ RSpec.describe 'Booting in production' do
     [out, status]
   end
 
-  it 'boots with a paid model tier and a server-set company' do
-    out, status = boot('GEMINI_TIER' => 'paid', 'LOGIN_TENANT_SCHEME' => 'acme')
+  it 'boots with a paid model tier, a server-set company and the web app URL' do
+    out, status = boot('GEMINI_TIER' => 'paid', 'LOGIN_TENANT_SCHEME' => 'acme',
+                       'APP_BASE_URL' => 'https://interview.example.com')
 
     expect(out).to include('booted'), out.lines.grep(/Error|error/).first(3).join
     expect(status).to be_success

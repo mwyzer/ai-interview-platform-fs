@@ -6,6 +6,8 @@
 #                         personal information. A candidate's interview is personal information.
 #   LOGIN_TENANT_SCHEME   Users don't belong to a company yet (C2), so the server names the one this deployment
 #                         serves, rather than whatever the login request asks for.
+#   APP_BASE_URL          The web app candidates open. Invite links are built from it; unset, every link would
+#                         point at localhost.
 module ProductionGuards
   module_function
 
@@ -16,6 +18,9 @@ module ProductionGuards
     end
     if env['LOGIN_TENANT_SCHEME'].to_s.strip.empty?
       found << 'LOGIN_TENANT_SCHEME must name the company this deployment serves (users belong to no company yet, C2)'
+    end
+    if env['APP_BASE_URL'].to_s.strip.empty?
+      found << 'APP_BASE_URL must be the web app URL candidates open: invite links are built from it'
     end
     found
   end

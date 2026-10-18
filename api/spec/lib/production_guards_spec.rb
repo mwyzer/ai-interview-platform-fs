@@ -3,7 +3,9 @@
 require 'rails_helper'
 
 RSpec.describe ProductionGuards do
-  let(:ready) { { 'GEMINI_TIER' => 'paid', 'LOGIN_TENANT_SCHEME' => 'acme' } }
+  let(:ready) do
+    { 'GEMINI_TIER' => 'paid', 'LOGIN_TENANT_SCHEME' => 'acme', 'APP_BASE_URL' => 'https://interview.example.com' }
+  end
 
   it 'lets production start on the paid tier with a server-set company' do
     expect(described_class.problems(ready)).to be_empty
@@ -23,6 +25,12 @@ RSpec.describe ProductionGuards do
   end
 
   it 'names every problem at once, so one deploy fixes them all' do
-    expect(described_class.problems({}).size).to eq(2)
+    expect(described_class.problems({}).size).to eq(3)
+  end
+
+  it 'refuses to start without the web app URL that invite links are built from (P1-15)' do
+    [ready.except('APP_BASE_URL'), ready.merge('APP_BASE_URL' => ' ')].each do |env|
+      expect { described_class.check!(env) }.to raise_error(/APP_BASE_URL must be/)
+    end
   end
 end

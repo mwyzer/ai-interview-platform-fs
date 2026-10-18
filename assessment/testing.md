@@ -19,16 +19,16 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 382 examples, 0 failures, 3 pending
+### API (RSpec): 386 examples, 0 failures, 3 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
 | Original harness | 83 (6 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker |
 | Functional | 14 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, failed narrative, invalid requests; known defects end to end |
-| Unit | 77 (1 pending) | Prompt compiler; session start and end; JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
+| Unit | 80 (1 pending) | Prompt compiler; session start and end; the invite link (P1-15); JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Gap fill | 30 | Skill library model and endpoints; tenant resolver (JWT, header, Referer order, unknown scheme); coverage analyzer worker (applying updates, discovered skills and their cap of ten, auto-advancing stale partials, publishing); keeping or deleting skills on assessment update |
 | Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
-| Production guards | 9 | Login pinned to the server-set company (3); boot refused on the free tier or without a login company (4); the app booted in production mode in a subprocess (2) (sub-PR 9) |
+| Production guards | 10 | Login pinned to the server-set company (3); boot refused on the free tier, without a login company (4) or without `APP_BASE_URL` (1, sub-PR 17); the app booted in production mode in a subprocess (2) (sub-PR 9) |
 | Audio proxy | 40 | `AudioWebSocketMiddleware` between fake browser and Gemini sockets, timers fired by hand: who may connect (invite link, assessor token, another company, ended session, mismatched ID); the opening; the echo gate; transcripts saved, numbered and kept free of the instructions sent to Gemini; End; reconnects with backoff and GoAway; the time warnings and ceiling; the two-minute grace after the browser leaves; the AI closing the interview (sub-PR 15) |
 | Integration | 28 | Postgres constraints; the Redis coverage channel's exact messages; the Rack pipeline (tenant, CORS, rate limits, WebSocket paths); Sidekiq jobs inline with strict JSON args |
 
@@ -94,6 +94,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P1-12 hardware check calls third parties, and fails under the production CSP | | candidate page; speed test under CSP |
 | ~~P1-13 PDF export crashes on overrides and emoji~~ **fixed** in sub-PR 14 | PDF generator (×2) now pass | |
 | P1-14 removing a skill on an edit form doesn't delete it | assessment update shows `_destroy` works (passing) | assessment form; vacancy form |
+| ~~P1-15 invite links point at the API~~ **fixed** in sub-PR 17 | invite link and production guard specs now pass | |
 | ~~P2-1 portfolio load error is a blank page~~ **fixed** in sub-PR 5 | | portfolio page now passes |
 | P2-3 Gemini retries never fire | HTTP client | |
 | P2-4 no notice before the interview | | candidate page |
