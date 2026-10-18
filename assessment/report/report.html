@@ -425,8 +425,8 @@ flowchart TB
       (<code>0</code>, <code>6</code>, <code>"N/A"</code>, <code>"high"</code>, <code>[]</code>) are never clamped;
       the coverage map overrules a level for a skill never probed; every configured skill gets exactly one row;
       unverifiable quotes are dropped and confidence lowered; any failure leaves the previous portfolio intact;
-      overrides survive regeneration; model errors are stored as a category, never raw text; 20,000-character
-      quotes are capped.</p></div>
+      overrides survive regeneration; model errors are stored as a category, never raw text; a very long
+      quote or summary (say 20,000 characters) is capped at 500 or 2,000 instead of failing the write.</p></div>
     <div class="card"><h4>Fit/gap, data model, API (AC-13 to AC-21)</h4><p>Not assessed is its own verdict
       with no delta; an override on it counts and is flagged; the payload carries both <code>expected_level</code> and
       <code>required_level</code> during the transition; the fallback narrative counts unknowns; the migration
