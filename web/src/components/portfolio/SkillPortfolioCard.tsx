@@ -34,7 +34,7 @@ export default function SkillPortfolioCard({
               <div className="flex flex-wrap items-center gap-x-1.5">
                 <span className="font-semibold break-words">{skill.skill_label}</span>
                 {skill.is_discovered && (
-                  <span className="flex items-center gap-0.5 text-xs text-amber-600">
+                  <span className="flex items-center gap-0.5 text-xs text-amber-700">
                     <Zap className="h-3 w-3" /> Discovered
                   </span>
                 )}

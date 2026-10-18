@@ -60,7 +60,7 @@ export default function OverridePanel({ skill, existingOverride, onSaved }: Over
               <span className="text-muted-foreground text-xs">AI</span>
               <span className="text-muted-foreground">→</span>
               <LevelBadge level={existingOverride!.override_level} size="sm" />
-              <span className="text-xs text-green-600 font-medium">
+              <span className="text-xs text-green-700 font-medium">
                 {aiLevel === null ? "Rated by you" : "Changed by you"} ✓
               </span>
             </div>

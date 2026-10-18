@@ -56,14 +56,7 @@ export async function expectNoHorizontalScroll(page: Page) {
  * Known accessibility defects, each tied to a finding, so a skipped rule is visible and has an owner. Empty means axe
  * checks every rule on every page.
  */
-export const KNOWN_A11Y_DEFECTS: { rule: string; finding: string }[] = [
-  // P2-18: the primary teal behind white text (3.55:1), the active top-bar link (3.28), the small level label
-  // ("Proficient", 2.82) and 12px green, amber and red status text (3.18-3.78) are below 4.5:1.
-  { rule: "color-contrast", finding: "P2-18" },
-  // P2-19: the vacancy picker and the icon-only back links have no accessible name.
-  { rule: "button-name", finding: "P2-19" },
-  { rule: "link-name", finding: "P2-19" },
-];
+export const KNOWN_A11Y_DEFECTS: { rule: string; finding: string }[] = [];
 
 /** axe (WCAG 2.1 A and AA): no serious or critical violation on the page as it is now. */
 export async function expectAccessible(page: Page) {
