@@ -164,7 +164,8 @@
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/5">5</a>; follow-ups
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/6">6</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/7">7</a>,
-      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/8">8</a></dd>
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/8">8</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/9">9</a></dd>
     <dt>Video (3–5 min)</dt><dd class="missing">To add: unlisted link</dd>
     <dt>Working docs</dt><dd><code>assessment/</code> in the PR branch: work log, Steps 2–4, testing overview, GUARDRAILS</dd>
     <dt>Date</dt><dd>October 2026</dd>
@@ -225,7 +226,7 @@
     <tr><td class="n">Follow-ups</td><td>Two more sub-PRs from the Step 4 list: the request log filters passwords, notes and
       candidate names (P1-7), and the server queues one fit/gap job per report (P1-6). <span class="added">Then a
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
-      <strong>331 API specs</strong>, 0 failures.</td></tr>
+      <strong>340 API specs</strong>, 0 failures.</td></tr>
   </table>
 </section>
 
@@ -386,7 +387,7 @@ flowchart TB
   <table>
     <tr><td class="n" style="width:9%">C2</td><td><strong>Auth trusts JWT claims without a user lookup.</strong> Any token signed with the secret shared with <code>rakamin-api</code> is accepted, so tenant isolation rests entirely on model scoping, which is what failed in P0-2. <span class="added">Worse, login
       itself takes the company from an <code>X-Tenant-Scheme</code> header and users belong to no company, so any admin
-      can sign in to any company (pinned in sub-PR 8).</span></td></tr>
+      can sign in to any company (pinned in sub-PR 8; since sub-PR 9 production names one company per deployment).</span></td></tr>
     <tr><td class="n">C3</td><td><strong>Shared database with another service.</strong> Migrations must be coordinated and reversible.</td></tr>
     <tr><td class="n">C4</td><td><strong>No retention or erasure policy.</strong> A product and legal decision, not an engineering default.</td></tr>
     <tr><td class="n">C8</td><td><strong>The production web config can't be verified from the repo.</strong> Under the CSP in <code>vercel.json</code>, no candidate can start (P1-12). I'd ask first whether production serves it; if so, it outranks everything else.</td></tr>
@@ -541,6 +542,11 @@ flowchart LR
       company with this company's IDs: 404 and nothing changed. A new route without a case fails the suite. No leaks
       found; C2 pinned as pending.</td>
       <td><code>d19c866</code></td></tr>
+    <tr class="added"><td class="n">9</td><td><a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/9"><code>fix/production-guards</code></a></td><td>Production refuses to boot on the
+      free model tier or without a server-set login company, and login can't name another company (C2 mitigation).
+      Found on the way: production didn't boot at all (an Active Job setting the app never loads), now fixed and
+      tested by booting it.</td>
+      <td><code>c59b784</code> <code>6a855f2</code> <code>5220a2e</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
@@ -556,8 +562,8 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">331</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8</span>). 5 pending, all known
+    <div class="card"><div class="stat">340</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9</span>). 5 pending, all known
       defects outside this change (P1-10, P1-13 ×2, P2-3, <span class="added">C2</span>).</div></div>
     <div class="card"><div class="stat">149</div><div class="stat-label">web tests passing (126 after sub-PR 5); 22
       expected to fail (other known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
@@ -757,14 +763,40 @@ flowchart LR
     proving consent doesn't need them.</p></div>
 
   <h3>What I'd escalate, and what I'd bring</h3>
+  <div class="added">
+  <p class="small">Each one comes with my recommendation, so the decision is a yes or a correction rather than a blank
+    page. They're proposals for legal and product to test, not legal advice. Everything that doesn't depend on the
+    answer is designed in <code>07-next-steps.md</code>, to build either way.</p>
   <table>
-    <tr><th style="width:30%">Decision</th><th>Why it isn't an engineering call</th><th style="width:30%">What I bring to make it quick</th></tr>
-    <tr><td><strong>Controller vs processor</strong> between the client company and the platform</td><td>It decides who owns the notice, the objection channel and the erasure flow.</td><td>The data map above</td></tr>
-    <tr><td><strong>Lawful basis</strong>: consent or legitimate interest</td><td>It changes whether declining must be possible without consequence.</td><td>The consent flow, built either way</td></tr>
-    <tr><td><strong>Retention period</strong></td><td>A business and legal trade-off: re-review and disputes vs exposure.</td><td>The purge mechanism, waiting for a number</td></tr>
-    <tr><td><strong>Impact assessment</strong> (Art. 34) and <strong>cross-border basis</strong> for Google (Art. 56)</td><td>Automated profiling with significant effects qualifies as high risk; the transfer needs safeguards.</td><td>Data flow, risk list (Step 3), model tier terms</td></tr>
-    <tr><td><strong>Should candidates see their own portfolio?</strong></td><td>Good for trust and the right of access, but it changes what the product is.</td><td>Effort estimate; the export from phase 3</td></tr>
+    <tr><th style="width:20%">Decision</th><th style="width:24%">Why it isn't an engineering call</th><th>My recommendation</th><th style="width:20%">What I bring</th></tr>
+    <tr><td><strong>Controller vs processor</strong></td><td>It decides who owns the notice, the objection channel and the erasure flow.</td>
+      <td>The client company is the controller (it decides why candidates are assessed); the platform processes on its
+      instruction, under a data processing agreement.</td><td>The data map above</td></tr>
+    <tr><td><strong>Lawful basis</strong>: consent or legitimate interest</td><td>It changes whether declining must be possible without consequence.</td>
+      <td>Whichever basis legal picks, let a candidate decline the AI interview and be assessed by a person instead:
+      in hiring, consent without a real alternative isn't freely given.</td><td>Consent design that works for both (next steps 1.2)</td></tr>
+    <tr><td><strong>Retention period</strong></td><td>Re-review and disputes vs exposure.</td>
+      <td>A starting point to test: transcript and portfolio kept for six months after the hiring decision, set per
+      company; never longer than the notice says.</td><td>Purge, erasure and export design (next steps 3.1)</td></tr>
+    <tr><td><strong>Impact assessment</strong> (Art. 34), <strong>cross-border basis</strong> (Art. 56)</td><td>Automated profiling with significant effects is high risk; the transfer needs safeguards.</td>
+      <td>Run the impact assessment before the first real candidate. Production only on the paid tier, now enforced at
+      boot (sub-PR 9).</td><td>Data flow, Step 3 risk list, model tier terms</td></tr>
+    <tr><td><strong>Users and their company</strong> (C2)</td><td>The user data lives next to <code>rakamin-api</code>'s, in a shared database.</td>
+      <td>A membership table in this service's schema, unless <code>rakamin-api</code> already has one to reuse. Until
+      then, one company per deployment, set on the server (sub-PR 9).</td><td>The pinned C2 spec; an ADR with both options</td></tr>
+    <tr><td><strong>Who sees what</strong> (roles)</td><td>It shapes each user's job.</td>
+      <td>Recruiter: invites and status. Hiring manager: portfolio, evidence, fit/gap, ratings. Admin: configuration.
+      Taken from the Step 2 user research.</td><td>Route × role matrix (next steps 2.1)</td></tr>
+    <tr><td><strong>Nice-to-have skills, capped verdict</strong></td><td>They change what a result means.</td>
+      <td>Every skill stays required by default, so nothing changes until a vacancy opts in. Show an "incomplete" verdict
+      beside the narrative behind a flag, and decide on real reports.</td><td>The Step 3 reproduction as the example</td></tr>
+    <tr><td><strong>Who answers objections and incidents</strong></td><td>An organisational role, which follows from the controller decision.</td>
+      <td>Objections go to a named recruiter lead per company, with a response time product sets. Incidents go from the
+      on-call engineer to the controller's privacy contact, within hours.</td><td>Runbook outline (next steps 3.2)</td></tr>
+    <tr><td><strong>Should candidates see their own portfolio?</strong></td><td>Good for trust and access, but it changes the product.</td>
+      <td>Yes, on request through the export first; self-service later, once ratings are reviewed.</td><td>Effort estimate; the export</td></tr>
   </table>
+  </div>
 
   <div class="added">
   <h3>Compliance tracker</h3>
@@ -776,10 +808,12 @@ flowchart LR
       mic opens; a consent record; no session without one.</td><td>Engineering; wording: legal</td><td><span class="tag p0">P0</span></td><td>Not started (phase 1).</td></tr>
     <tr><td class="n">Security of processing</td><td>Another company's admin reads or changes data; secrets in logs.</td>
       <td>Tenant scoping; request-log filtering; the free model tier refused in production.</td><td>Engineering</td>
-      <td><span class="tag p0">P0</span></td><td><strong>Partly.</strong> Scoping (sub-PR 1), every route pinned (sub-PR 8) and log filter (sub-PR 6) done.
-      Open: any admin can pick the company at login (C2); tier check not started.</td></tr>
+      <td><span class="tag p0">P0</span></td><td><strong>Partly.</strong> Scoping (sub-PR 1), every route pinned (sub-PR 8), log filter (sub-PR 6), free
+      tier refused at boot and login pinned to one company per deployment (sub-PR 9). Open: users linked to a company
+      (C2).</td></tr>
     <tr><td class="n">Art. 56</td><td>Audio and transcripts leave Indonesia with no documented basis.</td><td>A paid tier
-      with data terms; a recorded transfer basis.</td><td>Legal; engineering for the tier check</td><td><span class="tag p0">P0</span></td><td>Escalated.</td></tr>
+      with data terms; a recorded transfer basis.</td><td>Legal; engineering for the tier check</td><td><span class="tag p0">P0</span></td><td>Paid tier enforced at boot
+      (sub-PR 9). Transfer basis escalated.</td></tr>
     <tr><td class="n">Art. 10</td><td>A rating acts as a decision nobody reviewed.</td><td>No auto-reject; reviewer,
       time and reason recorded; an objection channel.</td><td>Product and engineering</td><td><span class="tag p1">P1</span></td><td><strong>Partly.</strong> Overrides record who and when.</td></tr>
     <tr><td class="n">Art. 7, 8, 44</td><td>Data kept forever, with no way to erase or export it.</td><td>Retention per
@@ -796,8 +830,9 @@ flowchart LR
       another company's admin calls every route with this company's IDs in the URL and the body, and gets 404 with
       nothing changed; a new route without a case fails the suite. No route leaked, and two planted faults were
       caught. <strong>Still open (C2):</strong> login lets the caller name the company in a header, and users belong
-      to no company, so any admin can sign in to company A. That needs a user-to-company link in a database shared
-      with <code>rakamin-api</code>: a Tech Lead decision.</p></div>
+      to no company, so any admin can sign in to company A. Sub-PR 9 contains it: production names one company per
+      deployment, and login refuses any other. The real fix, a user-to-company link in a database shared with
+      <code>rakamin-api</code>, is a Tech Lead decision.</p></div>
     <div class="card"><h4>Human review on record</h4><p>Today an override records who and when, asks for a reason
       only when the AI gave no rating, and keeps only the latest change per skill. I'd require a reason for every
       change, keep the full history, record "reviewed by, on" even when nothing changed, and add the candidate's

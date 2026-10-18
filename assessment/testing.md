@@ -19,7 +19,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 331 examples, 0 failures, 5 pending
+### API (RSpec): 340 examples, 0 failures, 5 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
@@ -28,6 +28,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 | Unit | 75 (3 pending) | Prompt compiler; session start and end; JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Gap fill | 30 | Skill library model and endpoints; tenant resolver (JWT, header, Referer order, unknown scheme); coverage analyzer worker (applying updates, discovered skills and their cap of ten, auto-advancing stale partials, publishing); keeping or deleting skills on assessment update |
 | Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
+| Production guards | 9 | Login pinned to the server-set company (3); boot refused on the free tier or without a login company (4); the app booted in production mode in a subprocess (2) (sub-PR 9) |
 | Integration | 28 | Postgres constraints; the Redis coverage channel's exact messages; the Rack pipeline (tenant, CORS, rate limits, WebSocket paths); Sidekiq jobs inline with strict JSON args |
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
