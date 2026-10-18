@@ -59,7 +59,6 @@ test.describe("Keyboard only", () => {
   });
 
   test("opens an assessment from the list", async ({ page }) => {
-    test.fail(true, "P2-8: an assessment card is a <div onClick>, so it can't be reached with Tab");
     await page.goto("/assessments");
     const card = page.getByRole("link", { name: /E2E Senior Frontend Engineer/ });
 
