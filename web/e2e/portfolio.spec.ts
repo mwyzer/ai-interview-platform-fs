@@ -1,4 +1,4 @@
-import { test, expect, portfolioPath, expectNoHorizontalScroll, capture } from "./fixtures";
+import { test, expect, portfolioPath, expectNoHorizontalScroll, expectAccessible, capture } from "./fixtures";
 
 // The portfolio page in each state, in a real browser against the real API. Nothing here clicks Retry or
 // regenerates: that would queue a model call.
@@ -14,6 +14,7 @@ test.describe("Portfolio", () => {
     await expect(page.getByText("Not enough evidence to rate", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add rating ▼" })).toHaveCount(2);
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
 
     const main = page.locator("main > *").first();
     if (info.project.name === "desktop") {
@@ -36,6 +37,7 @@ test.describe("Portfolio", () => {
     await expect(page.getByText(/weren't assessed|wasn't assessed/)).toHaveCount(0);
     await expect(page.getByText("Not assessed", { exact: true })).toHaveCount(0);
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
     if (info.project.name === "desktop") await capture(page.locator("main > *").first(), "portfolio-all-assessed");
   });
 
@@ -47,6 +49,7 @@ test.describe("Portfolio", () => {
     await expect(alert).toContainText("Model timeout: the AI didn't answer in time.");
     await expect(alert.getByRole("button", { name: "Retry" })).toBeEnabled();
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
     if (info.project.name === "desktop") await capture(page.locator("main > *").first(), "portfolio-failed");
   });
 
@@ -55,6 +58,7 @@ test.describe("Portfolio", () => {
 
     await expect(page.getByText("Generating portfolio...")).toBeVisible();
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
     if (info.project.name === "desktop") await capture(page.locator("main > *").first(), "portfolio-generating");
   });
 
@@ -64,10 +68,12 @@ test.describe("Portfolio", () => {
     const more = page.getByRole("button", { name: "Show more" });
     await expect(more).toHaveCount(2);
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
     if (info.project.name === "desktop") await capture(page.locator("main > *").first(), "long-text");
 
     await more.first().click();
     await expect(page.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
   });
 });

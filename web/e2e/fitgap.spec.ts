@@ -1,4 +1,4 @@
-import { test, expect, fitGapPath, expectNoHorizontalScroll, capture } from "./fixtures";
+import { test, expect, fitGapPath, expectNoHorizontalScroll, expectAccessible, capture } from "./fixtures";
 
 test.describe("Fit/gap", () => {
   test("reports unassessed skills as unknowns, with the reason, never as gaps", async ({ page, seed }, info) => {
@@ -10,6 +10,7 @@ test.describe("Fit/gap", () => {
     await expect(page.getByText("— Not assessed: 2 skills")).toBeVisible();
     await expect(page.getByText(/⚠ Gap/)).toHaveCount(0);
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
 
     if (info.project.name === "desktop") {
       await expect(page.getByRole("columnheader", { name: "Required" })).toBeVisible();
@@ -37,6 +38,7 @@ test.describe("Fit/gap", () => {
 
     await expect(page.getByText("Generating fit/gap report...")).toBeVisible();
     await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
     if (info.project.name === "desktop") await capture(page.locator("main > *").first(), "fitgap-generating");
   });
 });
