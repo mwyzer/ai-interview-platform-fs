@@ -22,6 +22,15 @@ export default mergeConfig(
         VITE_WS_BASE_URL: "ws://api.test",
       },
       restoreMocks: true,
+      // npm run test:coverage (CI). A floor a point under the measured line coverage, so it can't quietly drop;
+      // not a target. E2E specs live in e2e/ and aren't part of this run.
+      coverage: {
+        provider: "v8",
+        include: ["src/**/*.{ts,tsx}"],
+        exclude: ["src/**/*.test.{ts,tsx}", "src/test/**", "src/**/*.d.ts", "src/main.tsx"],
+        reporter: ["text-summary", "html", "json-summary"],
+        thresholds: { lines: Number(process.env.COVERAGE_FLOOR ?? 0) },
+      },
       // The first render in each file transforms the whole app; inside Docker on a
       // Windows bind mount that alone takes ~5s, Vitest's default test timeout.
       testTimeout: 15_000,
