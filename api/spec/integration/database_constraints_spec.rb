@@ -61,7 +61,7 @@ RSpec.describe 'Database constraints', type: :integration do
       end
     end
 
-    it 'allows one fit/gap report per portfolio and vacancy, which is why concurrent jobs crash (P1-6)' do
+    it 'allows one fit/gap report per portfolio and vacancy, the lock FitGapReport.claim relies on (P1-6)' do
       vacancy = create(:vacancy)
       create(:fit_gap_report, portfolio:, vacancy:)
 
