@@ -3,7 +3,9 @@
 require 'rails_helper'
 
 RSpec.describe ProductionGuards do
-  let(:ready) { { 'GEMINI_TIER' => 'paid', 'LOGIN_TENANT_SCHEME' => 'acme' } }
+  let(:ready) do
+    { 'GEMINI_TIER' => 'paid', 'LOGIN_TENANT_SCHEME' => 'acme', 'APP_BASE_URL' => 'https://interview.example.com' }
+  end
 
   it 'lets production start on the paid tier with a server-set company' do
     expect(described_class.problems(ready)).to be_empty
