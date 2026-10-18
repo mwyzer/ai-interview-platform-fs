@@ -19,13 +19,13 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 340 examples, 0 failures, 5 pending
+### API (RSpec): 342 examples, 0 failures, 3 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
 | Original harness | 83 (6 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker |
 | Functional | 14 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, failed narrative, invalid requests; known defects end to end |
-| Unit | 75 (3 pending) | Prompt compiler; session start and end; JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
+| Unit | 77 (1 pending) | Prompt compiler; session start and end; JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Gap fill | 30 | Skill library model and endpoints; tenant resolver (JWT, header, Referer order, unknown scheme); coverage analyzer worker (applying updates, discovered skills and their cap of ten, auto-advancing stale partials, publishing); keeping or deleting skills on assessment update |
 | Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
 | Production guards | 9 | Login pinned to the server-set company (3); boot refused on the free tier or without a login company (4); the app booted in production mode in a subprocess (2) (sub-PR 9) |
@@ -46,7 +46,7 @@ Every page is also checked with axe (WCAG 2.1 A/AA, serious and critical), and e
 moment 14). The built web app runs against the real API with synthetic data from `rails e2e:seed`, and nothing calls
 the model. Run: see "Running the E2E tests" in the [README](../README.md); CI job `e2e`.
 
-### Web (Vitest, Testing Library, MSW): 178 tests, 149 passing, 22 expected to fail, 7 opt-in
+### Web (Vitest, Testing Library, MSW): 179 tests, 150 passing, 22 expected to fail, 7 opt-in
 
 | Suite | Tests | Covers |
 |---|---|---|
@@ -57,7 +57,7 @@ the model. Run: see "Running the E2E tests" in the [README](../README.md); CI jo
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
 `API_INTEGRATION_URL`, `API_INTEGRATION_EMAIL` and `API_INTEGRATION_PASSWORD`, and must run from the host.
 
-Without the API, the run is 149 passing, 22 expected to fail, 7 skipped.
+Without the API, the run is 150 passing, 22 expected to fail, 7 skipped.
 
 ### How the tests were checked
 
@@ -91,7 +91,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P1-10 invite link ends a session as `all_covered` | functional journey | |
 | P1-11 broken link says "recorded" | | candidate page |
 | P1-12 hardware check calls third parties, and fails under the production CSP | | candidate page; speed test under CSP |
-| P1-13 PDF export crashes on overrides and emoji | PDF generator (×2) | |
+| ~~P1-13 PDF export crashes on overrides and emoji~~ **fixed** in sub-PR 14 | PDF generator (×2) now pass | |
 | P1-14 removing a skill on an edit form doesn't delete it | assessment update shows `_destroy` works (passing) | assessment form; vacancy form |
 | ~~P2-1 portfolio load error is a blank page~~ **fixed** in sub-PR 5 | | portfolio page now passes |
 | P2-3 Gemini retries never fire | HTTP client | |

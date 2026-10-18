@@ -728,6 +728,28 @@ every device, and checks the focus first.
 **One exception to the two-week rule.** `@vitest/coverage-v8` 5.0.5 is 3 days old, but it must match the installed
 Vitest 5.0.5 exactly, and both are released together from the same repository.
 
+**A flaky spec found later.** A full run failed once on the invite-link rate limit (31 lookups, expecting a 429).
+The throttles count per clock minute, and on the slow machine the 31 requests crossed into the next minute, so the
+count split. The rate-limit specs now run with the clock frozen (`f526833`).
+
+### Sub-PR 14: the PDF export works for overridden portfolios (P1-13, branch `fix/pdf-export-encoding`)
+
+**Why.** Download PDF failed on a portfolio in the dev stack with two overridden skills:
+`Prawn::Errors::IncompatibleStringEncoding`. Prawn's built-in fonts only cover Windows-1252, and the override line
+used `→`. A candidate quote with characters outside that set fails the same way.
+
+**Pinned first (`990effd`).** Besides the two crash pins from Step 3, two more pending specs: the override line reads
+`Level: L3 (AI: L2 -> Override: L3)  |  Confidence: Medium`, and a quote keeps its Windows-1252 punctuation (curly
+quotes, dash) while only the characters the font can't show become `?`.
+
+**The fix (`ae52a76`).** The override line uses `->`. Every string from people or the model (assessment and skill
+names, summaries, quotes, notes, the vacancy title, fit/gap labels and narratives) goes through `plain()`, which
+encodes to Windows-1252 with `?` for what doesn't fit. The JSON export is unchanged. An embedded UTF-8 font would show
+everything; the user decided that isn't needed.
+
+**Checked.** With the replacement changed to an empty string, the punctuation spec fails; reverted. The dev
+portfolio now exports (a 10 KB PDF). API 342 examples, 0 failures, 3 pending.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

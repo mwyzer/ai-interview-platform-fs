@@ -232,7 +232,7 @@
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
       Then production guards (paid model tier, one login company per deployment), browser tests at 1280px and 375px,
       clearer login errors, accessibility fixes, and coverage floors and security scans in CI.
-      <strong>340 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
+      Last, the PDF export works for overridden portfolios (P1-13). <strong>342 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
   </table>
 </section>
 
@@ -376,7 +376,7 @@ flowchart TB
     <tr><td><span class="tag p1">P1-10</span></td><td>Anyone with the invite link can end the interview as "all skills covered", no auth.</td><td>A leaked link ends a never-started session and stores a "complete" portfolio with 0 skills.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-11</span></td><td>A broken invite link says "The interview has been recorded."</td><td>A candidate who never interviewed waits for a reply that never comes.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-12</span></td><td>The hardware check depends on third-party hosts. Without a CSP it calls them before any notice; under the repo's own production CSP they're blocked and the check can never pass.</td><td>Either the candidate's IP leaves before consent, or <strong>Start stays disabled for every candidate</strong>. P0 if production serves that CSP (C8).</td><td>Defect</td></tr>
-    <tr><td><span class="tag p1">P1-13</span></td><td>PDF export crashes on any overridden portfolio (an <code>→</code> the font can't encode).</td><td>It fails on exactly the portfolios a human reviewed most closely.</td><td>Defect</td></tr>
+    <tr><td><span class="tag p1">P1-13</span></td><td>PDF export crashes on any overridden portfolio (an <code>→</code> the font can't encode). Fixed in sub-PR 14.</td><td>It fails on exactly the portfolios a human reviewed most closely.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-14</span></td><td>Removing a skill on the assessment or vacancy edit form doesn't remove it: the web leaves it out instead of sending <code>_destroy</code>, and the API keeps it. <span class="tag seam">SEAM</span></td><td>The interviewer still asks about a deleted skill, and on a vacancy it keeps counting in every fit/gap report.</td><td>Defect</td></tr>
   </table>
 
@@ -568,6 +568,10 @@ flowchart LR
     <tr class="added"><td class="n">13</td><td><a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/13"><code>ci/coverage-security</code></a></td><td>Coverage
       floors and security scans in CI; 147 gem advisories down to 14, all needing the Rails or puma major upgrade.</td>
       <td><code>5c1a3f7</code> <code>4fd4c00</code> <code>40d4ed0</code></td></tr>
+    <tr class="added"><td class="n">14</td><td><code>fix/pdf-export-encoding</code></td><td>The PDF export no longer
+      fails on an overridden portfolio or an unusual quote (P1-13): the override line uses <code>-&gt;</code>, and a
+      character the built-in font can't show becomes <code>?</code>. The JSON export keeps everything.</td>
+      <td><code>990effd</code> <code>ae52a76</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
@@ -583,9 +587,9 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">340</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9</span>). 5 pending, all known
-      defects outside this change (P1-10, P1-13 ×2, P2-3, <span class="added">C2</span>).</div></div>
+    <div class="card"><div class="stat">342</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14</span>). 3 pending, all known
+      defects outside this change (P1-10, P2-3, <span class="added">C2</span>).</div></div>
     <div class="card"><div class="stat">150</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
       filling test gaps, 1 in sub-PR 11); 22 expected to fail (other known defects), 7 skipped without a live API.
       <code>tsc</code> clean. Browser tests (sub-PRs 10 and 12) run separately, in CI.</div></div>
