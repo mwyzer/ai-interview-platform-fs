@@ -25,4 +25,14 @@ RSpec.describe ProductionGuards do
   it 'names every problem at once, so one deploy fixes them all' do
     expect(described_class.problems({}).size).to eq(2)
   end
+
+  describe 'known defect (P1-15)' do
+    it 'refuses to start without the web app URL that invite links are built from' do
+      pending 'P1-15: without APP_BASE_URL, every invite link points at localhost'
+
+      [ready.except('APP_BASE_URL'), ready.merge('APP_BASE_URL' => ' ')].each do |env|
+        expect { described_class.check!(env) }.to raise_error(/APP_BASE_URL must be/)
+      end
+    end
+  end
 end
