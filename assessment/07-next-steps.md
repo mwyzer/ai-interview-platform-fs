@@ -13,9 +13,9 @@ are the floor before the product sees a real candidate's data (UU PDP); the rest
 
 | Phase | Item | Needs a decision from | Size |
 |---|---|---|---|
-| 1 · Before real data | 1.1 Refuse the free model tier in production | No | Small |
+| 1 · Before real data | ~~1.1 Refuse the free model tier in production~~ **done** (sub-PR 9) | No | Small |
 | | 1.2 Notice and recorded consent before the mic opens | Legal: wording, lawful basis | Medium |
-| | 1.3 Users belong to a company (C2) | Tech Lead: data model shared with `rakamin-api` | Medium |
+| | 1.3 Users belong to a company (C2); mitigated in sub-PR 9 | Tech Lead: data model shared with `rakamin-api` | Medium |
 | 2 · Accountability | 2.1 Roles: recruiter, hiring manager, admin | Product: who sees what | Medium |
 | | 2.2 Human review on record, and the candidate's objection channel | Product: who handles objections | Medium |
 | 3 · Data lifecycle | 3.1 Retention, erasure and export per candidate | Legal: the retention period | Medium |
@@ -27,7 +27,11 @@ are the floor before the product sees a real candidate's data (UU PDP); the rest
 
 ## Phase 1 · Before any real candidate data
 
-### 1.1 Refuse the free model tier in production
+### 1.1 Refuse the free model tier in production: done in sub-PR 9
+
+Built as planned, as `ProductionGuards` (`api/app/lib/production_guards.rb`), checked by a spec that boots the app
+in production. Doing it found that production didn't boot at all (an Active Job setting the app never loads),
+fixed in the same sub-PR. The plan as it was:
 
 **Why.** The Gemini free tier may use inputs to improve Google's products, and its terms say not to send personal
 information. A candidate's interview is personal information.
@@ -88,6 +92,9 @@ information. A candidate's interview is personal information.
 **Size.** Medium.
 
 ### 1.3 Users belong to a company (C2)
+
+**Mitigated in sub-PR 9:** production must set `LOGIN_TENANT_SCHEME`, and login refuses any other company, so one
+deployment serves one company. The steps below are still the fix.
 
 **Why.** Login takes the company from the `X-Tenant-Scheme` header, and users belong to no company, so any admin can
 sign in to any company. Sub-PR 8 pinned this as `pending`.

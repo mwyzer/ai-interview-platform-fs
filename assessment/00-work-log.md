@@ -589,6 +589,35 @@ company, so any admin can sign in to company A and read its data (the pending ca
 Fixing it needs a user-to-company link in a database shared with `rakamin-api` (C3): a data-model and product
 decision for the Tech Lead, not a scoping fix.
 
+### Sub-PR 9: production guards, and a login company set on the server (branch `fix/production-guards`)
+
+**Why.** Two items from [07-next-steps.md](07-next-steps.md) need no one's decision: refusing the free model tier in
+production (1.1), and a mitigation for C2 until users belong to a company.
+
+**What changed.**
+- **Login** (`authentication_controller.rb`): with `LOGIN_TENANT_SCHEME` set, the token always carries that company,
+  and a login whose `X-Tenant-Scheme` names another one is refused with the same answer as a wrong password. Without
+  it (development, tests), nothing changes.
+- **`ProductionGuards`**: production refuses to boot unless `GEMINI_TIER=paid` and `LOGIN_TENANT_SCHEME` is set, and
+  names every missing setting at once. The sample config documents both.
+- **Production boots for the first time.** `config/environments/production.rb` set `config.active_job.queue_adapter`,
+  but the app doesn't load Active Job. Since the initial import, `RAILS_ENV=production` crashed with `NoMethodError`
+  before serving anything. Nothing uses Active Job (jobs are Sidekiq workers), so the line is gone.
+
+**Tests.**
+- Two login specs were pinned first (`beb7f12`) and checked to fail on their assertion.
+  - The first draft of one of them passed against the old code: the server-set company happened to be the first
+    organization, which the old fallback picks anyway. It now uses a later row.
+- `production_guards_spec` (4 examples) was written with the code.
+- `production_boot_spec` (2 examples) boots the app in production in a subprocess. Against the old config both
+  examples fail on the `active_job` crash. Now the app boots with the settings, and refuses to boot without them.
+
+**Still open.** C2 itself: users belong to no company, so a deployment serves one company. The tenant-routes C2 spec
+stays pending. Where membership lives is a Tech Lead decision (next steps 1.3).
+
+**Also found.** An exploratory command printed the local `api/config/application.yml`, including the Gemini key, into
+the session's tool output. Nothing was committed or pushed; rotate the key if the transcript is shared.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
