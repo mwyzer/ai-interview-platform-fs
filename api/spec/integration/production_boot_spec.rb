@@ -8,7 +8,12 @@ require 'open3'
 # boot at all until sub-PR 9, and nothing noticed.
 RSpec.describe 'Booting in production' do
   def boot(env)
-    base = { 'RAILS_ENV' => 'production', 'SECRET_KEY_BASE' => 'boot-check-only' }
+    # Everything production needs to boot, as dummies, so the result doesn't depend on a local application.yml.
+    base = {
+      'RAILS_ENV' => 'production', 'SECRET_KEY_BASE' => 'boot-check-only',
+      'GEMINI_API_KEY' => 'boot-check-only', 'GEMINI_LIVE_MODEL' => 'none', 'GEMINI_FLASH_MODEL' => 'none',
+      'GEMINI_PRO_MODEL' => 'none'
+    }
     # Through the Ruby that runs the suite: a checkout made on Windows doesn't keep bin/rails executable.
     out, status = Open3.capture2e(base.merge(env), Gem.ruby, 'bin/rails', 'runner', 'puts "booted"',
                                   chdir: Rails.root.to_s)
