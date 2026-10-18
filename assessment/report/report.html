@@ -225,12 +225,14 @@
       fit/gap and both screens. <strong>263 API specs</strong> (0 failures) and <strong>126 web tests</strong> passing;
       118 known-defect or new-AC tests flipped to passing. The seeded fault (the clamp put back) was caught by 13 specs.</td></tr>
     <tr><td class="n">Test gaps</td><td>Covered the pages and API pieces no test touched: <strong>293 API specs</strong> and
-      <strong>149 web tests</strong> now, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
+      <strong>149 web tests</strong> at that point, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
       P2-17), each pinned by a test that fails today.</td></tr>
     <tr><td class="n">Follow-ups</td><td>Two more sub-PRs from the Step 4 list: the request log filters passwords, notes and
       candidate names (P1-7), and the server queues one fit/gap job per report (P1-6). <span class="added">Then a
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
-      <strong>340 API specs</strong>, 0 failures.</td></tr>
+      Then production guards (paid model tier, one login company per deployment), browser tests at 1280px and 375px,
+      clearer login errors, accessibility fixes, and coverage floors and security scans in CI.
+      <strong>340 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
   </table>
 </section>
 
@@ -584,8 +586,9 @@ flowchart LR
     <div class="card"><div class="stat">340</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
       30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9</span>). 5 pending, all known
       defects outside this change (P1-10, P1-13 ×2, P2-3, <span class="added">C2</span>).</div></div>
-    <div class="card"><div class="stat">149</div><div class="stat-label">web tests passing (126 after sub-PR 5); 22
-      expected to fail (other known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
+    <div class="card"><div class="stat">150</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
+      filling test gaps, 1 in sub-PR 11); 22 expected to fail (other known defects), 7 skipped without a live API.
+      <code>tsc</code> clean. Browser tests (sub-PRs 10 and 12) run separately, in CI.</div></div>
     <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
       across the five sub-PRs (API 5 + 46 + 9, web 29 + 29).</div></div>
   </div>
@@ -614,7 +617,8 @@ flowchart LR
       header, then Referer); the coverage analyzer worker (session-scoped updates, discovered skills capped at ten,
       auto-advancing stale partials, failures)</td><td>32 tests: <code>LevelRadio</code>, <code>SkillPicker</code>, and
       functional tests for the assessment form, invites, vacancies and transcript</td></tr>
-    <tr><td class="n">Line coverage</td><td>69.7% → 71.6%</td><td>50.6% → 68.3%</td></tr>
+    <tr><td class="n">Line coverage</td><td>69.7% → 71.6%, measured by hand over a narrower set of files; SimpleCov
+      over all of them gives 62.1% (sub-PR 13), so the two don't compare</td><td>50.6% → 68.3%</td></tr>
     <tr><td class="n">Checked against a fault</td><td colspan="2">Three faults put into the worker and middleware were each
       caught, then reverted.</td></tr>
     <tr><td class="n">What's left</td><td colspan="2">Mostly the audio path, which needs a live model.</td></tr>
