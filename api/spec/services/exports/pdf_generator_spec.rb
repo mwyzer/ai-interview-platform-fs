@@ -84,12 +84,43 @@ RSpec.describe Exports::PdfGenerator do
       expect { render_pdf }.not_to raise_error
     end
 
+    it 'shows the AI level and the override in plain characters' do
+      pending 'PDF: the override line uses "→", which the built-in Windows-1252 font cannot encode'
+
+      skill = create(:portfolio_skill, portfolio:, ai_level: 2, ai_confidence: 'medium')
+      create(:assessor_override, portfolio_skill: skill, override_level: 3, assessor_notes: 'Strong follow-up.')
+      lines = []
+      allow_any_instance_of(Prawn::Document).to receive(:text).and_wrap_original do |original, string, *args, **opts|
+        lines << string
+        original.call(string, *args, **opts)
+      end
+
+      render_pdf
+
+      expect(lines).to include('Level: L3 (AI: L2 -> Override: L3)  |  Confidence: Medium')
+    end
+
     it 'exports evidence containing characters outside Windows-1252, such as emoji' do
       pending 'PDF: built-in fonts only cover Windows-1252; candidate quotes can contain anything'
 
       create(:portfolio_skill, portfolio:, evidence: ['We shipped it 🚀 and the team said ありがとう'])
 
       expect { render_pdf }.not_to raise_error
+    end
+
+    it 'keeps the Windows-1252 punctuation and marks only what the font cannot show' do
+      pending 'PDF: built-in fonts only cover Windows-1252; candidate quotes can contain anything'
+
+      create(:portfolio_skill, portfolio:, evidence: ['“Siap” — shipped 🚀'])
+      lines = []
+      allow_any_instance_of(Prawn::Document).to receive(:text).and_wrap_original do |original, string, *args, **opts|
+        lines << string
+        original.call(string, *args, **opts)
+      end
+
+      render_pdf
+
+      expect(lines).to include('  • “Siap” — shipped ?')
     end
   end
 end
