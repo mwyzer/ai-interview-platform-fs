@@ -641,6 +641,22 @@ data that existed in one local database. 375px was checked by eye, because jsdom
 **Tests.** 14 passed locally. The width check was shown to fail on a planted fault (a 600px table at 375px), after a
 first version that couldn't fail (verification moment 14).
 
+### Sub-PR 11: the login error shows, and the password can be revealed (branch `fix/login-feedback`)
+
+**Why.** Signing in on the dev stack with a mistyped password only refreshed the form, with no message. The API was
+fine: the right password got 200, a wrong one 401.
+
+**What changed.**
+- **`api.ts`**: the response interceptor sent every 401 to `/login` with a full reload, including a rejected login,
+  so the form's "Invalid email or password." was gone before it rendered. The login request is now left to the form.
+- **`LoginPage.tsx`**: an eye button (lucide `Eye`/`EyeOff`) shows or hides the password. It is a `type="button"`,
+  so it doesn't submit, and carries "Show password"/"Hide password" plus `aria-pressed`.
+
+**Tests.** The toggle test was committed first (`d37c3c9`) and failed on the missing "Show password" button. The
+reload has no test: jsdom doesn't navigate when `location.href` is set, which is why the existing wrong-password test
+passed with the bug in place. Checked instead in headless Chrome against the dev stack: with a wrong password the
+message shows and the page loads once (no reload), and the eye button switches the field to `type="text"`.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
