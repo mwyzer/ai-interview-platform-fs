@@ -233,7 +233,7 @@
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
       Then production guards (paid model tier, one login company per deployment), browser tests at 1280px and 375px,
       clearer login errors, accessibility fixes, and coverage floors and security scans in CI.
-      Last, the PDF export works for overridden portfolios (P1-13). <strong>342 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
+      The PDF export works for overridden portfolios (P1-13), and the audio proxy is under test, which found P2-20. <strong>382 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
   </table>
 </section>
 
@@ -573,6 +573,11 @@ flowchart LR
       fails on an overridden portfolio or an unusual quote (P1-13): the override line uses <code>-&gt;</code>, and a
       character the built-in font can't show becomes <code>?</code>. The JSON export keeps everything.</td>
       <td><code>990effd</code> <code>ae52a76</code></td></tr>
+    <tr class="added"><td class="n">15</td><td><code>test/audio-websocket</code></td><td>40 specs for the audio proxy
+      between the browser and Gemini Live, with both sockets faked: who may connect, the echo gate, transcripts,
+      reconnects, the time limit and every way an interview ends. They found P2-20: about one microphone frame in 256
+      was dropped because it started with <code>{</code>; the frame type now decides.</td>
+      <td><code>faa77af</code> <code>a6273ad</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
@@ -588,8 +593,8 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">342</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14</span>). 3 pending, all known
+    <div class="card"><div class="stat">382</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14, 40 in sub-PR 15</span>). 3 pending, all known
       defects outside this change (P1-10, P2-3, <span class="added">C2</span>).</div></div>
     <div class="card"><div class="stat">150</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
       filling test gaps, 1 in sub-PR 11); 22 expected to fail (other known defects), 7 skipped without a live API.
@@ -626,7 +631,7 @@ flowchart LR
       over all of them gives 62.1% (sub-PR 13), so the two don't compare</td><td>50.6% → 68.3%</td></tr>
     <tr><td class="n">Checked against a fault</td><td colspan="2">Three faults put into the worker and middleware were each
       caught, then reverted.</td></tr>
-    <tr><td class="n">What's left</td><td colspan="2">Mostly the audio path, which needs a live model.</td></tr>
+    <tr><td class="n">What's left</td><td colspan="2">Mostly the audio path, which needs a live model. <span class="added">Its proxy is now covered with both sockets faked (sub-PR 15); the Gemini Live client itself still isn't.</span></td></tr>
   </table>
   <p>They found five defects, each now an <code>it.fails</code> marker that fails on its own assertion: P1-14, and P2-14
     to P2-17 (Step 3). The most serious, P1-14, is a seam bug: an API spec shows <code>_destroy</code> works, so the fix
@@ -667,7 +672,8 @@ flowchart LR
   <table>
     <tr><th style="width:24%"></th><th>Result (sub-PR 13)</th></tr>
     <tr><td class="n">Line coverage</td><td>API <strong>62.1%</strong> (SimpleCov), web <strong>68.5%</strong> (Vitest). CI fails
-      if either drops more than a point below (floors 61 and 67): a floor, not a target.</td></tr>
+      if either drops more than a point below (floors 61 and 67): a floor, not a target. <span class="added">With the audio proxy
+      specs (sub-PR 15) the API is at 77.8%, and its floor is 76.</span></td></tr>
     <tr><td class="n">Code (Brakeman)</td><td>No warnings in the code. One about the platform: Rails 7.0 left support in
       April 2025, so it's escalated.</td></tr>
     <tr><td class="n">Gems (bundle-audit)</td><td><strong>147 advisories in 20 gems</strong>. Patch and minor updates to 15

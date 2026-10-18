@@ -750,6 +750,41 @@ everything; the user decided that isn't needed.
 **Checked.** With the replacement changed to an empty string, the punctuation spec fails; reverted. The dev
 portfolio now exports (a 10 KB PDF). API 342 examples, 0 failures, 3 pending.
 
+**Found later.** The fix didn't reach the dev stack at first: the API container doesn't reload Ruby code changed
+from the Windows checkout, so the next click still got a 500. A restart fixed it; checked over HTTP (portfolios 9 and
+14, 200 `application/pdf`).
+
+### Sub-PR 15: the audio proxy, under test (P2-20, branch `test/audio-websocket`)
+
+**Why.** `AudioWebSocketMiddleware` (800 lines) sits between the candidate's browser and Gemini Live and decides who
+may connect, what the model hears, how turns are saved and every way an interview ends. No test touched it; the
+report listed "the audio path" as what's left.
+
+**How it's tested (`faa77af`).** Two doubles in `spec/support/audio_socket_doubles.rb`: a browser socket that records
+what it's sent, and a Gemini client whose callbacks the spec calls the way Gemini would. EventMachine timers are
+collected instead of scheduled and fired by hand, and the background threads run inline, so a spec can say "two
+minutes pass" and see the database. 40 examples:
+- **Who may connect:** an invite link; an assessor's token for their company; refused with a message the page can
+  show for an unknown link, no credentials, a link for another session, an ended session, and another company's
+  assessor (as "not found").
+- **The interview:** the AI opens a new interview but not a resumed one; the echo gate; transcripts saved,
+  numbered on from the saved transcript, and kept free of the coverage map and time signals sent to Gemini; the
+  coverage map sent once per change; End.
+- **When things go wrong:** reconnects with backoff 1, 2, 4 seconds and the latest token, then the session ends as an
+  error; GoAway; the time warnings (each sent again if Gemini didn't take it) and the ceiling; the two-minute grace
+  after the browser leaves; the AI closing in Indonesian when Gemini never ends its turn.
+
+**What it found: P2-20.** The proxy told microphone audio from control messages by the first byte: a frame starting
+with `{` (0x7B) was parsed as JSON, failed, and was dropped without a log line, about one frame in 256. Pinned as
+pending, failing on its assertion (`got: []`). Fixed in `a6273ad`: Faye gives binary frames as BINARY strings and text
+frames as UTF-8, so the frame type decides. Checked first in the library source (websocket-driver 0.8.2 defaults to
+BINARY strings).
+
+**Checked.** API 382 examples, 0 failures, 3 pending. Line coverage 62.1% → 77.8% (the middleware alone: 83.6%), so
+the CI floor goes from 61 to 76, a point under as before. A first measurement read 14.1% for the middleware: the
+API container had been restarted mid-run, which killed it and left a partial result; re-run in full. A full run logs "Sidekiq connecting to Redis"; the existing
+EndHandler spec logs the same, and jobs still go to the in-memory array (`Sidekiq::Testing.fake!`).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
