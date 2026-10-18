@@ -62,8 +62,10 @@ class AudioWebSocketMiddleware
     browser_ws.close
   end
 
+  # Faye hands over binary frames (the microphone) as BINARY strings and text frames (control JSON) as UTF-8.
+  # Telling them apart by the first byte dropped every audio frame that happened to start with "{" (P2-20).
   def handle_browser_frame(event, browser_ws, state, session_id)
-    if event.data.is_a?(String) && !event.data.start_with?('{')
+    if event.data.is_a?(String) && event.data.encoding == Encoding::BINARY
       forward_audio_frame(event.data, state, session_id)
     else
       handle_browser_message(event.data, browser_ws, state)

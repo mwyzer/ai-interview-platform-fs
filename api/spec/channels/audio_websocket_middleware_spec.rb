@@ -192,8 +192,6 @@ RSpec.describe AudioWebSocketMiddleware do
     end
 
     it 'forwards a frame whose first byte happens to be "{" (0x7B)' do
-      pending 'P2-20: a binary frame starting with "{" is parsed as a JSON control message and dropped'
-
       frame = "{\x00\xFF\x7F".b
       browser.fire(:message, frame)
 
