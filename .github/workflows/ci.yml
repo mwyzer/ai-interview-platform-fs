@@ -79,7 +79,7 @@ jobs:
       - name: Run specs, with coverage
         env:
           COVERAGE: "1"
-          COVERAGE_FLOOR: "61"
+          COVERAGE_FLOOR: "76"
         run: bundle exec rspec --format progress
 
       - name: Upload the coverage report

@@ -10,7 +10,7 @@ Run the API suite (Docker stack up, see the [README](../README.md)):
 docker compose exec -T -e RAILS_ENV=test api bundle exec rspec
 ```
 
-Today: 342 examples, 0 failures, 3 pending (known defects outside these changes: P1-10, P2-3, C2).
+Today: 382 examples, 0 failures, 3 pending (known defects outside these changes: P1-10, P2-3, C2).
 To run one area, pass its spec files, for example
 `docker compose exec -T -e RAILS_ENV=test api bundle exec rspec spec/services/portfolios/generator_spec.rb`.
 
