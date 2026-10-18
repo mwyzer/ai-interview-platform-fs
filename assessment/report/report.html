@@ -168,7 +168,8 @@
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/9">9</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/11">10</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/10">11</a>,
-      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/12">12</a></dd>
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/12">12</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/13">13</a></dd>
     <dt>Video (3–5 min)</dt><dd class="missing">To add: unlisted link</dd>
     <dt>Working docs</dt><dd><code>assessment/</code> in the PR branch: work log, Steps 2–4, testing overview, GUARDRAILS</dd>
     <dt>Date</dt><dd>October 2026</dd>
@@ -224,12 +225,14 @@
       fit/gap and both screens. <strong>263 API specs</strong> (0 failures) and <strong>126 web tests</strong> passing;
       118 known-defect or new-AC tests flipped to passing. The seeded fault (the clamp put back) was caught by 13 specs.</td></tr>
     <tr><td class="n">Test gaps</td><td>Covered the pages and API pieces no test touched: <strong>293 API specs</strong> and
-      <strong>149 web tests</strong> now, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
+      <strong>149 web tests</strong> at that point, web line coverage 50.6% → 68.3%. That found five more defects (P1-14, P2-14 to
       P2-17), each pinned by a test that fails today.</td></tr>
     <tr><td class="n">Follow-ups</td><td>Two more sub-PRs from the Step 4 list: the request log filters passwords, notes and
       candidate names (P1-7), and the server queues one fit/gap job per report (P1-6). <span class="added">Then a
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
-      <strong>340 API specs</strong>, 0 failures.</td></tr>
+      Then production guards (paid model tier, one login company per deployment), browser tests at 1280px and 375px,
+      clearer login errors, accessibility fixes, and coverage floors and security scans in CI.
+      <strong>340 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
   </table>
 </section>
 
@@ -562,6 +565,9 @@ flowchart LR
       and keyboard-only checks on every page in the browser tests. Fixed what they found: low contrast (P2-18) and
       unnamed controls (P2-19); the assessment card is now a link (P2-8).</td>
       <td><code>4a91b24</code> <code>1122996</code> <code>1f4eedd</code></td></tr>
+    <tr class="added"><td class="n">13</td><td><a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/13"><code>ci/coverage-security</code></a></td><td>Coverage
+      floors and security scans in CI; 147 gem advisories down to 14, all needing the Rails or puma major upgrade.</td>
+      <td><code>5c1a3f7</code> <code>4fd4c00</code> <code>40d4ed0</code></td></tr>
   </table>
 
   <h3>Before and after: the Step 3 reproduction</h3>
@@ -580,8 +586,9 @@ flowchart LR
     <div class="card"><div class="stat">340</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
       30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9</span>). 5 pending, all known
       defects outside this change (P1-10, P1-13 ×2, P2-3, <span class="added">C2</span>).</div></div>
-    <div class="card"><div class="stat">149</div><div class="stat-label">web tests passing (126 after sub-PR 5); 22
-      expected to fail (other known defects), 7 skipped without a live API. <code>tsc</code> clean.</div></div>
+    <div class="card"><div class="stat">150</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
+      filling test gaps, 1 in sub-PR 11); 22 expected to fail (other known defects), 7 skipped without a live API.
+      <code>tsc</code> clean. Browser tests (sub-PRs 10 and 12) run separately, in CI.</div></div>
     <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
       across the five sub-PRs (API 5 + 46 + 9, web 29 + 29).</div></div>
   </div>
@@ -610,7 +617,8 @@ flowchart LR
       header, then Referer); the coverage analyzer worker (session-scoped updates, discovered skills capped at ten,
       auto-advancing stale partials, failures)</td><td>32 tests: <code>LevelRadio</code>, <code>SkillPicker</code>, and
       functional tests for the assessment form, invites, vacancies and transcript</td></tr>
-    <tr><td class="n">Line coverage</td><td>69.7% → 71.6%</td><td>50.6% → 68.3%</td></tr>
+    <tr><td class="n">Line coverage</td><td>69.7% → 71.6%, measured by hand over a narrower set of files; SimpleCov
+      over all of them gives 62.1% (sub-PR 13), so the two don't compare</td><td>50.6% → 68.3%</td></tr>
     <tr><td class="n">Checked against a fault</td><td colspan="2">Three faults put into the worker and middleware were each
       caught, then reverted.</td></tr>
     <tr><td class="n">What's left</td><td colspan="2">Mostly the audio path, which needs a live model.</td></tr>
@@ -646,6 +654,23 @@ flowchart LR
       5.09:1 (was 3.55); approved as a design change.</td></tr>
     <tr><td class="n">Screenshots</td><td>The ten below are regenerated by <code>npm run e2e:screenshots</code>, locally or
       as an artifact of the CI job <code>e2e</code>.</td></tr>
+  </table>
+  </div>
+
+  <div class="added">
+  <h3>Coverage and security, in CI</h3>
+  <table>
+    <tr><th style="width:24%"></th><th>Result (sub-PR 13)</th></tr>
+    <tr><td class="n">Line coverage</td><td>API <strong>62.1%</strong> (SimpleCov), web <strong>68.5%</strong> (Vitest). CI fails
+      if either drops more than a point below (floors 61 and 67): a floor, not a target.</td></tr>
+    <tr><td class="n">Code (Brakeman)</td><td>No warnings in the code. One about the platform: Rails 7.0 left support in
+      April 2025, so it's escalated.</td></tr>
+    <tr><td class="n">Gems (bundle-audit)</td><td><strong>147 advisories in 20 gems</strong>. Patch and minor updates to 15
+      of them closed all but 14; each new version was released at least two weeks ago. The 14 need Rails 7.2 or 8 and
+      puma 7: 9 can't be reached here (Active Storage isn't loaded, the PROXY protocol is off), 5 are in Action View
+      and Active Support. Each is listed with its reason, and any new advisory fails CI.</td></tr>
+    <tr><td class="n">Web (npm audit)</td><td>0 in what ships to users. Build and test tooling: 7, reported, not
+      blocking.</td></tr>
   </table>
   </div>
 

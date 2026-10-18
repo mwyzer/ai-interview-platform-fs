@@ -689,6 +689,45 @@ cards that can't be reached with a keyboard) was still open.
 emulation, arrow keys move focus in the level picker but don't select. It now presses Space, which selects a radio on
 every device, and checks the focus first.
 
+### Sub-PR 13: coverage and security scans in CI (branch `ci/coverage-security`)
+
+**Why.** Coverage had been measured once by hand, and nothing scanned the code or the dependencies (gaps 6 and 7 in
+[testing.md](testing.md)).
+
+**Coverage.**
+- **API:** SimpleCov 1.3.2 runs when `COVERAGE=1`: **62.1%** of lines.
+  - This replaces the hand measurement (71.6%), which used Ruby's `Coverage` module over a narrower set of files, so
+    the two don't compare directly.
+- **Web:** `@vitest/coverage-v8`, newly declared in `package.json` (it had been installed with `--no-save`):
+  **68.5%** of lines.
+  - The first run left out 3 test files: their workers timed out on the busy machine. The figure is from a re-run
+    with two workers, where all 24 files ran.
+- **CI floors:** 61 and 67, a point under the measured coverage. They aren't targets: the suite fails if coverage
+  drops.
+
+**Security scans** (CI job `security`).
+- **Brakeman 8.1.0:** no warnings in the code. Its one warning is that Rails 7.0 is end-of-life; it's ignored in
+  `config/brakeman.ignore`, with the reason.
+- **bundler-audit 0.9.3:** **147 advisories in 20 gems** (nokogiri alone has 88).
+  - **Patch updates:** rack, nokogiri, loofah, crass, rails-html-sanitizer, websocket-driver, concurrent-ruby, faraday,
+    json, mail, msgpack, net-imap.
+  - **Minor updates:** jwt (3.1 → 3.3), and mcp, which only RuboCop uses.
+  - **What's left:** 14 advisories, all needing a major upgrade (Rails 7.0, puma 5). Each is in `.bundler-audit.yml`
+    with its reason; 9 can't be reached in this app.
+  - **The first update overshot.** `bundle lock --conservative` moved json up a major version (2.19 → 3.1), faraday
+    a minor version, and RuboCop too. Redone with `--patch --strict`, plus `--minor` for jwt and mcp only.
+  - **Release dates:** net-imap 0.6.8 was 6 days old, so it's pinned to 0.6.7, the newest release at least two weeks
+    old.
+  - **No local advisory database:** the API container has no `git`, so bundle-audit couldn't fetch it there. It was
+    cloned on the host into `api/tmp` (gitignored); CI fetches its own.
+- **npm audit:** 0 vulnerabilities in production dependencies (CI fails on high or critical). Build and test tooling
+  has 7, reported without failing.
+
+**After the update.** API 340 examples, 0 failures, 5 pending, unchanged.
+
+**One exception to the two-week rule.** `@vitest/coverage-v8` 5.0.5 is 3 days old, but it must match the installed
+Vitest 5.0.5 exactly, and both are released together from the same repository.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

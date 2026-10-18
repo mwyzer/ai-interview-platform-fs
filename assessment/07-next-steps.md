@@ -256,6 +256,23 @@ rake task.
 **Decision.** Product: the targets, and what happens when a language falls behind. **Size.** Large, mostly the
 dataset.
 
+## Upgrade Rails and puma (found by the security scans, sub-PR 13)
+
+**Why.** Rails 7.0 left support on 2025-04-01, and puma 5 has two advisories fixed only in 7 and 8. Fourteen gem
+advisories remain, all listed with their reasons in `api/.bundler-audit.yml`. Nine can't be reached in this app
+(Active Storage isn't loaded; puma's PROXY protocol is off). The other five are in Action View and Active Support, and
+need the upgrade.
+
+**Steps.**
+1. Upgrade Rails 7.0 → 7.1 → 7.2, one minor version at a time, with `rails app:update` and the suite green at
+   each step.
+2. Then upgrade puma to 7, and check `config/puma.rb` and the WebSocket middleware, which hooks into Rack.
+3. Remove each entry from `.bundler-audit.yml` and `config/brakeman.ignore` in the commit that fixes it.
+
+**Tests.** The full API suite, the E2E job, and the production boot spec at each step.
+
+**Decision.** Tech Lead: when to do it, given the database shared with `rakamin-api` (C3). **Size.** Medium to large.
+
 ## Phase 5 · On screen and in the interview
 
 Small changes, each with its own tests first.

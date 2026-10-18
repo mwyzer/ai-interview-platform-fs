@@ -68,7 +68,8 @@ RSpec.describe 'Request pipeline', type: :request do
       store = Rack::Attack.cache.store
       Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
       Rack::Attack.enabled = true
-      example.run
+      # The throttles count per clock minute; on a slow run the requests could straddle two and never reach the limit.
+      freeze_time { example.run }
     ensure
       Rack::Attack.enabled = false
       Rack::Attack.cache.store = store
