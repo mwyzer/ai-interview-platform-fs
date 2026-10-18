@@ -649,6 +649,23 @@ flowchart LR
   </table>
   </div>
 
+  <div class="added">
+  <h3>Coverage and security, in CI</h3>
+  <table>
+    <tr><th style="width:24%"></th><th>Result (sub-PR 13)</th></tr>
+    <tr><td class="n">Line coverage</td><td>API <strong>62.1%</strong> (SimpleCov), web <strong>68.5%</strong> (Vitest). CI fails
+      if either drops more than a point below (floors 61 and 67): a floor, not a target.</td></tr>
+    <tr><td class="n">Code (Brakeman)</td><td>No warnings in the code. One about the platform: Rails 7.0 left support in
+      April 2025, so it's escalated.</td></tr>
+    <tr><td class="n">Gems (bundle-audit)</td><td><strong>147 advisories in 20 gems</strong>. Patch and minor updates to 15
+      of them closed all but 14; each new version was released at least two weeks ago. The 14 need Rails 7.2 or 8 and
+      puma 7: 9 can't be reached here (Active Storage isn't loaded, the PROXY protocol is off), 5 are in Action View
+      and Active Support. Each is listed with its reason, and any new advisory fails CI.</td></tr>
+    <tr><td class="n">Web (npm audit)</td><td>0 in what ships to users. Build and test tooling: 7, reported, not
+      blocking.</td></tr>
+  </table>
+  </div>
+
   <h3>Seeded fault test</h3>
   <p>On <code>scratch/seeded-fault-clamp</code>, commit <code>27f49f3</code> put the original bug back:
     <code>value.to_i.clamp(1, 5)</code> in the level parser. <strong>13 specs failed</strong>, each on its assertion
