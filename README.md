@@ -82,6 +82,25 @@ handler fails the test. Fixtures in `web/src/test/fixtures.ts` follow the exact 
 Known defects use `it.fails`: the test passes while the defect exists, and must become `it` in the commit that fixes
 it.
 
+### Running the E2E tests (real browser, 1280px and 375px)
+
+`web/e2e` drives the built web app against the running API with Playwright, at 1280px and 375px. Each test checks
+what the screen shows, and that the page never scrolls sideways (which jsdom can't see). The data is synthetic and
+already generated, so nothing calls the model.
+
+```sh
+docker compose exec api bin/rails e2e:seed          # once; running it again changes nothing
+cd web
+VITE_API_BASE_URL=http://localhost:3001/api/v1 npx vite build && npx vite preview --port 4173 &
+E2E_WEB_URL=http://localhost:4173 E2E_PASSWORD=<DEV_ADMIN_PASSWORD from .env> npm run e2e
+```
+
+- Locally it uses the installed Chrome; CI uses Playwright's Chromium (job `e2e`).
+- `npm run e2e:screenshots` runs the same tests and rewrites the report's screenshots in
+  `assessment/report/screenshots/`.
+- Sign-in happens once per run (`e2e/global-setup.ts`): the API allows five logins a minute.
+- Don't click Retry or Regenerate in these tests while Sidekiq is running: that queues a real model call.
+
 ## Notes for the case study
 
 - This is the codebase you assess, harden, and release. Treat it as a version about to ship to a client.

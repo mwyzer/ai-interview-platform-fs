@@ -105,3 +105,102 @@ jobs:
       # (API_INTEGRATION_URL is not set).
       - name: Run tests
         run: npm test
+
+  e2e:
+    name: E2E (Playwright, 1280px and 375px)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    # The real API in development mode, with no Sidekiq: nothing the tests do can reach a model. The seeded
+    # portfolios and fit/gap reports are already generated (rails e2e:seed).
+    env:
+      RAILS_ENV: development
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USERNAME: postgres
+      REDIS_URL: redis://localhost:6379/1
+      SECRET_KEY_BASE: ci-only-secret-key-base-not-used-anywhere-else-0000000000000000
+      GEMINI_API_KEY: ci-dummy-key-never-sent
+      GEMINI_LIVE_MODEL: none
+      GEMINI_FLASH_MODEL: none
+      GEMINI_PRO_MODEL: none
+      ALLOWED_ORIGINS: http://localhost:5173
+      APP_BASE_URL: http://localhost:5173
+      VITE_API_BASE_URL: http://localhost:3001/api/v1
+      VITE_WS_BASE_URL: ws://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libpq
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+          working-directory: api
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # A password made for this job only, masked in the log, shared by the seed and the tests.
+      - name: Make the admin password
+        run: |
+          password=$(openssl rand -hex 24)
+          echo "::add-mask::$password"
+          echo "DEV_ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
+          echo "E2E_PASSWORD=$password" >> "$GITHUB_ENV"
+
+      - name: Set up the database and the synthetic data
+        working-directory: api
+        run: bundle exec rails db:create db:schema:load db:seed e2e:seed
+
+      # The built app (vite build + preview), as users get it, rather than the dev server.
+      - name: Start the API and the web app
+        run: |
+          (cd api && bundle exec rails server -p 3001 -b 127.0.0.1 > ../api.log 2>&1 &)
+          (cd web && npm ci && npx vite build && (npx vite preview --port 5173 --strictPort > ../web.log 2>&1 &))
+          curl --retry 30 --retry-delay 2 --retry-all-errors -sf http://localhost:3001/health > /dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -sf http://localhost:5173 > /dev/null
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser tests, and save the report's screenshots
+        working-directory: web
+        run: npm run e2e:screenshots
+
+      - name: Upload the Playwright report, screenshots and server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e
+          path: |
+            web/e2e/.report/
+            web/e2e/.results/
+            assessment/report/screenshots/
+            api.log
+            web.log
+          if-no-files-found: ignore
