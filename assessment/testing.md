@@ -125,16 +125,17 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 
 | # | What | Why it matters | Required by the brief? | Effort |
 |---|---|---|---|---|
-| 1 | **CI** (GitHub Actions running both suites on every push and PR) | Today the tests only protect the code when someone remembers to run them. CI makes every test above a gate, and shows the reviewer a green check on the PR. | Yes: "no CI" is part of the baseline to fix | Small |
+| 1 | ~~**CI** (GitHub Actions running both suites on every push and PR)~~ **done** (`bd51d00`; E2E, coverage and security jobs added later) | Today the tests only protect the code when someone remembers to run them. CI makes every test above a gate, and shows the reviewer a green check on the PR. | Yes: "no CI" is part of the baseline to fix | Small |
 | 2 | ~~**Recorded seeded fault test**~~ **done** (sub-PR 3) | Proves the suite catches a regression, with the history visible: break the logic on a scratch branch, show the failing run, revert. Best done in Step 5 on the P0-1 fix, so the fault is a regression of that fix. | Yes, explicitly | Small |
 | 3 | ~~**End-to-end in a real browser** (Playwright: real web + real API)~~ **done** (sub-PR 10, below) | Nothing yet runs both services together in a browser. It can also capture every state at desktop and 375px, which the submission needs as screenshots. | Screenshots are | Medium |
 | 4 | ~~**Accessibility checks** (axe on the existing page tests, plus keyboard paths)~~ **done** (sub-PR 12: axe on every E2E page, keyboard specs) | Catches missing labels, roles and keyboard access (P2-8: assessment cards can't be opened with a keyboard). "Poor UI/UX" is a disqualifier. | Indirectly | Small |
-| 5 | **Migration up/down test** | Step 5's migration must be reversible and safe for existing rows; a spec that migrates down and up with data in place proves it. | Yes, for Step 5 | Small |
+| 5 | ~~**Migration up/down test**~~ **done** for the not-assessed migration (sub-PR 3, `api/spec/db/`: rolls back and re-applies without changing a rating, refuses to roll back while a skill has no level). The later migrations only add columns. | Step 5's migration must be reversible and safe for existing rows; a spec that migrates down and up with data in place proves it. | Yes, for Step 5 | Small |
 | 6 | ~~**Coverage reports in CI** (SimpleCov, `@vitest/coverage-v8`)~~ **done** (sub-PR 13: API 62.1% lines, floor 61; web 68.5%, floor 67. Sub-PR 15: API 77.8%, floor 76) | Measured once by hand (Ruby's `Coverage`, and the Vitest provider installed without saving): lines went from 69.7% to 71.6% (API) and 50.6% to 68.3% (web) with the gap-fill tests, which closed the gaps listed here before. What's left untouched is the audio path (below), `SignupPage` (unreachable, P3) and `StatusIndicator`/`VoiceBars`; on the API, `vacancies_controller` is at 76%. Adding the gems/packages would make it a CI report. | No | Small |
 | 7 | ~~**Security scans** (`brakeman`, `bundle audit`, `npm audit`)~~ **done** (sub-PR 13: CI job `security`; 147 gem advisories down to 14, all escalated) | Cheap static checks for known vulnerable patterns and dependencies; fits into CI. | No | Small |
 
-**Not testable yet:** the audio WebSocket middleware, the Gemini Live client, and the interviewer's behaviour (the
-failure modes in PRD 01 §7). They need a live model on a paid tier (constraint C1), and a paid tier is also a
-requirement before any real candidate data is sent (Step 2, Pillar 5).
+**Not testable yet:** the Gemini Live client and the interviewer's behaviour (the failure modes in PRD 01 §7). They
+need a live model on a paid tier (constraint C1), and a paid tier is also a requirement before any real candidate
+data is sent (Step 2, Pillar 5). The audio WebSocket middleware is under test since sub-PR 15, against fake browser
+and Gemini sockets.
 
-**Recommended next step:** CI (1), since it turns everything above into a gate for the rest of the work.
+**Recommended next step:** all seven are done; what's left is planned in [07-next-steps.md](07-next-steps.md).
