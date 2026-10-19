@@ -86,35 +86,33 @@ describe("A proctored interview", { timeout: 20000 }, () => {
     expect(sent.frames).toBe(0);
   });
 
-  describe("known defects", () => {
-    it.fails("P2-28: holds Start while a second screen is connected, and lets go once it's disconnected", async () => {
-      screens = fakeScreens(true);
-      openInvite({ proctoring_required: true });
-      await completeProctoringSetup();
+  it("holds Start while a second screen is connected, and lets go once it's disconnected", async () => {
+    screens = fakeScreens(true);
+    openInvite({ proctoring_required: true });
+    await completeProctoringSetup();
 
-      expect(await screen.findByText(/A second screen is connected/)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
+    expect(await screen.findByText(/A second screen is connected/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
 
-      act(() => screens.set(false));
-      await waitFor(() => expect(screen.getByRole("button", { name: "Start Interview" })).toBeEnabled(), { timeout: 10000 });
-    });
+    act(() => screens.set(false));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Interview" })).toBeEnabled(), { timeout: 10000 });
+  });
 
-    it.fails("P2-28: pauses when a second screen is plugged in, tells the server, and carries on once it's out", async () => {
-      const sent = await startProctored();
+  it("pauses when a second screen is plugged in, tells the server, and carries on once it's out", async () => {
+    const sent = await startProctored();
 
-      act(() => screens.set(true));
+    act(() => screens.set(true));
 
-      expect(await screen.findByRole("alertdialog", { name: "Interview paused" })).toHaveTextContent(/second screen/);
-      await waitFor(() => expect(sent.events).toEqual(["second_screen_connected"]));
-      await speak();
-      expect(sent.frames).toBe(0);
+    expect(await screen.findByRole("alertdialog", { name: "Interview paused" })).toHaveTextContent(/second screen/);
+    await waitFor(() => expect(sent.events).toEqual(["second_screen_connected"]));
+    await speak();
+    expect(sent.frames).toBe(0);
 
-      act(() => screens.set(false));
+    act(() => screens.set(false));
 
-      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
-      await waitFor(() => expect(sent.events).toEqual(["second_screen_connected", "second_screen_disconnected"]));
-      await speak();
-      await waitFor(() => expect(sent.frames).toBe(1));
-    });
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(sent.events).toEqual(["second_screen_connected", "second_screen_disconnected"]));
+    await speak();
+    await waitFor(() => expect(sent.frames).toBe(1));
   });
 });

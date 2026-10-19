@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isDesktopChrome, proctoringSummaryText, requestEntireScreen } from "./proctoring";
+import { hasSecondScreen, isDesktopChrome, proctoringSummaryText, requestEntireScreen, watchScreens } from "./proctoring";
 
 // Real user-agent strings, one per browser a candidate might open the link in.
 const UA = {
@@ -70,19 +70,82 @@ describe("requestEntireScreen", () => {
   });
 });
 
+describe("hasSecondScreen and watchScreens", () => {
+  afterEach(() => vi.useRealTimers());
+
+  /** A screen as Chrome has it: isExtended, and "change" when a screen is plugged in or out. */
+  function chromeScreen(isExtended: boolean | undefined) {
+    const events = new EventTarget();
+    return {
+      isExtended,
+      addEventListener: events.addEventListener.bind(events),
+      removeEventListener: events.removeEventListener.bind(events),
+      change(next: boolean) {
+        this.isExtended = next;
+        events.dispatchEvent(new Event("change"));
+      },
+    };
+  }
+
+  it("is true only when Chrome reports more than one screen, and false when it can't tell", () => {
+    expect(hasSecondScreen(chromeScreen(true))).toBe(true);
+    expect(hasSecondScreen(chromeScreen(false))).toBe(false);
+    expect(hasSecondScreen(chromeScreen(undefined))).toBe(false);
+  });
+
+  it("calls back when a screen is plugged in or out, and stops after unsubscribing", () => {
+    const target = chromeScreen(false);
+    const onChange = vi.fn();
+    const unsubscribe = watchScreens(onChange, target);
+
+    target.change(true);
+    target.change(false);
+    unsubscribe();
+    target.change(true);
+
+    expect(onChange.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it("checks every few seconds too, in case Chrome doesn't fire the event", () => {
+    vi.useFakeTimers();
+    const target = chromeScreen(false);
+    const onChange = vi.fn();
+    const unsubscribe = watchScreens(onChange, target);
+
+    target.isExtended = true; // no event
+    vi.advanceTimersByTime(5000);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+
+    unsubscribe();
+    onChange.mockClear();
+    vi.advanceTimersByTime(10000);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("proctoringSummaryText", () => {
   const off = (stops: number, off_seconds: number) => ({ stops, off_seconds });
 
-  it("says when both stayed on", () => {
+  it("says when both stayed on, and that Chrome saw one screen when the API reports it", () => {
     expect(proctoringSummaryText({ camera: off(0, 0), screen: off(0, 0) })).toBe(
       "Camera and screen sharing stayed on throughout the interview."
+    );
+    expect(proctoringSummaryText({ camera: off(0, 0), screen: off(0, 0), second_screen: { connected: 0, seconds: 0 } })).toBe(
+      "Camera and screen sharing stayed on throughout the interview, and Chrome saw no second screen."
+    );
+  });
+
+  it("says how often and how long a second screen was connected", () => {
+    expect(proctoringSummaryText({ camera: off(1, 10), screen: off(0, 0), second_screen: { connected: 2, seconds: 95 } })).toBe(
+      "The camera was off once (10 s in total); a second screen was connected twice (1 min 35 s in total). " +
+        "The interview paused each time until it was put right."
     );
   });
 
   it("says how often and how long each was off", () => {
     expect(proctoringSummaryText({ camera: off(2, 80), screen: off(1, 35) })).toBe(
       "The camera was off twice (1 min 20 s in total); screen sharing stopped once (35 s in total). " +
-        "The interview paused each time until it was back."
+        "The interview paused each time until it was put right."
     );
     expect(proctoringSummaryText({ camera: off(0, 0), screen: off(3, 120) })).toMatch(/^Screen sharing stopped 3 times \(2 min in total\)\./);
   });

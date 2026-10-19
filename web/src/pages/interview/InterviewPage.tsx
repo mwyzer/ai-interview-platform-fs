@@ -25,7 +25,9 @@ import ProctoringSetup from "@/components/interview/ProctoringSetup";
 import ProctoringPause from "@/components/interview/ProctoringPause";
 import InterviewComplete from "@/components/interview/InterviewComplete";
 import InterviewNotice from "@/components/interview/InterviewNotice";
-import { CAMERA_ERROR, SCREEN_SHARE_ERRORS, isDesktopChrome, requestCamera, requestEntireScreen } from "@/utils/proctoring";
+import {
+  CAMERA_ERROR, SCREEN_SHARE_ERRORS, hasSecondScreen, isDesktopChrome, requestCamera, requestEntireScreen, watchScreens,
+} from "@/utils/proctoring";
 import { cn } from "@/lib/utils";
 import { timerRuns } from "@/utils/interviewClock";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
@@ -48,6 +50,8 @@ export default function InterviewPage() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [proctoringAcknowledged, setProctoringAcknowledged] = useState(false);
+  // Whether Chrome sees more than one screen; a proctored interview needs one, from setup to the end.
+  const [secondScreen, setSecondScreen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // True while the camera or screen share is off during a proctored interview: every path that turns the mic on
   // checks it.
@@ -223,11 +227,18 @@ export default function InterviewPage() {
     stopPlayback();
   }, [interviewState, stopCapture, stopPlayback]);
 
+  const proctoringRequired = !!candidateInfo?.proctoring_required;
+  useEffect(() => {
+    if (!proctoringRequired) return;
+    setSecondScreen(hasSecondScreen());
+    return watchScreens(setSecondScreen);
+  }, [proctoringRequired]);
+
   // ── Proctoring during the interview ─────────────────────────────────────
-  // A stopped camera or screen share pauses the interview: the mic goes off until it's back, and the timer keeps
-  // running. Each stop and resume is reported to the server for the assessor, once.
-  const [stopped, setStopped] = useState({ camera: false, screen: false });
-  const stoppedRef = useRef({ camera: false, screen: false });
+  // A stopped camera or screen share, or a second screen, pauses the interview: the mic goes off until it's put
+  // right, and the timer keeps running. Each break and fix is reported to the server for the assessor, once.
+  const [stopped, setStopped] = useState({ camera: false, screen: false, secondScreen: false });
+  const stoppedRef = useRef({ camera: false, screen: false, secondScreen: false });
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
   const watchProctoring =
@@ -253,7 +264,15 @@ export default function InterviewPage() {
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [watchProctoring, cameraStream, screenStream, sendJson]);
 
-  const paused = stopped.camera || stopped.screen;
+  // A second screen needs no button: unplugging it is the fix, and Chrome says so.
+  useEffect(() => {
+    if (!watchProctoring || stoppedRef.current.secondScreen === secondScreen) return;
+    stoppedRef.current = { ...stoppedRef.current, secondScreen };
+    setStopped(stoppedRef.current);
+    sendJson({ type: "proctoring", event: secondScreen ? "second_screen_connected" : "second_screen_disconnected" });
+  }, [watchProctoring, secondScreen, sendJson]);
+
+  const paused = stopped.camera || stopped.screen || stopped.secondScreen;
   useEffect(() => {
     proctoringPausedRef.current = paused;
     if (paused) muteRef.current?.();
@@ -297,8 +316,7 @@ export default function InterviewPage() {
       ? "connected"
       : "reconnecting";
 
-  const proctoring = !!candidateInfo?.proctoring_required;
-  const proctoringReady = !!cameraStream && !!screenStream && proctoringAcknowledged;
+  const proctoringReady = !!cameraStream && !!screenStream && !secondScreen && proctoringAcknowledged;
 
   if (loadError) return <InterviewNotice kind={loadError} onRetry={loadCandidateInfo} />;
 
@@ -315,7 +333,7 @@ export default function InterviewPage() {
           )}
         </div>
 
-        {proctoring && !isDesktopChrome() ? (
+        {proctoringRequired && !isDesktopChrome() ? (
           <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
             <Monitor className="mx-auto h-8 w-8 text-primary" />
             <h2 className="font-semibold">This interview needs Chrome on a computer</h2>
@@ -339,10 +357,11 @@ export default function InterviewPage() {
               <p>• The session will last up to {candidateInfo?.time_limit_min ?? "—"} minutes.</p>
               <p>• Your mic will be active throughout. You can end anytime.</p>
             </div>
-            {proctoring && (
+            {proctoringRequired && (
               <ProctoringSetup
                 camera={cameraStream}
                 screen={screenStream}
+                secondScreen={secondScreen}
                 acknowledged={proctoringAcknowledged}
                 onCamera={setCameraStream}
                 onScreen={setScreenStream}
@@ -350,7 +369,7 @@ export default function InterviewPage() {
               />
             )}
             <HardwareCheck
-              extraReady={!proctoring || proctoringReady}
+              extraReady={!proctoringRequired || proctoringReady}
               onStart={() => { setHardwareCheckDone(true); startInterview(); }}
             />
           </div>
@@ -404,6 +423,7 @@ export default function InterviewPage() {
         <ProctoringPause
           camera={stopped.camera}
           screen={stopped.screen}
+          secondScreen={stopped.secondScreen}
           busy={resumeBusy}
           error={resumeError}
           onResumeCamera={resumeCamera}
