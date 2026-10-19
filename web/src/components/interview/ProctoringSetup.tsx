@@ -126,7 +126,7 @@ export default function ProctoringSetup({ camera, screen, secondScreen, acknowle
             )}
           </div>
           {!secondScreen && (
-            <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle className="h-4 w-4" /> One screen</span>
+            <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle className="h-4 w-4" /> Only one</span>
           )}
         </div>
 
