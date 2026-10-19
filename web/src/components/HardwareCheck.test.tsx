@@ -56,26 +56,23 @@ describe("HardwareCheck", { timeout: 20000 }, () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Start Interview" })).toBeEnabled());
   });
 
-  describe("known defect (P2-21)", () => {
-    it.fails("checks the microphone and audio output even when the connection check fails", async () => {
-      vi.mocked(testInternetSpeed).mockResolvedValue(speed(false));
-      render(<HardwareCheck />);
+  it("checks the microphone and audio output even when the connection check fails (P2-21)", async () => {
+    vi.mocked(testInternetSpeed).mockResolvedValue(speed(false));
+    render(<HardwareCheck />);
 
-      await statusOf("Internet", "Failed");
-      // Today they stay "Waiting": each check starts only when the one before it passes.
-      await statusOf("Microphone", "Passed");
-      await statusOf("Audio output", "Passed");
-      expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
-    });
+    await statusOf("Internet", "Failed");
+    await statusOf("Microphone", "Passed");
+    await statusOf("Audio output", "Passed");
+    expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
+  });
 
-    it.fails("checks the audio output even when the microphone is blocked", async () => {
-      vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
-      vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(new DOMException("denied", "NotAllowedError"));
-      render(<HardwareCheck />);
+  it("checks the audio output even when the microphone is blocked (P2-21)", async () => {
+    vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    render(<HardwareCheck />);
 
-      await statusOf("Microphone", "Failed");
-      await statusOf("Audio output", "Passed");
-      expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
-    });
+    await statusOf("Microphone", "Failed");
+    await statusOf("Audio output", "Passed");
+    expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
   });
 });
