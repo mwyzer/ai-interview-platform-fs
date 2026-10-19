@@ -5,7 +5,7 @@ import { API, server } from "../server";
 import { renderApp } from "../render";
 import { assessment, assessmentWithSkills, skillTaxonomies } from "../fixtures";
 
-type Sent = { assessment: { name: string; time_limit_min: number; language?: string; assessment_skills_attributes: Array<Record<string, unknown>> } };
+type Sent = { assessment: { name: string; time_limit_min: number; language?: string; proctoring_required?: boolean; assessment_skills_attributes: Array<Record<string, unknown>> } };
 
 // The invite page the forms navigate to after a save.
 function serveInvitePage() {
@@ -38,11 +38,27 @@ describe("Creating an assessment", () => {
     await user.click(screen.getByRole("button", { name: /Save & Create Session/ }));
 
     expect(await screen.findByRole("heading", { name: "Senior Frontend Engineer" })).toBeInTheDocument();
-    expect(sent?.assessment).toMatchObject({ name: "Senior Frontend Engineer", time_limit_min: 45, language: "en" });
+    expect(sent?.assessment).toMatchObject({ name: "Senior Frontend Engineer", time_limit_min: 45, language: "en",
+                                             proctoring_required: false });
     expect(sent?.assessment.assessment_skills_attributes).toEqual([
       expect.objectContaining({ skill_label: "React", is_custom: false, expected_level: 3, display_order: 0,
                                 l3_anchor: "Handles ambiguity and trade-offs." }),
     ]);
+  });
+
+  it("requires camera and full-screen sharing when the assessor turns it on", async () => {
+    let sent: Sent | undefined;
+    serveCreate((body) => (sent = body));
+    const { user } = renderApp("/assessments/new");
+
+    await user.type(screen.getByLabelText(/Role title/), "Senior Frontend Engineer");
+    await user.click(screen.getByRole("checkbox", { name: /Require camera and full-screen sharing/ }));
+    await user.click(screen.getByRole("button", { name: /Add from Skill Taxonomy/ }));
+    await user.click(await screen.findByRole("button", { name: "React" }));
+    await user.click(screen.getByRole("button", { name: /Save & Create Session/ }));
+
+    expect(await screen.findByRole("heading", { name: "Senior Frontend Engineer" })).toBeInTheDocument();
+    expect(sent?.assessment.proctoring_required).toBe(true);
   });
 
   it("saves a custom skill with its scope, anchors and the expected level picked", async () => {

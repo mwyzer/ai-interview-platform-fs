@@ -56,6 +56,15 @@ describe("HardwareCheck", { timeout: 20000 }, () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Start Interview" })).toBeEnabled());
   });
 
+  it("keeps Start disabled until the camera and screen share are ready, when the assessment requires them", async () => {
+    vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
+    render(<HardwareCheck extraReady={false} />);
+
+    await statusOf("Audio output", "Passed");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
+  });
+
   it("checks the microphone and audio output even when the connection check fails (P2-21)", async () => {
     vi.mocked(testInternetSpeed).mockResolvedValue(speed(false));
     render(<HardwareCheck />);
