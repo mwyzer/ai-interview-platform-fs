@@ -20,7 +20,9 @@ import { useAudioPlayback } from "@/hooks/useAudioPlayback";
 import { useAudioWebSocket } from "@/hooks/useAudioWebSocket";
 import { sessionsApi } from "@/services/sessions";
 import HardwareCheck from "@/components/HardwareCheck";
-import { CheckCircle, Mic, MicOff, WifiOff, X } from "lucide-react";
+import { CheckCircle, Mic, MicOff, Monitor, WifiOff, X } from "lucide-react";
+import ProctoringSetup from "@/components/interview/ProctoringSetup";
+import { isDesktopChrome } from "@/utils/proctoring";
 import { cn } from "@/lib/utils";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
@@ -37,6 +39,18 @@ export default function InterviewPage() {
   const reconnectedPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectionLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [micMuted, setMicMuted] = useState(false);
+  // Camera and entire-screen share, for assessments that require them: held here so they stay live into the
+  // interview, and stopped when it's over or the page closes. Never recorded.
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [proctoringAcknowledged, setProctoringAcknowledged] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const proctoringStreamsRef = useRef<(MediaStream | null)[]>([]);
+  proctoringStreamsRef.current = [cameraStream, screenStream];
+  useEffect(() => () => proctoringStreamsRef.current.forEach((s) => s?.getTracks().forEach((t) => t.stop())), []);
+  useEffect(() => {
+    if (interviewState === "complete") proctoringStreamsRef.current.forEach((s) => s?.getTracks().forEach((t) => t.stop()));
+  }, [interviewState]);
   const micMutedRef = useRef(false);
   // The live transcript scrolls itself to the newest turn, also when a notice or the stage changes its height.
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -194,6 +208,9 @@ export default function InterviewPage() {
       ? "connected"
       : "reconnecting";
 
+  const proctoring = !!candidateInfo?.proctoring_required;
+  const proctoringReady = !!cameraStream && !!screenStream && proctoringAcknowledged;
+
   // ── State A: Pre-start ──────────────────────────────────────────────────
   if (interviewState === "idle") {
     return (
@@ -207,7 +224,23 @@ export default function InterviewPage() {
           )}
         </div>
 
-        {!hardwareCheckDone ? (
+        {proctoring && !isDesktopChrome() ? (
+          <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
+            <Monitor className="mx-auto h-8 w-8 text-primary" />
+            <h2 className="font-semibold">This interview needs Chrome on a computer</h2>
+            <p className="text-sm text-muted-foreground">
+              It asks you to keep your camera on and share your entire screen, which phones and other browsers
+              can't do. Open your invite link in Google Chrome on a laptop or desktop computer.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => setLinkCopied(true), () => {})}
+            >
+              {linkCopied ? "Link copied" : "Copy invite link"}
+            </Button>
+          </div>
+        ) : !hardwareCheckDone ? (
           <div className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1.5 text-muted-foreground">
               <p>• This is a voice interview. Make sure you're in a quiet place.</p>
@@ -215,7 +248,20 @@ export default function InterviewPage() {
               <p>• The session will last up to {candidateInfo?.time_limit_min ?? "—"} minutes.</p>
               <p>• Your mic will be active throughout. You can end anytime.</p>
             </div>
-            <HardwareCheck onStart={() => { setHardwareCheckDone(true); startInterview(); }} />
+            {proctoring && (
+              <ProctoringSetup
+                camera={cameraStream}
+                screen={screenStream}
+                acknowledged={proctoringAcknowledged}
+                onCamera={setCameraStream}
+                onScreen={setScreenStream}
+                onAcknowledge={setProctoringAcknowledged}
+              />
+            )}
+            <HardwareCheck
+              extraReady={!proctoring || proctoringReady}
+              onStart={() => { setHardwareCheckDone(true); startInterview(); }}
+            />
           </div>
         ) : (
           <div className="space-y-4">

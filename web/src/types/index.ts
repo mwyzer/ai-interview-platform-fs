@@ -3,6 +3,7 @@ export interface Assessment {
   name: string;
   time_limit_min: number;
   language?: "en" | "id";
+  proctoring_required?: boolean;
   system_prompt?: string;
   created_by?: number;
   created_at?: string;
@@ -174,6 +175,7 @@ export interface CandidateInfo {
   role_title: string;
   time_limit_min: number;
   session_status: string;
+  proctoring_required?: boolean;
 }
 
 export interface PaginationMeta {

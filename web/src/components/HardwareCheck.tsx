@@ -13,6 +13,8 @@ import { RefreshCw, CheckCircle, XCircle, Loader2, Circle } from "lucide-react";
 
 interface HardwareCheckProps {
     onStart?: () => void;
+    // Anything else that must be ready before Start (the camera and screen share, when the assessment requires them).
+    extraReady?: boolean;
 }
 
 function StateIcon({ state }: { state: ProctoringState }) {
@@ -34,7 +36,7 @@ function stateLabel(state: ProctoringState) {
 
 const REQUIRE_CAMERA = import.meta.env.VITE_REQUIRE_CAMERA === "true";
 
-const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart }) => {
+const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = true }) => {
     const [progress, setProgress] = useState<HardwareCheckingProgress>({
         osAndBrowser: ProctoringState.WAITING,
         internet: ProctoringState.WAITING,
@@ -142,7 +144,10 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart }) => {
 
         const getStream = REQUIRE_CAMERA
             ? checkCamera()
-            : navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+            : navigator.mediaDevices?.getUserMedia
+                // No mediaDevices on a page served over plain http: report the mic as failed rather than throw.
+                ? navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null)
+                : Promise.resolve(null);
 
         getStream.then((stream) => {
             if (stream) {
@@ -283,7 +288,7 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart }) => {
                 <Button
                     size="sm"
                     className="ml-auto"
-                    disabled={!allPassed}
+                    disabled={!allPassed || !extraReady}
                     onClick={onStart}
                 >
                     Start Interview

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { API, server } from "../server";
 import { renderApp } from "../render";
@@ -34,6 +34,47 @@ describe("Candidate interview page", () => {
     expect(screen.getAllByText(/45 minutes/).length).toBeGreaterThan(0);
     expect(screen.getByText(/This is a voice interview/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign in" })).not.toBeInTheDocument();
+  });
+
+  describe("when the assessment requires camera and full-screen sharing", () => {
+    const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+    const ANDROID = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
+    const EDGE = `${CHROME} Edg/130.0.0.0`;
+
+    afterEach(() => vi.restoreAllMocks());
+
+    function openAs(userAgent: string, proctoring_required = true) {
+      vi.spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent);
+      server.use(http.get(`${API}/sessions/tok-test-123/candidate`, () => HttpResponse.json({ ...candidateInfo, proctoring_required })));
+      renderApp("/interview/tok-test-123", { token: null });
+    }
+
+    it("asks for the camera and the entire screen, with the notice, in Chrome on a computer", async () => {
+      openAs(CHROME);
+
+      expect(await screen.findByRole("heading", { name: "Camera and screen sharing" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Turn on camera" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Share your entire screen" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
+    });
+
+    it("explains that a phone or another browser can't take it", async () => {
+      for (const ua of [ANDROID, EDGE]) {
+        openAs(ua);
+        expect(await screen.findByRole("heading", { name: "This interview needs Chrome on a computer" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Start Interview" })).not.toBeInTheDocument();
+        cleanup();
+        vi.restoreAllMocks();
+      }
+    });
+
+    it("keeps today's voice-only setup when the assessment doesn't require it", async () => {
+      openAs(ANDROID, false);
+
+      expect(await screen.findByRole("heading", { name: "Senior Frontend Engineer" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Camera and screen sharing" })).not.toBeInTheDocument();
+      expect(screen.queryByText(/needs Chrome on a computer/)).not.toBeInTheDocument();
+    });
   });
 
   it("shows the closing screen when the interview has already ended", async () => {
