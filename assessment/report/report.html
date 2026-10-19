@@ -180,8 +180,10 @@
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/21">21</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/22">22</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/23">23</a>,
-      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/24">24</a>;
-      25 is on the PR branch</dd>
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/24">24</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/25">25</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/26">26</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/27">27</a></dd>
     <dt>Video (3–5 min)</dt><dd class="missing">To add: unlisted link</dd>
     <dt>Working docs</dt><dd><code>assessment/</code> in the PR branch: work log, Steps 2–4, testing overview, GUARDRAILS</dd>
     <dt>Date</dt><dd>October 2026</dd>
@@ -244,7 +246,11 @@
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
       Then production guards (paid model tier, one login company per deployment), browser tests at 1280px and 375px,
       clearer login errors, accessibility fixes, and coverage floors and security scans in CI.
-      The PDF export works for overridden portfolios (P1-13), and the audio proxy is under test, which found P2-20. <strong>398 API specs</strong> and <strong>180 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
+      The PDF export works for overridden portfolios (P1-13), and the audio proxy is under test, which found P2-20.
+      Sub-PRs 16 to 27 upgrade Rails to 8.1, fix invite links (P1-15), redesign the candidate's pages, and add optional
+      proctoring (camera, entire screen, one screen; P2-28), monitored and never recorded. They fix what that work turned up:
+      portfolio retries (P2-26), an end screen that says what happened and turns the microphone off (P2-27, P1-11), and a
+      production header that blocked the camera (P1-16). <strong>401 API specs</strong> and <strong>206 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
   </table>
 </section>
 
@@ -386,10 +392,12 @@ flowchart TB
     <tr><td><span class="tag p1">P1-7</span></td><td>Passwords and assessor notes in the request log.</td><td>Secrets and personal data in plain text.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-8/9</span></td><td>Assessment list loads page 1 only; every ended session reads "completed". <span class="tag seam">SEAM</span></td><td>Assessments past the 20th are unreachable; early-ended interviews look complete.</td><td>Defect / spec</td></tr>
     <tr><td><span class="tag p1">P1-10</span></td><td>Anyone with the invite link can end the interview as "all skills covered", no auth.</td><td>A leaked link ends a never-started session and stores a "complete" portfolio with 0 skills.</td><td>Defect</td></tr>
-    <tr><td><span class="tag p1">P1-11</span></td><td>A broken invite link says "The interview has been recorded."</td><td>A candidate who never interviewed waits for a reply that never comes.</td><td>Defect</td></tr>
+    <tr><td><span class="tag p1">P1-11</span></td><td>A broken invite link says "The interview has been recorded." Fixed in sub-PR 26.</td><td>A candidate who never interviewed waits for a reply that never comes.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-12</span></td><td>The hardware check depends on third-party hosts. Without a CSP it calls them before any notice; under the repo's own production CSP they're blocked and the check can never pass.</td><td>Either the candidate's IP leaves before consent, or <strong>Start stays disabled for every candidate</strong>. P0 if production serves that CSP (C8).</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-13</span></td><td>PDF export crashes on any overridden portfolio (an <code>→</code> the font can't encode). Fixed in sub-PR 14.</td><td>It fails on exactly the portfolios a human reviewed most closely.</td><td>Defect</td></tr>
     <tr><td><span class="tag p1">P1-14</span></td><td>Removing a skill on the assessment or vacancy edit form doesn't remove it: the web leaves it out instead of sending <code>_destroy</code>, and the API keeps it. <span class="tag seam">SEAM</span></td><td>The interviewer still asks about a deleted skill, and on a vacancy it keeps counting in every fit/gap report.</td><td>Defect</td></tr>
+    <tr><td><span class="tag p1">P1-15</span></td><td>Invite links point at the API, not the web app (<code>APP_BASE_URL</code> fell back to the API's port). Fixed in sub-PR 17.</td><td>On a setup that follows the README, every link an assessor sends is a 404 and no candidate can start.</td><td>Defect</td></tr>
+    <tr><td><span class="tag p1">P1-16</span></td><td>The production headers in <code>vercel.json</code> turn the camera off (<code>Permissions-Policy: camera=()</code>). Fixed in sub-PR 27.</td><td>Wherever that file is served, no candidate can get past the camera step of a proctored interview (C8).</td><td>Defect</td></tr>
   </table>
 
   <p class="small"><strong>P2 (17)</strong>: failure states are dead ends (endless spinner, blank page); retries never
@@ -408,7 +416,7 @@ flowchart TB
       can sign in to any company (pinned in sub-PR 8; since sub-PR 9 production names one company per deployment).</span></td></tr>
     <tr><td class="n">C3</td><td><strong>Shared database with another service.</strong> Migrations must be coordinated and reversible.</td></tr>
     <tr><td class="n">C4</td><td><strong>No retention or erasure policy.</strong> A product and legal decision, not an engineering default.</td></tr>
-    <tr><td class="n">C8</td><td><strong>The production web config can't be verified from the repo.</strong> Under the CSP in <code>vercel.json</code>, no candidate can start (P1-12). I'd ask first whether production serves it; if so, it outranks everything else.</td></tr>
+    <tr><td class="n">C8</td><td><strong>The production web config can't be verified from the repo.</strong> Under the CSP in <code>vercel.json</code>, no candidate can start (P1-12), and its Permissions-Policy blocked the camera (P1-16, fixed). I'd ask first whether production serves it; if so, it outranks everything else.</td></tr>
     <tr><td class="n">C1, C6, C7</td><td>Model IDs were retired and the free tier forbids personal data; the candidate is whoever holds the link; CORS allows any origin.</td></tr>
   </table>
 </section>
@@ -604,11 +612,11 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">398</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14, 40 in sub-PR 15, 16 more in sub-PRs 16 to 25</span>). 3 pending, all known
+    <div class="card"><div class="stat">401</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14, 40 in sub-PR 15, 16 more in sub-PRs 16 to 25, 3 in sub-PR 27</span>). 3 pending, all known
       defects outside this change (P1-10, P2-3, <span class="added">C2</span>).</div></div>
-    <div class="card"><div class="stat">180</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
-      filling test gaps, 1 in sub-PR 11, 30 more in sub-PRs 16 to 25); 22 expected to fail (other known defects), 7 skipped without a live API.
+    <div class="card"><div class="stat">206</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
+      filling test gaps, 1 in sub-PR 11, 30 more in sub-PRs 16 to 25, 9 in sub-PR 26, 17 in sub-PR 27); 21 expected to fail (other known defects), 7 skipped without a live API.
       <code>tsc</code> clean. Browser tests (sub-PRs 10 and 12) run separately, in CI.</div></div>
     <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
       across the five sub-PRs (API 5 + 46 + 9, web 29 + 29).</div></div>
