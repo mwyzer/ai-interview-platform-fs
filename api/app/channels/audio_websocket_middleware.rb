@@ -421,6 +421,9 @@ class AudioWebSocketMiddleware
     message = JSON.parse(data)
 
     case message['type']
+    when 'proctoring'
+      # The page reports the camera or screen share stopping and coming back; the model keeps only known events.
+      state.session&.record_proctoring_event!(message['event'].to_s)
     when 'debug_force_reconnect'
       if Rails.env.development?
         Rails.logger.warn("[AudioWS] DEBUG: forcing Gemini disconnect for session #{state.session&.id}")

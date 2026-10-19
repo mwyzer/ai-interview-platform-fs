@@ -278,6 +278,19 @@ RSpec.describe AudioWebSocketMiddleware do
       expect(browser).to be_closed
     end
 
+    it 'records a camera or screen-share stop that the candidate page reports' do
+      browser.fire(:message, { type: 'proctoring', event: 'screen_stopped' }.to_json)
+
+      expect(session.reload.proctoring_events.pluck('event')).to eq(['screen_stopped'])
+      expect(session).to be_active
+    end
+
+    it 'ignores a proctoring event it does not know' do
+      browser.fire(:message, { type: 'proctoring', event: 'end_interview' }.to_json)
+
+      expect(session.reload.proctoring_events).to be_empty
+    end
+
     it 'ignores a malformed control message' do
       expect { browser.fire(:message, '{not json') }.not_to raise_error
       expect(session.reload).to be_active
