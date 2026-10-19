@@ -199,7 +199,7 @@ describe("Portfolio review", () => {
     });
 
     // Found when the Sidekiq container had stopped: the page promised "about 2 minutes" and spun for hours.
-    it.fails("P2-22: stops waiting after three minutes and says so, instead of spinning forever", async () => {
+    it("P2-22: stops waiting after three minutes and says so, instead of spinning forever", async () => {
       serve(() => HttpResponse.json({ status: "generating" }, { status: 202 }));
       renderApp(PAGE);
       expect(await screen.findByText("Generating portfolio...")).toBeInTheDocument();

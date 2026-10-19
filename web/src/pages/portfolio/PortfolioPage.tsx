@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,6 +12,9 @@ import { usePolling } from "@/hooks/usePolling";
 import { ArrowLeft, Download, Loader2, RefreshCw, Zap, FileText } from "lucide-react";
 import { END_REASON_LABELS, parseLevel } from "@/utils/constants";
 import type { Portfolio, AssessorOverride, Vacancy, Session } from "@/types";
+
+// Generation usually takes about two minutes; past three, stop polling and tell the assessor (P2-22).
+export const PORTFOLIO_WAIT_TIMEOUT_MS = 3 * 60_000;
 
 /**
  * "2 of 3 skills weren't assessed. The interview ended after 6 minutes (ended by the candidate)." (AC-24)
@@ -52,13 +55,24 @@ export default function PortfolioPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const waitStartedAt = useRef<number | null>(null);
 
   const fetchPortfolio = useCallback(async () => {
     const res = await sessionsApi.getPortfolio(Number(sessionId));
     const data = res.data as any;
     if (data.status === "generating" || data.portfolio?.generation_status === "generating" || data.portfolio?.generation_status === "pending") {
+      // Stop after a while and say so, rather than spin while nothing runs the job (P2-22).
+      if (waitStartedAt.current === null) waitStartedAt.current = Date.now();
+      if (Date.now() - waitStartedAt.current > PORTFOLIO_WAIT_TIMEOUT_MS) {
+        setGenerating(false);
+        setTimedOut(true);
+        return;
+      }
       setGenerating(true);
     } else if (data.portfolio) {
+      waitStartedAt.current = null;
+      setTimedOut(false);
       setPortfolio(data.portfolio);
       setGenerating(false);
       // Build overrides map
@@ -228,6 +242,30 @@ export default function PortfolioPage() {
               The AI is analyzing the interview transcript. This takes about 2 minutes.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Still generating well past the usual time */}
+      {timedOut && (
+        <div role="alert" className="border border-amber-300 rounded-lg p-6 text-center space-y-3">
+          <div>
+            <p className="font-medium">This is taking longer than expected.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              The portfolio is still being generated after 3 minutes; it usually takes about 2. Check again in a few
+              minutes, and if it still isn't ready, let your administrator know.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              waitStartedAt.current = null;
+              setTimedOut(false);
+              load();
+            }}
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Check again
+          </Button>
         </div>
       )}
 
