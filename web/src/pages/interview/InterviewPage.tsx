@@ -25,6 +25,7 @@ import ProctoringSetup from "@/components/interview/ProctoringSetup";
 import ProctoringPause from "@/components/interview/ProctoringPause";
 import { CAMERA_ERROR, SCREEN_SHARE_ERRORS, isDesktopChrome, requestCamera, requestEntireScreen } from "@/utils/proctoring";
 import { cn } from "@/lib/utils";
+import { timerRuns } from "@/utils/interviewClock";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
 export default function InterviewPage() {
@@ -407,7 +408,7 @@ export default function InterviewPage() {
           <div className="shrink-0 rounded-full bg-white px-3 py-1 shadow-sm">
             <InterviewTimer
               totalSeconds={candidateInfo.time_limit_min * 60}
-              running={interviewState === "active"}
+              running={timerRuns(interviewState)}
               onExpired={endInterview}
             />
           </div>

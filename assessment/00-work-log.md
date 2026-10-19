@@ -961,6 +961,28 @@ existing vacancy and invite tests timed out under load (15 s each) and passed on
 **Limits.** Only what the page sees: a candidate who covers the camera or switches windows on a shared screen
 isn't caught, and a modified page could send nothing. The record says what the page reported, nothing more.
 
+### Sub-PR 24: the hardware check and the timer, reviewed (P2-23, P2-24, P2-25, branch `fix/hardware-check-lifecycle`)
+
+**Asked for.** A check of `HardwareCheck.tsx`, `hardwareUtils.ts`, `internetSpeedTest.ts` and `InterviewTimer.tsx`.
+
+**Found and fixed** (each pinned with `it.fails` first, failing on its assertion):
+- **P2-23, Retry stuck.** Proven with a throwaway test before reporting it: after Retry, "OS & browser" stayed
+  "Checking..." and the speed test ran once. Each run now has a number; Retry stops the last run's streams and
+  starts a new one, and late results from an older run are dropped.
+- **P2-24, the mic left on.** The check's stream and its meter loop were never stopped. Now stopped when the check
+  goes away or reruns; the tone's AudioContext closes after it plays. In Chrome: the check's stream is `ended` once
+  the interview starts, and only the capture stays live.
+- **P2-25, the timer stopped while reconnecting.** It now counts while reconnecting, as the server's ceiling does,
+  and still stops while the interview wraps up.
+
+**Found, not fixed** (in the PR): the timer restarts from the full time when an active interview is reopened (the
+candidate endpoint has no `started_at`) and counts down tick by tick, so it drifts and slows in background tabs;
+the download test can be served from cache on its second and third runs (`no-cache` revalidates; `no-store`
+wouldn't); the upload test times httpbin echoing the payload back, so it counts a download too; "OS & browser"
+always passes; "Audio output" can't tell whether anyone heard the tone.
+
+Web: 180 passed, 22 expected fail, 7 skipped (29 files).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
