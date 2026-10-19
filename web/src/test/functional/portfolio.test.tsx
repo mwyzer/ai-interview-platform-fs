@@ -190,6 +190,21 @@ describe("Portfolio review", () => {
   });
 
   describe("known defects (assessment/03-problem-and-gap.md)", () => {
+    it.fails("P2-28: says when a second screen was connected during a proctored interview", async () => {
+      serve(() => HttpResponse.json({ portfolio }));
+      const quiet = { stops: 0, off_seconds: 0 };
+      server.use(
+        http.get(`${API}/sessions/42`, () =>
+          HttpResponse.json({
+            session: { ...sessionShow.session, proctoring: { camera: quiet, screen: quiet, second_screen: { connected: 1, seconds: 40 } } },
+          })
+        )
+      );
+      renderApp(PAGE);
+
+      expect(await screen.findByText(/A second screen was connected once \(40 s in total\)/)).toBeInTheDocument();
+    });
+
     // Today a null level doesn't render as L1 here: parseLevel(null) throws and the
     // whole page is replaced by "Something went wrong." The API fix alone would
     // break this screen, so both sides of the seam must ship together.
