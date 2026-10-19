@@ -17,6 +17,8 @@
            tint, reach WCAG AA 4.5:1 (5.09 and 4.61; was 3.55 and 3.28). P2-18. */
         --primary: 184 100% 25%;
         --primary-foreground: 0 0% 98%;
+        /* The same teal, deep (#003F44), behind white text on the login header: 11.7:1 (white at 60%: 5.2:1). */
+        --primary-deep: 184 100% 13%;
 
         /* Rakamin yellow: #FBC037 → hsl(43, 96%, 60%) */
         --secondary: 43 96% 60%;
