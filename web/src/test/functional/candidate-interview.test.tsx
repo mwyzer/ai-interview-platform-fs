@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { API, server } from "../server";
 import { renderApp } from "../render";
@@ -88,6 +88,18 @@ describe("Candidate interview page", () => {
     expect(await screen.findByText("Interview Complete")).toBeInTheDocument();
   });
 
+  it("P1-11: tells someone with a broken link that the link doesn't work, not that their interview was recorded", async () => {
+    server.use(
+      http.get(`${API}/sessions/not-a-token/candidate`, () =>
+        HttpResponse.json(notFound("Invalid or expired invite token"), { status: 404 })
+      )
+    );
+    renderApp("/interview/not-a-token", { token: null });
+
+    expect(await screen.findByRole("heading", { name: "This interview link doesn't work" })).toBeInTheDocument();
+    expect(screen.queryByText(/has been recorded/)).not.toBeInTheDocument();
+  });
+
   describe("known defects", () => {
     it.fails("does not send the candidate's connection to third-party hosts before the interview", async () => {
       server.use(http.get(`${API}/sessions/tok-test-123/candidate`, () => HttpResponse.json(candidateInfo)));
@@ -97,18 +109,6 @@ describe("Candidate interview page", () => {
       // Give the hardware check time to start its measurements, then expect none went out.
       await new Promise((resolve) => setTimeout(resolve, 1500));
       expect(thirdParty).toEqual([]);
-    });
-
-    it.fails("does not tell someone with a broken link that their interview was recorded", async () => {
-      server.use(
-        http.get(`${API}/sessions/not-a-token/candidate`, () =>
-          HttpResponse.json(notFound("Invalid or expired invite token"), { status: 404 })
-        )
-      );
-      renderApp("/interview/not-a-token", { token: null });
-
-      await waitFor(() => expect(screen.getByText(/invalid|expired|not found/i)).toBeInTheDocument());
-      expect(screen.queryByText(/has been recorded/)).not.toBeInTheDocument();
     });
 
     it.fails("P2-4: says before the interview starts that it is recorded and assessed by AI", async () => {
