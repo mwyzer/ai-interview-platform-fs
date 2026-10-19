@@ -913,6 +913,32 @@ started), so the likely cause is the device (output device, muted tab), which th
 audio-output test is a 0.1 s tone at 1% volume that passes whenever nothing throws. Gemini also heard almost nothing
 from the candidate ("que"), so the proxy forced about 20 reconnects for silence.
 
+### Sub-PR 22: proctored interview setup (branch `feat/proctoring-setup`)
+
+**Asked for.** On the invite page: enable camera, screen share and microphone; a notice not to turn off camera or
+screen sharing and to share the entire screen, not a tab or window; Chrome only.
+
+**Decided with the user first** (each changed what gets built): camera and screen must stay on but are **not
+recorded** (recording needs storage, retention and legal sign-off); if either stops, the interview **pauses** until
+it's back (sub-PR 23); **Chrome on a computer only**, since phones can't share their screen; and it's a
+**per-assessment setting**, off by default, so voice-only interviews on phones keep working.
+
+**Built.** `assessments.proctoring_required` (reversible migration; returned to the candidate page). The forms get
+the switch with its consequence spelled out. The invite page, when it's on: a Chrome-on-a-computer gate (brand list
+from User-Agent Client Hints first, so Edge, Opera and Brave, whose user agent is Chrome's, are told apart; phones
+refused); camera and entire-screen steps, refusing a tab or window from Chrome's `displaySurface`; the notice says
+plainly that both are only checked, never recorded; an "I understand" box; Start held back until all are done. The
+page holds the streams so they last into the interview. Found on the way: a page without `navigator.mediaDevices`
+(served over plain http) threw in the hardware check's mic step and stayed "Checking..."; it now fails the mic.
+
+**Checked.** API 388/0/3; web 170 passed, 22 expected fail, 7 skipped (27 files). In the dev stack with real Chrome
+(fake camera, auto-selected entire screen): Start disabled until the box is ticked, then enabled; an emulated
+Android phone gets the gate. A first script run said the phone wasn't gated: `isVisible()` doesn't wait, and it ran
+before the page had loaded; the screenshot showed the gate.
+
+**For Legal (UU PDP).** Camera and screen are personal data even unrecorded; the notice wording is engineering's
+draft and belongs with the consent step (07, item 1.2).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
