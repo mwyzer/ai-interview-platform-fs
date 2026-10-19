@@ -1040,6 +1040,40 @@ don't expire); the page shows the same message for both.
 
 Web: 189 passed, 22 expected fail, 7 skipped (32 files).
 
+### Sub-PR 27: a proctored interview needs one screen (P2-28, branch `feat/proctoring-second-screen`)
+
+**Asked.** Does the proctoring catch an extended monitor? It didn't: the setup refuses a tab or a window, but a
+candidate with two monitors could share one and use the other, and nothing recorded it.
+
+**Built** (pinned first: `it.fails` on the web, `pending` on the API; each pin was run unmarked and failed on its
+assertion):
+- Chrome reports a second screen as `screen.isExtended` (Window Management API, no permission prompt) and fires
+  `change` on `window.screen` when one is plugged in or out. The page listens, and checks every five seconds too.
+- Setup: a "One screen" row and a line in the notice; Start stays disabled while a second screen is connected.
+- During the interview a second screen pauses it like a stopped camera: no mic frames reach the server, the timer
+  runs. There's no button; the pause lifts once the screen is unplugged. Both are reported over the interview
+  socket (`second_screen_connected`, `_disconnected`).
+- The API records the pair and sums it apart, as `second_screen: { connected, seconds }`; the assessor's line says
+  "a second screen was connected N times (… in total)", or "Chrome saw no second screen".
+- Tests of the live page with proctoring didn't exist; the device fakes moved from `interview-end.test.tsx` to
+  `test/interview.ts`, with a camera, a screen share and screens added, and two tests of what already worked (the
+  mic sent on one screen, the pause when the camera stops) came with the pins.
+
+**Checked.** In Chromium 153, headless and headed: `isExtended` is there (false on this one-screen machine),
+`window.screen` is an event target with `onchange`, and the `window-management` policy allows it. The setup at
+1280px and 375px, with a second screen simulated (`Screen.prototype.isExtended`): the row's alert, Start disabled,
+no sideways scroll. **Not checked with a real second monitor.**
+
+**What it can't see.** A mirrored display (one screen to Chrome, and the same picture anyway), a second laptop or a
+phone, another person in the room; and anyone who hides a monitor from the OS. It stops the casual case and tells
+the assessor; it doesn't prove the candidate worked alone.
+
+**Found on the way, not fixed.** `web/vercel.json` sends `Permissions-Policy: camera=()`, which blocks the camera on
+every page it serves. If production is served with that file, a proctored interview can't get past the camera step
+(see C8: the production config isn't verifiable from the repo).
+
+API: 401 examples, 0 failures, 3 pending. Web: 201 passed, 22 expected fail, 7 skipped (33 files).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

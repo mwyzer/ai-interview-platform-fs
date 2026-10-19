@@ -19,7 +19,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 398 examples, 0 failures, 3 pending
+### API (RSpec): 401 examples, 0 failures, 3 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
@@ -30,7 +30,7 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 | Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
 | Production guards | 10 | Login pinned to the server-set company (3); boot refused on the free tier, without a login company (4) or without `APP_BASE_URL` (1, sub-PR 17); the app booted in production mode in a subprocess (2) (sub-PR 9) |
 | Audio proxy | 40 | `AudioWebSocketMiddleware` between fake browser and Gemini sockets, timers fired by hand: who may connect (invite link, assessor token, another company, ended session, mismatched ID); the opening; the echo gate; transcripts saved, numbered and kept free of the instructions sent to Gemini; End; reconnects with backoff and GoAway; the time warnings and ceiling; the two-minute grace after the browser leaves; the AI closing the interview (sub-PR 15) |
-| Proctoring | 9 | The setting: off by default, turned on per assessment, reaches the candidate endpoint (sub-PR 22). The stops: only known events recorded, capped at 200, summed per device (a repeated stop counts once, an unresumed stop runs to the end), sent by the page over the interview socket, shown to the assessor only when required (sub-PR 23) |
+| Proctoring | 12 | The setting: off by default, turned on per assessment, reaches the candidate endpoint (sub-PR 22). The stops: only known events recorded, capped at 200, summed per device (a repeated stop counts once, an unresumed stop runs to the end), sent by the page over the interview socket, shown to the assessor only when required (sub-PR 23). A second screen connected and disconnected, summed apart as times and seconds (P2-28, sub-PR 27) |
 | Integration | 28 | Postgres constraints; the Redis coverage channel's exact messages; the Rack pipeline (tenant, CORS, rate limits, WebSocket paths); Sidekiq jobs inline with strict JSON args |
 
 Run: `docker compose exec -e RAILS_ENV=test api bundle exec rspec` (setup in the [README](../README.md)).
@@ -48,13 +48,13 @@ Every page is also checked with axe (WCAG 2.1 A/AA, serious and critical), and e
 moment 14). The built web app runs against the real API with synthetic data from `rails e2e:seed`, and nothing calls
 the model. Run: see "Running the E2E tests" in the [README](../README.md); CI job `e2e`.
 
-### Web (Vitest, Testing Library, MSW): 218 tests, 189 passing, 22 expected to fail, 7 opt-in
+### Web (Vitest, Testing Library, MSW): 230 tests, 201 passing, 22 expected to fail, 7 opt-in
 
 | Suite | Tests | Covers |
 |---|---|---|
 | Unit | 121 (7 expected to fail) | The closing screen (the role, the three steps that follow); the audio hook reports "interrupted", not "complete", once every reconnect fails (P2-27); the hardware check runs every device check whatever failed before (P2-21, sub-PR 19), reruns on Retry and stops the mic it opened (P2-23, P2-24); the timer counts while reconnecting (P2-25); the upload minimum against the interview stream; `LevelRadio` and `SkillPicker` (search, pick, anchors); `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card (with the not-assessed reason) and override panel (including rating an unrated skill), `ExpandableText`, comparison table (reasons, `data-label`), timer, connection status, error boundary |
 | Functional | 61 (13 expected to fail) | Sign-in and the route guard; assessment list; creating an assessment (library and custom skills, validation, API errors) and editing it; inviting candidates (session states, named and unnamed links, copying); vacancy list, create and edit; transcript (turns, download, empty, error); portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link, and how it ends: a broken link, a failed load with Try again, the microphone off once the server ends the interview (P2-27) |
-| Proctoring | 21 | Chrome on a computer only, from real user-agent strings and brand lists (Edge, Opera, Brave, phones refused); entire screen kept, a tab or a window stopped and refused; the setup notice, camera and screen steps and their errors; the page in Chrome, on a phone, in Edge and with the setting off; the form sending it; Start held back until the steps are done (sub-PR 22); the pause screen (what stopped, one button each, the error) and the assessor's line on the portfolio (sub-PR 23) |
+| Proctoring | 33 | Chrome on a computer only, from real user-agent strings and brand lists (Edge, Opera, Brave, phones refused); entire screen kept, a tab or a window stopped and refused; the setup notice, camera and screen steps and their errors; the page in Chrome, on a phone, in Edge and with the setting off; the form sending it; Start held back until the steps are done (sub-PR 22); the pause screen (what stopped, one button each, the error) and the assessor's line on the portfolio (sub-PR 23); one screen: `screen.isExtended`, its change event and the five-second check, Start held while a second screen is connected, the live page pausing (no mic frames sent) and carrying on once it's out, the camera's pause in the live page, the assessor's line (P2-28, sub-PR 27) |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
 
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
@@ -117,6 +117,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P2-23 Retry gets stuck~~, ~~P2-24 the check leaves the mic on~~, ~~P2-25 the timer stops while reconnecting~~ **fixed** in sub-PR 24 | | hardware check (×2), timer rule now pass |
 | ~~P2-26 a retried portfolio job shows "failed" and Retry queues a second one~~ **fixed** in sub-PR 25 | functional journey, portfolio worker now pass | |
 | ~~P2-27 "Interview Complete" for a broken link, a failed load or an interruption, and the mic left on~~ **fixed** in sub-PR 26 | | interview end (×4), audio hook now pass |
+| ~~P2-28 a proctored interview doesn't notice a second screen~~ **fixed** in sub-PR 27 | session model (×2), proctoring request now pass | live page (×2), portfolio now pass |
 | P3 (override label, optional reason, Edge, Android, offline upload) | | override panel (×2), hardware utils (×2), speed test |
 
 ## What's missing, in priority order
