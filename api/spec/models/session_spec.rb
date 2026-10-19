@@ -62,17 +62,17 @@ RSpec.describe Session do
     end
 
     it 'records a second screen connected and disconnected' do
-      pending 'P2-28: the page cannot report a second screen; the model ignores the event'
       expect(session.record_proctoring_event!('second_screen_connected', at: start)).to be_truthy
       expect(session.record_proctoring_event!('second_screen_disconnected', at: start + 30)).to be_truthy
 
-      expect(session.reload.proctoring_events.pluck('event')).to eq(%w[second_screen_connected second_screen_disconnected])
+      expect(session.reload.proctoring_events.pluck('event'))
+        .to eq(%w[second_screen_connected second_screen_disconnected])
     end
 
     it 'sums how often and how long a second screen was connected, apart from the camera and the screen share' do
-      pending 'P2-28: the summary has no second screen'
       session.update!(status: 'ended', ended_at: start + 300)
-      [['second_screen_connected', 50], ['second_screen_disconnected', 90], ['second_screen_connected', 280]].each do |event, offset|
+      [['second_screen_connected', 50], ['second_screen_disconnected', 90],
+       ['second_screen_connected', 280]].each do |event, offset|
         session.record_proctoring_event!(event, at: start + offset)
       end
 
@@ -91,7 +91,8 @@ RSpec.describe Session do
 
       expect(session.proctoring_summary).to eq(
         'camera' => { stops: 2, off_seconds: 60 },
-        'screen' => { stops: 1, off_seconds: 100 }
+        'screen' => { stops: 1, off_seconds: 100 },
+        'second_screen' => { connected: 0, seconds: 0 }
       )
     end
   end

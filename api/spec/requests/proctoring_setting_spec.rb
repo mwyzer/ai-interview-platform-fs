@@ -45,7 +45,6 @@ RSpec.describe 'The proctoring setting', type: :request do
     end
 
     it 'says how long a second screen was connected' do
-      pending 'P2-28: the summary has no second screen'
       assessment.update!(proctoring_required: true)
       session.update!(status: 'ended', started_at: 5.minutes.ago, ended_at: Time.current)
       session.record_proctoring_event!('second_screen_connected', at: 2.minutes.ago)
