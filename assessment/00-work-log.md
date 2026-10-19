@@ -864,10 +864,12 @@ result; Start still needs every row. Checked in the dev stack with Chrome's fake
 Microphone passed (the level meter moves), Audio output passed, Start disabled. Web 153 passed, 22 expected fail,
 7 skipped.
 
-**Left as decisions.** The 4 Mbps upload minimum is about 16 times what the interview streams (16 kHz mono PCM,
-256 kbps), and the upload test times a POST to httpbin.org (P1-12) while the download test runs, so it measures that
-service and a shared line rather than the candidate's upload. Product and Tech Lead: the real minimum, and measuring
-against our own server.
+**The upload minimum, 4 → 1 Mbps (the user's decision).** The 4 Mbps minimum was about 16 times what the interview
+streams (16 kHz mono PCM, 256 kbps) and failed the user's 2.07 Mbps connection, so they couldn't reach the interview.
+1 Mbps leaves about four times the stream. Pinned first (`it.fails`; unmarked: "expected 4 to be less than or equal
+to 1"), then lowered. Still left: the upload test times a POST to httpbin.org (P1-12) while the download test runs,
+so it measures that service and a shared line rather than the candidate's upload; and the 8 Mbps download minimum is
+as generous against the 24 kHz playback stream (384 kbps). Tech Lead: measuring against our own server.
 
 **Also found: page loads took 20+ seconds locally.** Not the app: Windows "Automatically detect settings" (WPAD) is
 on and unanswered, so every new browser connection to localhost waited about 20 s before the request was sent.
