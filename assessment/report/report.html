@@ -156,7 +156,7 @@
     this product, how I found it, the options I weighed, and the change I made across the API and the web app.</p>
   <dl class="meta">
     <dt>Candidate</dt><dd>Muhammad Wyzer</dd>
-    <dt>Pull request</dt><dd><a href="https://github.com/rakamindev/ai-interview-platform/pull/160">rakamindev/ai-interview-platform#160</a> (umbrella) · sub-PRs, stacked in the fork:
+    <dt>Pull request</dt><dd><a href="https://github.com/rakamindev/ai-interview-platform/pull/167">rakamindev/ai-interview-platform#167</a> (umbrella) · sub-PRs, stacked in the fork:
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/1">1</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/2">2</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/3">3</a>,
@@ -171,7 +171,17 @@
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/12">12</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/13">13</a>,
       <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/14">14</a>,
-      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/15">15</a></dd>
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/15">15</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/16">16</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/17">17</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/18">18</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/19">19</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/20">20</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/21">21</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/22">22</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/23">23</a>,
+      <a href="https://github.com/mwyzer/ai-interview-platform-fs/pull/24">24</a>;
+      25 is on the PR branch</dd>
     <dt>Video (3–5 min)</dt><dd class="missing">To add: unlisted link</dd>
     <dt>Working docs</dt><dd><code>assessment/</code> in the PR branch: work log, Steps 2–4, testing overview, GUARDRAILS</dd>
     <dt>Date</dt><dd>October 2026</dd>
@@ -234,7 +244,7 @@
       route-by-route tenant check: no route leaks, and C2 (pick any company at login) pinned.</span>
       Then production guards (paid model tier, one login company per deployment), browser tests at 1280px and 375px,
       clearer login errors, accessibility fixes, and coverage floors and security scans in CI.
-      The PDF export works for overridden portfolios (P1-13), and the audio proxy is under test, which found P2-20. <strong>382 API specs</strong> and <strong>150 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
+      The PDF export works for overridden portfolios (P1-13), and the audio proxy is under test, which found P2-20. <strong>398 API specs</strong> and <strong>180 web tests</strong>, 0 failures, plus browser tests in CI.</td></tr>
   </table>
 </section>
 
@@ -594,11 +604,11 @@ flowchart LR
 
   <h3>Tests</h3>
   <div class="grid3">
-    <div class="card"><div class="stat">382</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
-      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14, 40 in sub-PR 15</span>). 3 pending, all known
+    <div class="card"><div class="stat">398</div><div class="stat-label">API examples, 0 failures (263 after sub-PR 5,
+      30 filling test gaps, 8 in sub-PRs 6 and 7, <span class="added">30 in sub-PR 8, 9 in sub-PR 9, 2 in sub-PR 14, 40 in sub-PR 15, 16 more in sub-PRs 16 to 25</span>). 3 pending, all known
       defects outside this change (P1-10, P2-3, <span class="added">C2</span>).</div></div>
-    <div class="card"><div class="stat">150</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
-      filling test gaps, 1 in sub-PR 11); 22 expected to fail (other known defects), 7 skipped without a live API.
+    <div class="card"><div class="stat">180</div><div class="stat-label">web tests passing (126 after sub-PR 5, 149 after
+      filling test gaps, 1 in sub-PR 11, 30 more in sub-PRs 16 to 25); 22 expected to fail (other known defects), 7 skipped without a live API.
       <code>tsc</code> clean. Browser tests (sub-PRs 10 and 12) run separately, in CI.</div></div>
     <div class="card"><div class="stat">118</div><div class="stat-label">known-defect or new-AC tests flipped to passing
       across the five sub-PRs (API 5 + 46 + 9, web 29 + 29).</div></div>

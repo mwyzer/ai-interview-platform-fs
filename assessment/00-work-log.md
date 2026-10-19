@@ -40,6 +40,7 @@ defined) or a **defective implementation** (defined but broken).
 | 2026-10-16 | 5 | Sub-PR 5: portfolio and fit/gap screens show "not assessed" with the reason; error, retry, long-text and 375px states (P1-2, P2-1, P2-5; AC-20, 22, 24..30) | `feat/not-assessed-screens` · `5e30533`, `342adec`, `c40c78d`, `8e0a650` |
 | 2026-10-16 | 6 | Report: Step 5 filled in, with screenshots of every state at 1280px and 375px | `feat/not-assessed-screens` |
 | 2026-10-16 | 1 | No password in the repo: Postgres, Redis and the dev admin read theirs from a gitignored `.env` (`.env.example`); Postgres and Redis bind to 127.0.0.1; CI's throwaway database uses no password. Prompted by GitGuardian flagging the dev DB password on PR #160 | `feat/not-assessed-screens` · `ad82538`, `61735da` and the next commit |
+| 2026-10-20 | 6 | Draft PR #160 closed at the candidate's request; replaced by draft PR #167 from a fresh branch, `case-study-submission`, with everything #160 had plus sub-PR 25 | [PR #167](https://github.com/rakamindev/ai-interview-platform/pull/167) |
 
 Hashes are current as of the last rebase of the branch stack; a rebase changes the hashes of every branch above
 the one that changed.
