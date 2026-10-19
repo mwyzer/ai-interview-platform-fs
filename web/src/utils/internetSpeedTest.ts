@@ -113,12 +113,14 @@ async function measureUploadSpeed(): Promise<number> {
     return 0.5; // conservative fallback
 }
 
+// One run after another on purpose: parallel runs of the same measurement would share the line and each would
+// report a fraction of its speed.
 async function runMultipleTests<T>(testFn: () => Promise<T>, count = 3): Promise<T[]> {
     const results: T[] = [];
     for (let i = 0; i < count; i++) {
         try {
-            results.push(await testFn());
-            await new Promise((r) => setTimeout(r, 100));
+            results.push(await testFn()); // NOSONAR: sequential by design (see above)
+            await new Promise((r) => setTimeout(r, 100)); // NOSONAR: the pause between runs
         } catch {
             // skip failed test
         }

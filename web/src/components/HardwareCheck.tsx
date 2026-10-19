@@ -43,11 +43,15 @@ function stateColor(state: ProctoringState) {
 const REQUIRE_CAMERA = import.meta.env.VITE_REQUIRE_CAMERA === "true";
 
 /** The camera and mic together when the camera is required, otherwise the mic alone; null when refused or missing. */
-function requestCheckStream(): Promise<MediaStream | null> {
+async function requestCheckStream(): Promise<MediaStream | null> {
     if (REQUIRE_CAMERA) return checkCamera();
     // No mediaDevices on a page served over plain http: report the mic as failed rather than throw.
-    if (!navigator.mediaDevices?.getUserMedia) return Promise.resolve(null);
-    return navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+    if (!navigator.mediaDevices?.getUserMedia) return null;
+    try {
+        return await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+        return null;
+    }
 }
 
 const HardwareCheck: React.FC<Readonly<HardwareCheckProps>> = ({ onStart, extraReady = true }) => {
@@ -265,7 +269,7 @@ const HardwareCheck: React.FC<Readonly<HardwareCheckProps>> = ({ onStart, extraR
                 {progress.camera === ProctoringState.PASSED && videoStream && (
                     <span className="absolute bottom-2 left-2 flex items-center gap-1 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        LIVE
+                        {"LIVE"}
                     </span>
                 )}
             </div>}
