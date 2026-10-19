@@ -162,6 +162,20 @@ describe("Portfolio review", () => {
     expect(screen.getByRole("button", { name: /Retry/ })).toBeInTheDocument();
   });
 
+  it("says how often the camera and screen share were off in a proctored interview", async () => {
+    serve(() => HttpResponse.json({ portfolio }));
+    server.use(
+      http.get(`${API}/sessions/42`, () =>
+        HttpResponse.json({
+          session: { ...sessionShow.session, proctoring: { camera: { stops: 1, off_seconds: 45 }, screen: { stops: 0, off_seconds: 0 } } },
+        })
+      )
+    );
+    renderApp(PAGE);
+
+    expect(await screen.findByText(/The camera was off once \(45 s in total\)/)).toBeInTheDocument();
+  });
+
   it("AC-27: offers a retry when the portfolio can't be loaded, and recovers", async () => {
     let fail = true;
     serve(() => (fail ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json({ portfolio })));

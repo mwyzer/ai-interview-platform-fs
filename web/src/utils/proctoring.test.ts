@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isDesktopChrome, requestEntireScreen } from "./proctoring";
+import { isDesktopChrome, proctoringSummaryText, requestEntireScreen } from "./proctoring";
 
 // Real user-agent strings, one per browser a candidate might open the link in.
 const UA = {
@@ -67,5 +67,23 @@ describe("requestEntireScreen", () => {
       value: { getDisplayMedia: vi.fn().mockRejectedValue(new DOMException("denied", "NotAllowedError")) },
     });
     expect(await requestEntireScreen()).toEqual({ ok: false, reason: "denied" });
+  });
+});
+
+describe("proctoringSummaryText", () => {
+  const off = (stops: number, off_seconds: number) => ({ stops, off_seconds });
+
+  it("says when both stayed on", () => {
+    expect(proctoringSummaryText({ camera: off(0, 0), screen: off(0, 0) })).toBe(
+      "Camera and screen sharing stayed on throughout the interview."
+    );
+  });
+
+  it("says how often and how long each was off", () => {
+    expect(proctoringSummaryText({ camera: off(2, 80), screen: off(1, 35) })).toBe(
+      "The camera was off twice (1 min 20 s in total); screen sharing stopped once (35 s in total). " +
+        "The interview paused each time until it was back."
+    );
+    expect(proctoringSummaryText({ camera: off(0, 0), screen: off(3, 120) })).toMatch(/^Screen sharing stopped 3 times \(2 min in total\)\./);
   });
 });

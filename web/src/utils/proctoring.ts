@@ -62,3 +62,38 @@ export async function requestCamera(): Promise<MediaStream | null> {
     return null;
   }
 }
+
+/** What to tell the candidate when the screen share wasn't the entire screen, or didn't happen. */
+export const SCREEN_SHARE_ERRORS: Record<Exclude<ScreenShareResult, { ok: true }>["reason"], string> = {
+  not_entire_screen: "You shared a tab or a window. Share again and choose Entire screen in Chrome's prompt.",
+  denied: "Screen sharing was cancelled. Share your entire screen to continue.",
+  unsupported: "This browser can't share the screen. Open the link in Chrome on a computer.",
+};
+
+export const CAMERA_ERROR = "Chrome couldn't use your camera. Allow camera access in the address bar, then try again.";
+
+export interface ProctoringSummary {
+  camera: { stops: number; off_seconds: number };
+  screen: { stops: number; off_seconds: number };
+}
+
+function duration(seconds: number): string {
+  if (seconds < 60) return `${seconds} s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s ? `${m} min ${s} s` : `${m} min`;
+}
+
+function times(n: number): string {
+  return n === 1 ? "once" : n === 2 ? "twice" : `${n} times`;
+}
+
+/** One line for the assessor: whether the camera and screen share stayed on, or how often and how long they didn't. */
+export function proctoringSummaryText({ camera, screen }: ProctoringSummary): string {
+  if (camera.stops === 0 && screen.stops === 0) return "Camera and screen sharing stayed on throughout the interview.";
+  const parts: string[] = [];
+  if (camera.stops) parts.push(`the camera was off ${times(camera.stops)} (${duration(camera.off_seconds)} in total)`);
+  if (screen.stops) parts.push(`screen sharing stopped ${times(screen.stops)} (${duration(screen.off_seconds)} in total)`);
+  const line = parts.join("; ");
+  return `${line.charAt(0).toUpperCase()}${line.slice(1)}. The interview paused each time until it was back.`;
+}

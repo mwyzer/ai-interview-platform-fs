@@ -11,6 +11,7 @@ import { portfoliosApi } from "@/services/portfolios";
 import { usePolling } from "@/hooks/usePolling";
 import { ArrowLeft, Download, Loader2, RefreshCw, Zap, FileText } from "lucide-react";
 import { END_REASON_LABELS, parseLevel } from "@/utils/constants";
+import { proctoringSummaryText } from "@/utils/proctoring";
 import type { Portfolio, AssessorOverride, Vacancy, Session } from "@/types";
 
 // Generation usually takes about two minutes; past three, stop polling and tell the assessor (P2-22).
@@ -293,6 +294,13 @@ export default function PortfolioPage() {
           {summary && (
             <div className="rounded-lg border border-dashed px-4 py-3">
               <p className="text-sm text-muted-foreground">{summary}</p>
+            </div>
+          )}
+
+          {/* Proctored interviews: did the camera and screen share stay on */}
+          {session?.proctoring && (
+            <div className="rounded-lg border border-dashed px-4 py-3">
+              <p className="text-sm text-muted-foreground">{proctoringSummaryText(session.proctoring)}</p>
             </div>
           )}
 
