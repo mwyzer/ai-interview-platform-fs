@@ -65,5 +65,16 @@ RSpec.describe 'Known defects, end to end', type: :request do
       expect(session.reload).to have_attributes(status: 'pending', end_reason: nil)
       expect(PortfolioGeneratorWorker.jobs).to be_empty
     end
+
+    it 'P1-10: does not let the link holder end a live interview the server is not finishing' do
+      pending 'P1-10: audio_complete ends any session as all_covered without checking coverage'
+      session.update!(status: 'active', started_at: 5.minutes.ago)
+
+      post "/api/v1/sessions/#{session.invite_token}/audio_complete"
+
+      expect(response).to have_http_status(:conflict)
+      expect(session.reload).to have_attributes(status: 'active', end_reason: nil)
+      expect(PortfolioGeneratorWorker.jobs).to be_empty
+    end
   end
 end
