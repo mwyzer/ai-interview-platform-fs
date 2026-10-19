@@ -80,7 +80,8 @@ RSpec.describe 'Failure paths', type: :request do
       expect { run_jobs(PortfolioGeneratorWorker) }.to raise_error(Gemini::HttpClient::ApiError)
 
       get "/api/v1/sessions/#{session.id}/portfolio", headers: headers
-      expect(json.dig('portfolio', 'generation_status')).to eq('generating')
+      expect(response).to have_http_status(:accepted)
+      expect(json['status']).to eq('generating')
 
       post "/api/v1/sessions/#{session.id}/portfolio/regenerate", headers: headers
       expect(response).to have_http_status(:unprocessable_entity)
