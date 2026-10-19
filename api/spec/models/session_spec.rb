@@ -43,6 +43,38 @@ RSpec.describe Session do
     end
   end
 
+  describe 'proctoring events' do
+    let(:session) { create(:session, status: 'active', started_at: 10.minutes.ago) }
+    let(:start) { Time.zone.parse('2026-10-19 10:00:00') }
+
+    it 'records the events the candidate page reports, and nothing else' do
+      expect(session.record_proctoring_event!('camera_stopped', at: start)).to be_truthy
+      expect(session.record_proctoring_event!('delete_everything', at: start)).to be(false)
+
+      expect(session.reload.proctoring_events).to eq([{ 'event' => 'camera_stopped', 'at' => start.iso8601 }])
+    end
+
+    it 'stops recording after the cap, so a page that misbehaves cannot grow the row without limit' do
+      Session::MAX_PROCTORING_EVENTS.times { session.record_proctoring_event!('screen_stopped', at: start) }
+
+      expect(session.record_proctoring_event!('screen_resumed', at: start)).to be(false)
+      expect(session.reload.proctoring_events.size).to eq(Session::MAX_PROCTORING_EVENTS)
+    end
+
+    it 'sums how often and how long each was off; a stop with no resume runs to the end' do
+      session.update!(status: 'ended', ended_at: start + 300)
+      [['camera_stopped', 0], ['camera_resumed', 40], ['camera_stopped', 100], ['camera_resumed', 120],
+       ['screen_stopped', 200], ['screen_stopped', 210]].each do |event, offset|
+        session.record_proctoring_event!(event, at: start + offset)
+      end
+
+      expect(session.proctoring_summary).to eq(
+        'camera' => { stops: 2, off_seconds: 60 },
+        'screen' => { stops: 1, off_seconds: 100 }
+      )
+    end
+  end
+
   describe '#invite_url' do
     # Sets APP_BASE_URL (nil removes it) for the block and puts back whatever application.yml had.
     def with_base_url(value)

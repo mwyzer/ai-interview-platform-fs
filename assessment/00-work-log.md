@@ -939,6 +939,28 @@ before the page had loaded; the screenshot showed the gate.
 **For Legal (UU PDP).** Camera and screen are personal data even unrecorded; the notice wording is engineering's
 draft and belongs with the consent step (07, item 1.2).
 
+### Sub-PR 23: a proctored interview pauses when the camera or screen share stops (branch `feat/proctoring-pause`)
+
+**Built.** During a proctored interview the page watches the camera and screen-share tracks; when one ends (Chrome's
+"Stop sharing" bar, a camera unplugged or its permission revoked) the interview pauses: the mic goes off, a dialog
+says what stopped and offers to turn it back on, the timer keeps running. Every path that turns the mic on (the
+candidate's turn, a reconnect, the mute button) now checks the pause, and resuming turns it on only if it's the
+candidate's turn and they hadn't muted it themselves. The page reports each stop and resume once over the
+interview socket; the server keeps only the four known events, at most 200 per session (the browser is the
+candidate's), in `sessions.proctoring_events` (jsonb, reversible migration). The assessor's portfolio page says
+whether both stayed on, or how often and how long each was off ("The camera was off twice (1 min 20 s in total)"),
+and nothing for an assessment that didn't require it.
+
+**Checked.** Specs first, red on the missing methods: model (known events only, the cap, the sums, a repeated stop
+counted once, an unresumed stop running to the end), the proxy, the session endpoint. In the dev stack with real
+Chrome and a fake server: ending the screen track during the candidate's turn paused the interview and sent
+`screen_stopped` once; "Share your entire screen again" re-shared the entire screen, closed the dialog and sent
+`screen_resumed`. API 395/0/3. Web 176 passed, 22 expected fail, 7 skipped (28 files); in one full run three
+existing vacancy and invite tests timed out under load (15 s each) and passed on their own.
+
+**Limits.** Only what the page sees: a candidate who covers the camera or switches windows on a shared screen
+isn't caught, and a modified page could send nothing. The record says what the page reported, nothing more.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

@@ -22,7 +22,8 @@ import { sessionsApi } from "@/services/sessions";
 import HardwareCheck from "@/components/HardwareCheck";
 import { CheckCircle, Mic, MicOff, Monitor, WifiOff, X } from "lucide-react";
 import ProctoringSetup from "@/components/interview/ProctoringSetup";
-import { isDesktopChrome } from "@/utils/proctoring";
+import ProctoringPause from "@/components/interview/ProctoringPause";
+import { CAMERA_ERROR, SCREEN_SHARE_ERRORS, isDesktopChrome, requestCamera, requestEntireScreen } from "@/utils/proctoring";
 import { cn } from "@/lib/utils";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
@@ -45,6 +46,9 @@ export default function InterviewPage() {
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [proctoringAcknowledged, setProctoringAcknowledged] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  // True while the camera or screen share is off during a proctored interview: every path that turns the mic on
+  // checks it.
+  const proctoringPausedRef = useRef(false);
   const proctoringStreamsRef = useRef<(MediaStream | null)[]>([]);
   proctoringStreamsRef.current = [cameraStream, screenStream];
   useEffect(() => () => proctoringStreamsRef.current.forEach((s) => s?.getTracks().forEach((t) => t.stop())), []);
@@ -96,7 +100,7 @@ export default function InterviewPage() {
         connectionLostTimerRef.current = null;
       }
       setConnectionLostLong(false);
-      if (state === "active" && !micMutedRef.current) unmuteRef.current?.();
+      if (state === "active" && !micMutedRef.current && !proctoringPausedRef.current) unmuteRef.current?.();
     }
   }, []);
 
@@ -146,7 +150,7 @@ export default function InterviewPage() {
     } else if (newSpeaker === "candidate") {
       scheduleAfterPlayback(() => {
         setSpeaker("candidate");
-        if (!micMutedRef.current) unmuteRef.current?.();
+        if (!micMutedRef.current && !proctoringPausedRef.current) unmuteRef.current?.();
       });
     }
   }, [scheduleAfterPlayback]);
@@ -172,7 +176,7 @@ export default function InterviewPage() {
     if (micMutedRef.current) {
       micMutedRef.current = false;
       setMicMuted(false);
-      unmute();
+      if (!proctoringPausedRef.current) unmute();
     } else {
       micMutedRef.current = true;
       setMicMuted(true);
@@ -200,6 +204,73 @@ export default function InterviewPage() {
     disconnect();
     setInterviewState("complete");
   }, [stopCapture, stopPlayback, sendJson, disconnect]);
+
+  // ── Proctoring during the interview ─────────────────────────────────────
+  // A stopped camera or screen share pauses the interview: the mic goes off until it's back, and the timer keeps
+  // running. Each stop and resume is reported to the server for the assessor, once.
+  const [stopped, setStopped] = useState({ camera: false, screen: false });
+  const stoppedRef = useRef({ camera: false, screen: false });
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const watchProctoring =
+    !!candidateInfo?.proctoring_required && (interviewState === "active" || interviewState === "reconnecting");
+
+  useEffect(() => {
+    if (!watchProctoring) return;
+    const cleanups = ([["camera", cameraStream], ["screen", screenStream]] as const).map(([device, stream]) => {
+      const onEnded = () => {
+        if (stoppedRef.current[device]) return;
+        stoppedRef.current = { ...stoppedRef.current, [device]: true };
+        setStopped(stoppedRef.current);
+        sendJson({ type: "proctoring", event: `${device}_stopped` });
+      };
+      const track = stream?.getVideoTracks()[0];
+      if (!track || track.readyState === "ended") {
+        onEnded();
+        return () => {};
+      }
+      track.addEventListener("ended", onEnded);
+      return () => track.removeEventListener("ended", onEnded);
+    });
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, [watchProctoring, cameraStream, screenStream, sendJson]);
+
+  const paused = stopped.camera || stopped.screen;
+  useEffect(() => {
+    proctoringPausedRef.current = paused;
+    if (paused) muteRef.current?.();
+    else if (speaker === "candidate" && !micMutedRef.current) unmuteRef.current?.();
+    // Only on a change of paused: speaker is read, not watched.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused]);
+
+  const resumed = useCallback((device: "camera" | "screen") => {
+    stoppedRef.current = { ...stoppedRef.current, [device]: false };
+    setStopped(stoppedRef.current);
+    sendJson({ type: "proctoring", event: `${device}_resumed` });
+  }, [sendJson]);
+
+  const resumeCamera = useCallback(async () => {
+    setResumeBusy(true);
+    setResumeError(null);
+    const stream = await requestCamera();
+    setResumeBusy(false);
+    if (!stream) return setResumeError(CAMERA_ERROR);
+    cameraStream?.getTracks().forEach((t) => t.stop());
+    setCameraStream(stream);
+    resumed("camera");
+  }, [cameraStream, resumed]);
+
+  const resumeScreen = useCallback(async () => {
+    setResumeBusy(true);
+    setResumeError(null);
+    const result = await requestEntireScreen();
+    setResumeBusy(false);
+    if (!result.ok) return setResumeError(SCREEN_SHARE_ERRORS[result.reason]);
+    screenStream?.getTracks().forEach((t) => t.stop());
+    setScreenStream(result.stream);
+    resumed("screen");
+  }, [screenStream, resumed]);
 
   const wsConnectionStatus =
     interviewState === "reconnecting"
@@ -312,6 +383,17 @@ export default function InterviewPage() {
   return (
     // The layout's header is 3rem; the room fills the rest, so the transcript scrolls and the controls stay in reach.
     <div className="mx-auto flex h-[calc(100dvh-3rem)] w-full max-w-xl flex-col px-4">
+      {paused && (
+        <ProctoringPause
+          camera={stopped.camera}
+          screen={stopped.screen}
+          busy={resumeBusy}
+          error={resumeError}
+          onResumeCamera={resumeCamera}
+          onResumeScreen={resumeScreen}
+        />
+      )}
+
       {/* Role and time */}
       <div className="-mx-4 flex items-center justify-between gap-3 bg-[hsl(var(--primary-deep))] px-4 py-3 text-white sm:mx-0 sm:mt-4 sm:rounded-2xl">
         <div className="min-w-0">

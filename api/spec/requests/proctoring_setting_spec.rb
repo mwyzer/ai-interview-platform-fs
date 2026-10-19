@@ -30,4 +30,24 @@ RSpec.describe 'The proctoring setting', type: :request do
     get "/api/v1/sessions/#{session.invite_token}/candidate"
     expect(json['proctoring_required']).to be(true)
   end
+
+  describe 'what the assessor sees' do
+    it 'sums the stops for a proctored interview' do
+      assessment.update!(proctoring_required: true)
+      session.update!(status: 'ended', started_at: 5.minutes.ago, ended_at: Time.current)
+      session.record_proctoring_event!('camera_stopped', at: 2.minutes.ago)
+      session.record_proctoring_event!('camera_resumed', at: 1.minute.ago)
+
+      get "/api/v1/sessions/#{session.id}", headers: headers
+
+      expect(json.dig('session', 'proctoring', 'camera')).to eq('stops' => 1, 'off_seconds' => 60)
+      expect(json.dig('session', 'proctoring', 'screen')).to eq('stops' => 0, 'off_seconds' => 0)
+    end
+
+    it 'says nothing about proctoring when the assessment does not require it' do
+      get "/api/v1/sessions/#{session.id}", headers: headers
+
+      expect(json['session']).to include('proctoring' => nil)
+    end
+  end
 end

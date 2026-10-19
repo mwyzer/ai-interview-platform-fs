@@ -51,7 +51,9 @@ module Api
               id:             @session.assessment.id,
               name:           @session.assessment.name,
               time_limit_min: @session.assessment.time_limit_min
-            }
+            },
+            # How often and how long the camera and screen share were off; nil when the assessment didn't require them.
+            proctoring: @session.assessment.proctoring_required ? @session.proctoring_summary : nil
           )
         )
       end

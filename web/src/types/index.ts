@@ -46,6 +46,8 @@ export interface Session {
   ended_at?: string;
   duration_seconds?: number;
   created_at?: string;
+  // How often and how long the camera and screen share were off; null when the assessment didn't require them.
+  proctoring?: import("@/utils/proctoring").ProctoringSummary | null;
 }
 
 export interface CoverageSkill {

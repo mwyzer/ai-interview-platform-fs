@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { requestCamera, requestEntireScreen } from "@/utils/proctoring";
+import { CAMERA_ERROR, SCREEN_SHARE_ERRORS, requestCamera, requestEntireScreen } from "@/utils/proctoring";
 
 interface ProctoringSetupProps {
   camera: MediaStream | null;
@@ -12,11 +12,6 @@ interface ProctoringSetupProps {
   onAcknowledge: (value: boolean) => void;
 }
 
-const SCREEN_ERRORS = {
-  not_entire_screen: "You shared a tab or a window. Share again and choose Entire screen in Chrome's prompt.",
-  denied: "Screen sharing was cancelled. Share your entire screen to continue.",
-  unsupported: "This browser can't share the screen. Open the link in Chrome on a computer.",
-} as const;
 
 /** Camera, entire-screen share and the notice, for assessments that require them. Nothing here is recorded. */
 export default function ProctoringSetup({ camera, screen, acknowledged, onCamera, onScreen, onAcknowledge }: ProctoringSetupProps) {
@@ -52,7 +47,7 @@ export default function ProctoringSetup({ camera, screen, acknowledged, onCamera
     const stream = await requestCamera();
     setBusy(null);
     if (stream) onCamera(stream);
-    else setCameraError("Chrome couldn't use your camera. Allow camera access in the address bar, then try again.");
+    else setCameraError(CAMERA_ERROR);
   };
 
   const shareScreen = async () => {
@@ -64,7 +59,7 @@ export default function ProctoringSetup({ camera, screen, acknowledged, onCamera
       screen?.getTracks().forEach((t) => t.stop());
       onScreen(result.stream);
     } else {
-      setScreenError(SCREEN_ERRORS[result.reason]);
+      setScreenError(SCREEN_SHARE_ERRORS[result.reason]);
     }
   };
 
