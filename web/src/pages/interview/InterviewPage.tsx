@@ -12,7 +12,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import VoiceBars from "@/components/interview/VoiceBars";
 import InterviewTimer from "@/components/interview/InterviewTimer";
 import ConnectionStatus from "@/components/interview/ConnectionStatus";
 import TranscriptBubble from "@/components/interview/TranscriptBubble";
@@ -21,7 +20,8 @@ import { useAudioPlayback } from "@/hooks/useAudioPlayback";
 import { useAudioWebSocket } from "@/hooks/useAudioWebSocket";
 import { sessionsApi } from "@/services/sessions";
 import HardwareCheck from "@/components/HardwareCheck";
-import { CheckCircle, Mic, MicOff } from "lucide-react";
+import { CheckCircle, Mic, MicOff, WifiOff, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
 export default function InterviewPage() {
@@ -38,6 +38,8 @@ export default function InterviewPage() {
   const connectionLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const micMutedRef = useRef(false);
+  // The live transcript scrolls itself to the newest turn, also when a notice or the stage changes its height.
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   // Fetch candidate info
   useEffect(() => {
@@ -89,6 +91,11 @@ export default function InterviewPage() {
     setReconnectedPrompt(true);
     reconnectedPromptTimerRef.current = setTimeout(() => setReconnectedPrompt(false), 10_000);
   }, []);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [transcript, interviewState, speaker, reconnectedPrompt, connectionLostLong]);
 
   const handleTranscript = useCallback((turn: Pick<TranscriptTurn, "speaker" | "text">) => {
     setTranscript((prev) => [...prev.slice(-9), turn]); // keep last 10
@@ -242,126 +249,168 @@ export default function InterviewPage() {
   }
 
   // ── States B/C/D/E: Active interview ────────────────────────────────────
-  const aiSpeaking = speaker === "ai";
-  const candidateSpeaking = speaker === "candidate";
+  // One stage at a time: whose turn it is, from the server's speaker_changed (the page doesn't hear the voice itself).
+  const stage: StageKind =
+    interviewState === "connecting"
+      ? "connecting"
+      : interviewState === "draining_audio"
+      ? "wrapping"
+      : interviewState === "reconnecting"
+      ? "reconnecting"
+      : speaker === "ai"
+      ? "ai"
+      : speaker === "candidate"
+      ? "candidate"
+      : "waiting";
 
   return (
-    <div className="max-w-xl mx-auto px-4 flex flex-col h-full">
-      {/* Top bar */}
-      <div className="flex items-center justify-between py-3 border-b sticky top-12 bg-white z-10">
-        <span className="text-sm font-medium">AI Interview</span>
+    // The layout's header is 3rem; the room fills the rest, so the transcript scrolls and the controls stay in reach.
+    <div className="mx-auto flex h-[calc(100dvh-3rem)] w-full max-w-xl flex-col px-4">
+      {/* Role and time */}
+      <div className="-mx-4 flex items-center justify-between gap-3 bg-[hsl(var(--primary-deep))] px-4 py-3 text-white sm:mx-0 sm:mt-4 sm:rounded-2xl">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-secondary motion-safe:animate-pulse" />
+            Live interview
+          </p>
+          <h1 className="truncate text-base font-semibold">{candidateInfo?.role_title ?? "Interview"}</h1>
+        </div>
         {candidateInfo && (
-          <InterviewTimer
-            totalSeconds={candidateInfo.time_limit_min * 60}
-            running={interviewState === "active"}
-            onExpired={endInterview}
-          />
+          <div className="shrink-0 rounded-full bg-white px-3 py-1 shadow-sm">
+            <InterviewTimer
+              totalSeconds={candidateInfo.time_limit_min * 60}
+              running={interviewState === "active"}
+              onExpired={endInterview}
+            />
+          </div>
         )}
       </div>
 
-      {/* Reconnecting banner */}
-      {interviewState === "reconnecting" && (
-        connectionLostLong ? (
-          <div className="flex items-center gap-2 text-sm bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-2.5 mt-2">
-            <span className="animate-pulse">●</span>
-            <span>Connection is taking too long to restore. Please wait, and contact the interviewer if this persists.</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-2.5 mt-2">
-            <span className="animate-pulse">●</span>
-            <span>Briefly reconnecting — please wait a moment.</span>
-          </div>
-        )
-      )}
-
-      {/* Reconnected prompt */}
-      {reconnectedPrompt && (
-        <div className="flex items-center justify-between text-sm bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2.5 mt-2">
-          <span>Reconnected — please say <strong>"check"</strong> or continue your answer to resume.</span>
-          <button className="ml-3 text-blue-500 hover:text-blue-700 shrink-0" onClick={() => setReconnectedPrompt(false)}>✕</button>
+      {/* Connection notices */}
+      {/* A short reconnect shows on the stage; only a long one needs a notice. */}
+      {interviewState === "reconnecting" && connectionLostLong && (
+        <div role="alert" className="mt-3 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <WifiOff className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Connection is taking too long to restore. Please wait, and contact the interviewer if this persists.</span>
         </div>
       )}
 
-      {/* Voice indicator */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 py-8">
-        {interviewState === "connecting" ? (
-          <div className="text-sm text-muted-foreground animate-pulse">Connecting...</div>
-        ) : interviewState === "draining_audio" ? (
-          <div className="flex flex-col items-center gap-2 text-center">
-            <VoiceBars active={true} label="AI speaking" variant="ai" />
-            <p className="text-xs text-muted-foreground">Wrapping up...</p>
-          </div>
-        ) : (
-          <>
-            <VoiceBars
-              active={aiSpeaking}
-              label={aiSpeaking ? "AI speaking" : "Listening..."}
-              variant="ai"
-            />
+      {reconnectedPrompt && (
+        <div role="status" className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          <span>Reconnected — please say <strong>"check"</strong> or continue your answer to resume.</span>
+          <button
+            aria-label="Dismiss"
+            className="-m-1 rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setReconnectedPrompt(false)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
-            {candidateSpeaking && (
-              <VoiceBars
-                active={true}
-                label="You're speaking"
-                variant="candidate"
-              />
-            )}
+      <VoiceStage stage={stage} compact={transcript.length > 0} />
 
-            {/* Transcript */}
-            {transcript.length > 0 && (
-              <div className="w-full space-y-2 overflow-y-auto max-h-[60vh]">
-                {transcript.map((turn, i) => (
-                  <TranscriptBubble key={i} speaker={turn.speaker} text={turn.text} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+      {/* Transcript, newest at the bottom and kept in view */}
+      <div ref={transcriptRef} className="-mx-4 min-h-0 flex-1 space-y-3 overflow-y-auto scroll-smooth px-4 pb-4 pt-4 [mask-image:linear-gradient(to_bottom,transparent,black_1.5rem)] motion-reduce:scroll-auto">
+        {transcript.map((turn, i) => (
+          <TranscriptBubble key={i} speaker={turn.speaker} text={turn.text} />
+        ))}
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t py-3 flex items-center justify-between gap-4 sticky bottom-0 bg-white">
+      {/* Controls */}
+      <div className="-mx-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <ConnectionStatus state={wsConnectionStatus} />
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant={micMuted ? "destructive" : "outline"}
-            size="sm"
-            onClick={toggleMic}
-          >
-            {micMuted ? (
-              <><MicOff className="h-3.5 w-3.5 mr-1.5" /> Muted</>
-            ) : (
-              <><Mic className="h-3.5 w-3.5 mr-1.5" /> Mic On</>
-            )}
-          </Button>
+        <button
+          type="button"
+          onClick={toggleMic}
+          aria-pressed={micMuted}
+          aria-label={micMuted ? "Unmute microphone" : "Mute microphone"}
+          className={cn(
+            "flex h-14 w-14 items-center justify-center rounded-full shadow-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            micMuted ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+        >
+          {micMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+        </button>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm">End Interview</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>End interview?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to end the interview early?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={endInterview}>End interview</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        {import.meta.env.DEV && (
-          <Button variant="outline" size="sm" className="text-xs opacity-50"
-            onClick={() => sendJson({ type: "debug_force_reconnect" })}>
-            ⚡ Force reconnect
-          </Button>
-        )}
+        <div className="flex items-center justify-end gap-2">
+          {import.meta.env.DEV && (
+            <Button variant="ghost" size="sm" className="hidden text-xs text-muted-foreground sm:inline-flex"
+              onClick={() => sendJson({ type: "debug_force_reconnect" })}>
+              ⚡ Reconnect
+            </Button>
+          )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                End interview
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>End interview?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to end the interview early?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={endInterview}>End interview</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
+    </div>
+  );
+}
 
+type StageKind = "connecting" | "waiting" | "ai" | "candidate" | "wrapping" | "reconnecting";
+
+const STAGE_COPY: Record<StageKind, { title: string; hint: string }> = {
+  connecting: { title: "Connecting to the interviewer", hint: "This takes a few seconds." },
+  waiting: { title: "The interviewer is about to start", hint: "You'll hear the first question in a moment." },
+  ai: { title: "Interviewer is speaking", hint: "Listen to the question. Your turn comes when the bars turn yellow." },
+  candidate: { title: "Your turn", hint: "Speak when you're ready, and take your time." },
+  wrapping: { title: "Wrapping up", hint: "The interviewer is finishing. Please stay on this page." },
+  reconnecting: { title: "Reconnecting", hint: "Hold on a moment; the interview picks up where it left off." },
+};
+
+const BAR_REST = [10, 18, 26, 18, 10];
+
+/** Whose turn it is, as five bars: teal while the interviewer speaks, yellow on the candidate's turn. */
+function VoiceStage({ stage, compact }: { stage: StageKind; compact: boolean }) {
+  const moving = stage === "ai" || stage === "candidate" || stage === "wrapping";
+  const color = stage === "candidate" ? "bg-secondary" : moving ? "bg-primary" : "bg-muted-foreground/30";
+  const { title, hint } = STAGE_COPY[stage];
+
+  return (
+    <div className={cn("flex flex-col items-center text-center transition-all", compact ? "py-4" : "flex-1 justify-center py-10")}>
+      <div
+        aria-hidden="true"
+        className={cn(
+          "flex items-center justify-center rounded-full transition-all",
+          compact ? "h-16 w-16" : "h-24 w-24",
+          stage === "candidate" ? "bg-secondary/15" : "bg-primary/10"
+        )}
+      >
+        <div className="flex h-10 items-end gap-1.5">
+          {BAR_REST.map((height, i) => (
+            <span
+              key={i}
+              className={cn("w-2 rounded-full", color, moving && "motion-safe:animate-voice-bar")}
+              style={{
+                height,
+                animationDelay: `${i * 0.12}s`,
+                animationDuration: `${0.7 + (i % 3) * 0.2}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+      <p aria-live="polite" className={cn("font-semibold", compact ? "mt-3 text-base" : "mt-4 text-lg")}>{title}</p>
+      <p className="mt-1 max-w-xs text-sm text-muted-foreground">{hint}</p>
     </div>
   );
 }
