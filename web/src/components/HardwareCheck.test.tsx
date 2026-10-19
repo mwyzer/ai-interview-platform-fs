@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { testInternetSpeed, type InternetSpeedResult } from "@/utils/internetSpeedTest";
 import HardwareCheck from "./HardwareCheck";
 
@@ -42,16 +42,18 @@ afterEach(() => {
 /** The status shown on the row with this label ("Passed", "Failed", "Waiting", "Checking..."). */
 async function statusOf(label: string, expected: string) {
   const row = screen.getByText(label).closest("div.px-4") as HTMLElement;
-  return within(row).findByText(expected, {}, { timeout: 3000 });
+  return within(row).findByText(expected, {}, { timeout: 8000 });
 }
 
-describe("HardwareCheck", () => {
+// Each test waits through the real 800 ms OS step and the chain after it; the suite runs files in parallel.
+describe("HardwareCheck", { timeout: 20000 }, () => {
   it("lets the candidate start once every check passes", async () => {
     vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
     render(<HardwareCheck />);
 
     await statusOf("Audio output", "Passed");
-    expect(screen.getByRole("button", { name: "Start Interview" })).toBeEnabled();
+    // Start is enabled one render later: the component works out "all passed" in an effect.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Interview" })).toBeEnabled());
   });
 
   describe("known defect (P2-21)", () => {
@@ -62,6 +64,16 @@ describe("HardwareCheck", () => {
       await statusOf("Internet", "Failed");
       // Today they stay "Waiting": each check starts only when the one before it passes.
       await statusOf("Microphone", "Passed");
+      await statusOf("Audio output", "Passed");
+      expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
+    });
+
+    it.fails("checks the audio output even when the microphone is blocked", async () => {
+      vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
+      vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+      render(<HardwareCheck />);
+
+      await statusOf("Microphone", "Failed");
       await statusOf("Audio output", "Passed");
       expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
     });
