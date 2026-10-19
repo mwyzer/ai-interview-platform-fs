@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { testInternetSpeed, type InternetSpeedResult } from "@/utils/internetSpeedTest";
 import HardwareCheck from "./HardwareCheck";
 
@@ -83,5 +84,39 @@ describe("HardwareCheck", { timeout: 20000 }, () => {
     await statusOf("Microphone", "Failed");
     await statusOf("Audio output", "Passed");
     expect(screen.getByRole("button", { name: "Start Interview" })).toBeDisabled();
+  });
+});
+
+describe("HardwareCheck, known defects", { timeout: 30000 }, () => {
+  // Retry reset the rows, but the first step only ran once, on mount: the page stuck on "Checking..." and the
+  // candidate's only way out was a reload.
+  it.fails("P2-23: Retry runs the checks again", async () => {
+    vi.mocked(testInternetSpeed).mockResolvedValueOnce(speed(false)).mockResolvedValue(speed(true));
+    const user = userEvent.setup();
+    render(<HardwareCheck />);
+    await statusOf("Internet", "Failed");
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    await statusOf("Internet", "Passed");
+    expect(testInternetSpeed).toHaveBeenCalledTimes(2);
+  });
+
+  // The check's microphone stream and its level meter outlived it: Chrome showed the mic as in use after the
+  // interview ended, and the meter loop ran all interview long.
+  it.fails("P2-24: stops the microphone and the level meter it started when it goes away", async () => {
+    vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
+    const micTrack = { stop: vi.fn() };
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue({ getTracks: () => [micTrack] } as unknown as MediaStream);
+    vi.stubGlobal("requestAnimationFrame", vi.fn(() => 7));
+    const cancel = vi.fn();
+    vi.stubGlobal("cancelAnimationFrame", cancel);
+    const { unmount } = render(<HardwareCheck />);
+    await statusOf("Microphone", "Passed");
+
+    unmount();
+
+    expect(micTrack.stop).toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledWith(7);
   });
 });
