@@ -97,7 +97,7 @@ async function startInterview(onConnect: (client: Client) => void) {
 const send = (client: Client, message: object) => client.send(JSON.stringify(message));
 
 describe("The end of the candidate's interview", { timeout: 20000 }, () => {
-  it.fails("turns the microphone off when the server ends the interview", async () => {
+  it("turns the microphone off when the server ends the interview", async () => {
     const mic = await startInterview((client) => {
       send(client, { type: "session_started" });
       setTimeout(() => send(client, { type: "session_ended" }), 200);
@@ -107,7 +107,7 @@ describe("The end of the candidate's interview", { timeout: 20000 }, () => {
     expect(mic.readyState).toBe("ended");
   });
 
-  it.fails("says the interview was interrupted, not complete, after an error it can't recover from", async () => {
+  it("says the interview was interrupted, not complete, after an error it can't recover from", async () => {
     const mic = await startInterview((client) => {
       send(client, { type: "session_started" });
       setTimeout(() => send(client, { type: "error", code: "no_system_prompt", recoverable: false }), 200);
@@ -119,7 +119,7 @@ describe("The end of the candidate's interview", { timeout: 20000 }, () => {
     expect(mic.readyState).toBe("ended");
   });
 
-  it.fails("says a link that doesn't exist doesn't work, instead of thanking the candidate", async () => {
+  it("says a link that doesn't exist doesn't work, instead of thanking the candidate", async () => {
     server.use(
       http.get(`${API}/sessions/tok-wrong/candidate`, () =>
         HttpResponse.json(notFound("Invalid or expired invite token"), { status: 404 })
@@ -131,7 +131,7 @@ describe("The end of the candidate's interview", { timeout: 20000 }, () => {
     expect(screen.queryByRole("heading", { name: "Interview Complete" })).not.toBeInTheDocument();
   });
 
-  it.fails("offers Try again when the interview can't be loaded, and recovers", async () => {
+  it("offers Try again when the interview can't be loaded, and recovers", async () => {
     let calls = 0;
     server.use(
       http.get(`${API}/sessions/tok-test-123/candidate`, () => {

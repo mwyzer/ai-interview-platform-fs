@@ -38,7 +38,7 @@ afterEach(() => {
 });
 
 describe("useAudioWebSocket", () => {
-  it.fails("reports the interview interrupted, not complete, once every reconnect has failed", () => {
+  it("reports the interview interrupted, not complete, once every reconnect has failed", () => {
     const onStateChange = vi.fn();
     const { result } = renderHook(() =>
       useAudioWebSocket({

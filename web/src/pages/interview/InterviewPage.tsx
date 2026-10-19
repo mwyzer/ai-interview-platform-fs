@@ -24,6 +24,7 @@ import { CheckCircle, Mic, MicOff, Monitor, WifiOff, X } from "lucide-react";
 import ProctoringSetup from "@/components/interview/ProctoringSetup";
 import ProctoringPause from "@/components/interview/ProctoringPause";
 import InterviewComplete from "@/components/interview/InterviewComplete";
+import InterviewNotice from "@/components/interview/InterviewNotice";
 import { CAMERA_ERROR, SCREEN_SHARE_ERRORS, isDesktopChrome, requestCamera, requestEntireScreen } from "@/utils/proctoring";
 import { cn } from "@/lib/utils";
 import { timerRuns } from "@/utils/interviewClock";
@@ -55,23 +56,30 @@ export default function InterviewPage() {
   proctoringStreamsRef.current = [cameraStream, screenStream];
   useEffect(() => () => proctoringStreamsRef.current.forEach((s) => s?.getTracks().forEach((t) => t.stop())), []);
   useEffect(() => {
-    if (interviewState === "complete") proctoringStreamsRef.current.forEach((s) => s?.getTracks().forEach((t) => t.stop()));
+    if (interviewState === "complete" || interviewState === "interrupted") {
+      proctoringStreamsRef.current.forEach((s) => s?.getTracks().forEach((t) => t.stop()));
+    }
   }, [interviewState]);
   const micMutedRef = useRef(false);
   // The live transcript scrolls itself to the newest turn, also when a notice or the stage changes its height.
   const transcriptRef = useRef<HTMLDivElement>(null);
 
-  // Fetch candidate info
-  useEffect(() => {
+  // Fetch candidate info. A link that finds no session, or a failed request, is said as such (P2-27).
+  const [loadError, setLoadError] = useState<"invalid_link" | "load_failed" | null>(null);
+  const loadCandidateInfo = useCallback(() => {
     if (!token) return;
+    setLoadError(null);
     sessionsApi.getCandidateInfo(token)
       .then((res) => {
         setCandidateInfo(res.data);
         setSessionId(res.data.session_id);
         if (res.data.session_status === "ended") setInterviewState("complete");
       })
-      .catch(() => setInterviewState("complete"));
+      .catch((err: { response?: { status?: number } }) =>
+        setLoadError(err.response?.status === 404 ? "invalid_link" : "load_failed")
+      );
   }, [token]);
+  useEffect(loadCandidateInfo, [loadCandidateInfo]);
 
   const muteRef = useRef<(() => void) | null>(null);
   const unmuteRef = useRef<(() => void) | null>(null);
@@ -207,6 +215,14 @@ export default function InterviewPage() {
     setInterviewState("complete");
   }, [stopCapture, stopPlayback, sendJson, disconnect]);
 
+  // However the interview ends (the candidate, the server, an error, a connection that doesn't come back), the
+  // microphone goes off: before, only End did it, and the mic stayed live under "Interview Complete" (P2-27).
+  useEffect(() => {
+    if (interviewState !== "complete" && interviewState !== "interrupted") return;
+    stopCapture();
+    stopPlayback();
+  }, [interviewState, stopCapture, stopPlayback]);
+
   // ── Proctoring during the interview ─────────────────────────────────────
   // A stopped camera or screen share pauses the interview: the mic goes off until it's back, and the timer keeps
   // running. Each stop and resume is reported to the server for the assessor, once.
@@ -284,6 +300,8 @@ export default function InterviewPage() {
   const proctoring = !!candidateInfo?.proctoring_required;
   const proctoringReady = !!cameraStream && !!screenStream && proctoringAcknowledged;
 
+  if (loadError) return <InterviewNotice kind={loadError} onRetry={loadCandidateInfo} />;
+
   // ── State A: Pre-start ──────────────────────────────────────────────────
   if (interviewState === "idle") {
     return (
@@ -355,6 +373,13 @@ export default function InterviewPage() {
   // ── State F: Complete ───────────────────────────────────────────────────
   if (interviewState === "complete") {
     return <InterviewComplete roleTitle={candidateInfo?.role_title} />;
+  }
+
+  // ── Interrupted: the connection broke for good ──────────────────────────
+  // Rejoining reloads the page: the hardware check, camera and screen share start over, and within the server's
+  // two-minute grace the interview carries on.
+  if (interviewState === "interrupted") {
+    return <InterviewNotice kind="interrupted" onRetry={() => window.location.reload()} />;
   }
 
   // ── States B/C/D/E: Active interview ────────────────────────────────────

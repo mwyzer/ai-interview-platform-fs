@@ -196,7 +196,9 @@ export type InterviewState =
   | "reconnecting"
   | "draining_audio"
   | "ending"
-  | "complete";
+  | "complete"
+  // The connection broke for good before the interview finished (P2-27): never shown as "complete".
+  | "interrupted";
 
 export type InterviewSpeaker = "ai" | "candidate" | null;
 
