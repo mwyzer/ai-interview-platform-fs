@@ -31,7 +31,7 @@ describe("Production headers (vercel.json)", () => {
     expect(permissionsPolicy().get("geolocation")).toBe("()");
   });
 
-  it.fails("P1-16: let a proctored interview use the camera", () => {
+  it("let a proctored interview use the camera (P1-16)", () => {
     expect(allowsSelf("camera")).toBe(true);
   });
 });
