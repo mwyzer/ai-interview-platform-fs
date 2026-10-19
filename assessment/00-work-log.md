@@ -1011,6 +1011,73 @@ past three minutes it offers "Check again" (sub-PR 21).
 
 API: 398 examples, 0 failures, 3 pending.
 
+### Sub-PR 26: the interview ends honestly (P2-27, branch `feat/interview-complete-screen`)
+
+**Redesigned first.** The closing screen was an emoji and two grey lines, in a different look from the live
+interview. It now uses the same header, names the role and lists the three steps that follow: the AI drafts a skill
+summary quoting the candidate, a person on the hiring team reviews and can correct it, and the team follows up. "The
+interview has been recorded" became "Your answers have been saved": only the transcript is kept, and "recorded"
+suggests a voice recording.
+
+**Found while doing it (P2-27).** That screen was shown for four endings, and only one was a finished interview: a
+link that doesn't exist (404), any failed load, an error the server can't recover from, and every reconnect failing.
+And when the server ended the interview, the microphone stayed on: only the End button's path stopped it. Seen in
+Chrome with a fake microphone and the audio socket faked (scratch Playwright run): the capture track was still
+"live" under "Interview Complete".
+
+**Fixed** (pinned with `it.fails` first; each pin was run as a normal test and failed on its assertion):
+- A broken link says "This interview link doesn't work" and what to do; any other failed load says "We couldn't
+  load your interview", with Try again.
+- A new "interrupted" state, for a non-recoverable error or reconnects run out: "The interview was interrupted",
+  with Rejoin. Rejoin reloads the page; the server keeps the interview open two minutes after the page leaves
+  (`BROWSER_GRACE_PERIOD`). A non-recoverable error also stops the reconnect loop, since the server closes the
+  socket after it.
+- Whatever ends the interview, the microphone, playback, camera and screen share stop. Rechecked in Chrome: after
+  `session_ended` and after a non-recoverable error, the track is "ended". At 375px no screen scrolls sideways.
+
+**Not done.** Rejoin after the two-minute grace finds the interview ended and shows the closing screen, which is
+true but says nothing about the interruption. A 404 means a mistyped link or a deleted assessment (invite links
+don't expire); the page shows the same message for both.
+
+Web: 189 passed, 22 expected fail, 7 skipped (32 files).
+
+### Sub-PR 27: a proctored interview needs one screen (P2-28, P1-16, branch `feat/proctoring-second-screen`)
+
+**Asked.** Does the proctoring catch an extended monitor? It didn't: the setup refuses a tab or a window, but a
+candidate with two monitors could share one and use the other, and nothing recorded it.
+
+**Built** (pinned first: `it.fails` on the web, `pending` on the API; each pin was run unmarked and failed on its
+assertion):
+- Chrome reports a second screen as `screen.isExtended` (Window Management API, no permission prompt) and fires
+  `change` on `window.screen` when one is plugged in or out. The page listens, and checks every five seconds too.
+- Setup: a "One screen" row and a line in the notice; Start stays disabled while a second screen is connected.
+- During the interview a second screen pauses it like a stopped camera: no mic frames reach the server, the timer
+  runs. There's no button; the pause lifts once the screen is unplugged. Both are reported over the interview
+  socket (`second_screen_connected`, `_disconnected`).
+- The API records the pair and sums it apart, as `second_screen: { connected, seconds }`; the assessor's line says
+  "a second screen was connected N times (… in total)", or "Chrome saw no second screen".
+- Tests of the live page with proctoring didn't exist; the device fakes moved from `interview-end.test.tsx` to
+  `test/interview.ts`, with a camera, a screen share and screens added, and two tests of what already worked (the
+  mic sent on one screen, the pause when the camera stops) came with the pins.
+
+**Checked.** In Chromium 153, headless and headed: `isExtended` is there (false on this one-screen machine),
+`window.screen` is an event target with `onchange`, and the `window-management` policy allows it. The setup at
+1280px and 375px, with a second screen simulated (`Screen.prototype.isExtended`): the row's alert, Start disabled,
+no sideways scroll. **Not checked with a real second monitor.**
+
+**What it can't see.** A mirrored display (one screen to Chrome, and the same picture anyway), a second laptop or a
+phone, another person in the room; and anyone who hides a monitor from the OS. It stops the casual case and tells
+the assessor; it doesn't prove the candidate worked alone.
+
+**Found on the way, and fixed (P1-16).** `web/vercel.json` sent `Permissions-Policy: camera=()`, which turns the
+camera off for every origin: wherever that file is used, a proctored interview couldn't get past the camera step. A
+test now reads `vercel.json` and checks each feature the candidate page uses (pinned first, failing on camera); the
+header is `camera=(self)`. Checked in Chromium with the permission granted and a fake camera, the page served with
+each header: `camera=()` gives `NotAllowedError`, `camera=(self)` a stream. Whether production serves this file at
+all is still C8's open question.
+
+API: 401 examples, 0 failures, 3 pending. Web: 205 passed, 22 expected fail, 7 skipped (34 files).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

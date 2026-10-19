@@ -44,6 +44,17 @@ RSpec.describe 'The proctoring setting', type: :request do
       expect(json.dig('session', 'proctoring', 'screen')).to eq('stops' => 0, 'off_seconds' => 0)
     end
 
+    it 'says how long a second screen was connected' do
+      assessment.update!(proctoring_required: true)
+      session.update!(status: 'ended', started_at: 5.minutes.ago, ended_at: Time.current)
+      session.record_proctoring_event!('second_screen_connected', at: 2.minutes.ago)
+      session.record_proctoring_event!('second_screen_disconnected', at: 1.minute.ago)
+
+      get "/api/v1/sessions/#{session.id}", headers: headers
+
+      expect(json.dig('session', 'proctoring', 'second_screen')).to eq('connected' => 1, 'seconds' => 60)
+    end
+
     it 'says nothing about proctoring when the assessment does not require it' do
       get "/api/v1/sessions/#{session.id}", headers: headers
 
