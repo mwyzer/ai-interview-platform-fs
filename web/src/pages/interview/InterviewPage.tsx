@@ -23,6 +23,7 @@ import HardwareCheck from "@/components/HardwareCheck";
 import { CheckCircle, Mic, MicOff, Monitor, WifiOff, X } from "lucide-react";
 import ProctoringSetup from "@/components/interview/ProctoringSetup";
 import ProctoringPause from "@/components/interview/ProctoringPause";
+import InterviewComplete from "@/components/interview/InterviewComplete";
 import { CAMERA_ERROR, SCREEN_SHARE_ERRORS, isDesktopChrome, requestCamera, requestEntireScreen } from "@/utils/proctoring";
 import { cn } from "@/lib/utils";
 import { timerRuns } from "@/utils/interviewClock";
@@ -353,17 +354,7 @@ export default function InterviewPage() {
 
   // ── State F: Complete ───────────────────────────────────────────────────
   if (interviewState === "complete") {
-    return (
-      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-4">
-        <div className="text-4xl">✅</div>
-        <h2 className="text-xl font-semibold">Interview Complete</h2>
-        <p className="text-sm text-muted-foreground">
-          Thank you. The interview has been recorded.
-          <br />
-          The hiring team will review your results and follow up with you.
-        </p>
-      </div>
-    );
+    return <InterviewComplete roleTitle={candidateInfo?.role_title} />;
   }
 
   // ── States B/C/D/E: Active interview ────────────────────────────────────
