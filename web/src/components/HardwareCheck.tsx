@@ -17,7 +17,7 @@ interface HardwareCheckProps {
     extraReady?: boolean;
 }
 
-function StateIcon({ state }: { state: ProctoringState }) {
+function StateIcon({ state }: Readonly<{ state: ProctoringState }>) {
     if (state === ProctoringState.LOADING)
         return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
     if (state === ProctoringState.PASSED)
@@ -34,9 +34,23 @@ function stateLabel(state: ProctoringState) {
     return "Waiting";
 }
 
+function stateColor(state: ProctoringState) {
+    if (state === ProctoringState.PASSED) return "text-green-700";
+    if (state === ProctoringState.ERROR) return "text-destructive";
+    return "text-muted-foreground";
+}
+
 const REQUIRE_CAMERA = import.meta.env.VITE_REQUIRE_CAMERA === "true";
 
-const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = true }) => {
+/** The camera and mic together when the camera is required, otherwise the mic alone; null when refused or missing. */
+function requestCheckStream(): Promise<MediaStream | null> {
+    if (REQUIRE_CAMERA) return checkCamera();
+    // No mediaDevices on a page served over plain http: report the mic as failed rather than throw.
+    if (!navigator.mediaDevices?.getUserMedia) return Promise.resolve(null);
+    return navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+}
+
+const HardwareCheck: React.FC<Readonly<HardwareCheckProps>> = ({ onStart, extraReady = true }) => {
     const [progress, setProgress] = useState<HardwareCheckingProgress>({
         osAndBrowser: ProctoringState.WAITING,
         internet: ProctoringState.WAITING,
@@ -147,7 +161,7 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
     useEffect(() => {
         if (progress.internet !== ProctoringState.LOADING) return;
         const run = runRef.current;
-        testInternetSpeed(DEFAULT_THRESHOLDS).then((result) => {
+        void testInternetSpeed(DEFAULT_THRESHOLDS).then((result) => {
             if (run !== runRef.current) return;
             setInternetResult(result);
             // The device checks go on either way, so a candidate whose connection fails still learns whether their
@@ -168,15 +182,8 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
         const micLoading = !REQUIRE_CAMERA && progress.microphone === ProctoringState.LOADING;
         if (!cameraLoading && !micLoading) return;
 
-        const getStream = REQUIRE_CAMERA
-            ? checkCamera()
-            : navigator.mediaDevices?.getUserMedia
-                // No mediaDevices on a page served over plain http: report the mic as failed rather than throw.
-                ? navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null)
-                : Promise.resolve(null);
-
         const run = runRef.current;
-        getStream.then((stream) => {
+        void requestCheckStream().then((stream) => {
             if (run !== runRef.current) {
                 stream?.getTracks().forEach((t) => t.stop());
                 return;
@@ -205,7 +212,7 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
     // Step 4: Audio output
     useEffect(() => {
         if (progress.audio !== ProctoringState.LOADING) return;
-        checkAudioPlayback().then((ok) => {
+        void checkAudioPlayback().then((ok) => {
             setProgress((p) => ({
                 ...p,
                 audio: ok ? ProctoringState.PASSED : ProctoringState.ERROR,
@@ -239,7 +246,7 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
         { key: "audio", label: "Audio output" },
     ];
 
-    const hasError = Object.values(progress).some((s) => s === ProctoringState.ERROR);
+    const hasError = Object.values(progress).includes(ProctoringState.ERROR);
 
     return (
         <div className="rounded-lg border bg-card overflow-hidden">
@@ -249,7 +256,7 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
                     <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                        <svg className="w-10 h-10 opacity-30" fill="currentColor" viewBox="0 0 20 20">
+                        <svg aria-hidden="true" className="w-10 h-10 opacity-30" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                         </svg>
                         <p className="text-xs">Camera not active</p>
@@ -271,10 +278,7 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
                             <span className="text-sm font-medium">{label}</span>
                             <div className="flex items-center gap-2">
                                 <StateIcon state={progress[key]} />
-                                <span className={`text-xs w-16 text-right ${progress[key] === ProctoringState.PASSED ? "text-green-700" :
-                                    progress[key] === ProctoringState.ERROR ? "text-destructive" :
-                                        "text-muted-foreground"
-                                    }`}>
+                                <span className={`text-xs w-16 text-right ${stateColor(progress[key])}`}>
                                     {stateLabel(progress[key])}
                                 </span>
                             </div>

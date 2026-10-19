@@ -77,10 +77,17 @@ async function measureDownloadSpeed(): Promise<number> {
         const start = performance.now();
         await fetch("https://www.google.com/favicon.ico", { mode: "no-cors", cache: "no-cache" });
         const duration = (performance.now() - start) / 1000;
-        return duration < 1 ? 2 : duration < 2 ? 1 : 0.5;
+        return roughSpeedFromFavicon(duration);
     } catch {
         return 0;
     }
+}
+
+/** A guess in MB/s from how long a tiny request took, when no test file could be downloaded. */
+function roughSpeedFromFavicon(seconds: number): number {
+    if (seconds < 1) return 2;
+    if (seconds < 2) return 1;
+    return 0.5;
 }
 
 async function measureUploadSpeed(): Promise<number> {
