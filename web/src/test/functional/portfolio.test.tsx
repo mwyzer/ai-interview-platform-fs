@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { API, server } from "../server";
@@ -6,6 +6,8 @@ import { renderApp } from "../render";
 import { portfolio, sessionShow, vacancies } from "../fixtures";
 
 const PAGE = "/assessments/7/sessions/42/portfolio";
+
+afterEach(() => vi.restoreAllMocks());
 
 function serve(portfolioResponse: () => Response) {
   server.use(
@@ -195,5 +197,19 @@ describe("Portfolio review", () => {
       expect(await screen.findByText("Portfolio Results")).toBeInTheDocument();
       expect(await screen.findByRole("alert")).toBeInTheDocument();
     });
+
+    // Found when the Sidekiq container had stopped: the page promised "about 2 minutes" and spun for hours.
+    it("P2-22: stops waiting after three minutes and says so, instead of spinning forever", async () => {
+      serve(() => HttpResponse.json({ status: "generating" }, { status: 202 }));
+      renderApp(PAGE);
+      expect(await screen.findByText("Generating portfolio...")).toBeInTheDocument();
+
+      const start = Date.now();
+      vi.spyOn(Date, "now").mockImplementation(() => start + 3 * 60_000 + 1);
+
+      expect(await screen.findByRole("alert", {}, { timeout: 7000 })).toHaveTextContent(/taking longer than expected/i);
+      expect(screen.queryByText("Generating portfolio...")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check again" })).toBeInTheDocument();
+    }, 10_000);
   });
 });

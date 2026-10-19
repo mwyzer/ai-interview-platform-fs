@@ -877,6 +877,42 @@ With proxy detection skipped (`--no-proxy-server`) the invite page loads in 1.4 
 first guess (the Docker bind mount) was wrong; running Vite on the host gave the same 26 s, and per-request timing
 showed the delay sat before the request, even for the API's `/health`.
 
+### Sub-PR 20: the live interview, redesigned (branch `feat/interview-room`)
+
+One voice stage instead of "Listening..." and "You're speaking" shown at once (teal while the interviewer speaks,
+yellow on the candidate's turn, `aria-live`), a deep-teal strip with role and timer, a transcript that fills the
+height and follows the newest turn (it didn't), a 56px mute button, and one notice per reconnect instead of two.
+Previewed with Playwright standing in for the API and the audio WebSocket (`routeWebSocket`), so no paid interview
+was needed. CI green.
+
+### Sub-PR 21: the portfolio page stops waiting (P2-22, branch `fix/portfolio-wait-timeout`)
+
+**Found.** A portfolio page sat on "Generating portfolio..." for five hours. The Sidekiq container had exited: the
+Rails upgrade (sub-PR 16) ran `bundle update` inside the running api container only, and Sidekiq, a second container
+from the same image, couldn't find Rails 8.1.4 when it restarted. The gems live in the image, so the api would have
+broken the same way on its next recreate. Fixed in the environment, not the code: `docker compose build api`, then
+both containers recreated; Sidekiq worked off the five-hour backlog (three portfolios, one job failing on a Gemini
+503, P2-3, while a duplicate succeeded). Lesson: after a `Gemfile.lock` change, rebuild the image.
+
+**The product gap it showed.** The page polled every 5 s with no limit and promised "about 2 minutes", so a stalled
+job meant a spinner forever. Pinned (`it.fails`; unmarked: no `role="alert"`), then fixed: past three minutes of
+waiting the page stops polling and says it's taking longer than expected, with "Check again". Three, not the fit/gap
+page's two, because generation took 61–69 s here and a 503 plus a Sidekiq retry can pass two. Web 155 passed,
+22 expected fail, 7 skipped. Left: nothing on the server marks a job that never runs as failed.
+
+**Checked and dropped: "the interviewer reads the coverage map aloud".** The dev log showed 23 AI turns whose
+transcription began `[COVERAGE MAP: {"skills": ...`, and I first told the user candidates were hearing it. Audio per
+word says otherwise: leaked turns carry 1.10 audio chunks per real word, normal turns 1.52; a spoken JSON blob would
+push that far up. So the JSON is in Gemini's output transcription only, and the sanitizer from sub-PR 15 already
+keeps it off the screen and out of the database (0 of 29 saved AI turns contain any). Left as cosmetic: the prompt
+tells the model to ignore messages starting "[COVERAGE MAP" while the injector sends "[COVERAGE_MAP]".
+
+**Also from the same interview, not fixed:** the candidate heard nothing although the proxy forwarded the AI's audio
+(32 and 31 chunks); a Playwright probe with Chrome's normal autoplay policy plays it (context running, 32 sources
+started), so the likely cause is the device (output device, muted tab), which the hardware check can't catch: its
+audio-output test is a 0.1 s tone at 1% volume that passes whenever nothing throws. Gemini also heard almost nothing
+from the candidate ("que"), so the proxy forced about 20 reconnects for silence.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

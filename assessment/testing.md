@@ -47,18 +47,18 @@ Every page is also checked with axe (WCAG 2.1 A/AA, serious and critical), and e
 moment 14). The built web app runs against the real API with synthetic data from `rails e2e:seed`, and nothing calls
 the model. Run: see "Running the E2E tests" in the [README](../README.md); CI job `e2e`.
 
-### Web (Vitest, Testing Library, MSW): 183 tests, 154 passing, 22 expected to fail, 7 opt-in
+### Web (Vitest, Testing Library, MSW): 184 tests, 155 passing, 22 expected to fail, 7 opt-in
 
 | Suite | Tests | Covers |
 |---|---|---|
 | Unit | 112 (7 expected to fail) | The hardware check runs every device check whatever failed before (P2-21, sub-PR 19); the upload minimum against the interview stream; `LevelRadio` and `SkillPicker` (search, pick, anchors); `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card (with the not-assessed reason) and override panel (including rating an unrated skill), `ExpandableText`, comparison table (reasons, `data-label`), timer, connection status, error boundary |
-| Functional | 56 (13 expected to fail) | Sign-in and the route guard; assessment list; creating an assessment (library and custom skills, validation, API errors) and editing it; inviting candidates (session states, named and unnamed links, copying); vacancy list, create and edit; transcript (turns, download, empty, error); portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link |
+| Functional | 57 (13 expected to fail) | Sign-in and the route guard; assessment list; creating an assessment (library and custom skills, validation, API errors) and editing it; inviting candidates (session states, named and unnamed links, copying); vacancy list, create and edit; transcript (turns, download, empty, error); portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
 
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
 `API_INTEGRATION_URL`, `API_INTEGRATION_EMAIL` and `API_INTEGRATION_PASSWORD`, and must run from the host.
 
-Without the API, the run is 154 passing, 22 expected to fail, 7 skipped.
+Without the API, the run is 155 passing, 22 expected to fail, 7 skipped.
 
 ### How the tests were checked
 
@@ -111,6 +111,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P2-18 low contrast~~, ~~P2-19 unnamed controls~~ **fixed** in sub-PR 12 | | E2E axe on every page |
 | ~~P2-20 microphone frames starting with `{` dropped~~ **fixed** in sub-PR 15 | audio proxy now passes | |
 | ~~P2-21 a failed check skips the mic and audio output checks~~ **fixed** in sub-PR 19 | | hardware check (×2) now pass |
+| ~~P2-22 the portfolio page waits forever for a stalled generation~~ **fixed** in sub-PR 21 | | portfolio (stops after three minutes) now passes |
 | P3 (override label, optional reason, Edge, Android, offline upload) | | override panel (×2), hardware utils (×2), speed test |
 
 ## What's missing, in priority order
