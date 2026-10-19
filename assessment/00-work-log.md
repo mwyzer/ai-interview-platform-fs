@@ -1082,6 +1082,11 @@ duplicates it; the duplicate was missed when P2-27 was logged. Its pin kept expe
 assertion guessed the wording (`/invalid|expired|not found/`); it now checks the real heading, keeps the "has been
 recorded" check, and passes (own commit, with the reason).
 
+**And P2-2.** Listing what's left showed a second duplicate: P2-2 (Step 3, "Retry while Sidekiq is still
+retrying") is the defect sub-PR 25 fixed as P2-26. It had no pin, so nothing flagged it; both rows now say so. The
+same pass struck CI and the migration test from testing.md's list of what's missing (both done long ago) and moved
+the audio middleware out of "not testable yet".
+
 API: 401 examples, 0 failures, 3 pending. Web: 206 passed, 21 expected fail, 7 skipped (34 files).
 
 ## AI verification moments
