@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { testInternetSpeed } from "./internetSpeedTest";
+import { DEFAULT_THRESHOLDS, testInternetSpeed } from "./internetSpeedTest";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -55,5 +55,16 @@ describe("testInternetSpeed", () => {
     expect(fetch).toHaveBeenCalledWith("/api/v1/speed_test", expect.anything());
     expect(result.download).toBeGreaterThan(0);
     expect(result.passed).toBe(true);
+  });
+});
+
+describe("DEFAULT_THRESHOLDS", () => {
+  // The interview streams the microphone as 16 kHz mono 16-bit PCM: 256 kbps. Asking for 4 Mbps turned away
+  // candidates whose upload carries it many times over (one measured 2.07 Mbps).
+  it.fails("asks for no more upload than the interview needs, with room to spare", () => {
+    const interviewUploadMbps = (16000 * 16) / 1_000_000;
+
+    expect(DEFAULT_THRESHOLDS.minUploadMbps).toBeLessThanOrEqual(1);
+    expect(DEFAULT_THRESHOLDS.minUploadMbps).toBeGreaterThanOrEqual(interviewUploadMbps * 3);
   });
 });
