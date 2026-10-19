@@ -18,7 +18,8 @@ export interface SpeedThresholds {
 
 export const DEFAULT_THRESHOLDS: SpeedThresholds = {
     minDownloadMbps: 8,
-    minUploadMbps: 4,
+    // The interview streams the mic as 16 kHz mono PCM, 256 kbps; 1 Mbps leaves about four times that.
+    minUploadMbps: 1,
     maxPingMs: 300,
 };
 

@@ -831,6 +831,52 @@ refuses to boot without `APP_BASE_URL`. README corrected. The local `application
 
 **Checked.** API 386 examples, 0 failures, 3 pending; coverage 77.80%.
 
+### Sub-PR 18: the login page, designed for phones first (branch `feat/login-mobile`)
+
+**Why.** At 375px the login page was a plain centred form touching the screen edges; it's the first screen every
+assessor sees.
+
+**What.** A deep-teal header with five level bars (L1–L5: the rubric's levels, drawn like the interview's voice
+meter, L5 in Rakamin yellow) that breathe unless reduced motion is asked for, and the form on a sheet over it; side
+by side in one card from `md` up. 48px fields and button, 16px text (no zoom on iOS), the error in a
+`role="alert"` box, and a line for candidates who land here. New token `--primary-deep` (#003F44): white on it 11.7:1,
+the dimmest header text 5.2:1. No web font, so no third-party request. Labels and button names unchanged, so the tests
+find the same elements. Checked at 375px (empty, with the error) and 1280px; CI green, axe included.
+
+**A count to correct.** The commit message gives the web run as 137 passed, 19 expected fail: that local run had
+silently skipped three test files (vitest on Windows sometimes collects nothing from a file and still reports
+success). A full run is 150/22/7, as before; CI ran the full suite.
+
+### Sub-PR 19: the hardware check shows every result (P2-21, branch `fix/hardware-check-order`)
+
+**Found.** The user's invite page showed "Internet: Failed" (upload 2.17 Mbps, minimum 4) with Microphone and Audio
+output stuck on "Waiting". The checks were a chain, each started only when the one before passed, so a candidate
+with a failing connection couldn't learn whether their mic worked. A blocked mic likewise skipped audio output, which
+doesn't need it.
+
+**Pinned (`184f183`, `b9ba0f5`).** A component test with the speed test, `getUserMedia` and `AudioContext` faked: a
+baseline (all pass, Start enabled) and two `it.fails` pins, each failing on its assertion (still "Waiting"). The
+baseline first flaked: Start is enabled one render after the last "Passed" (the component sets "all passed" in an
+effect), so it waits for the button; three runs in a row stable.
+
+**Fixed (`bee010c`).** The device checks run whatever the connection result, and audio output whatever the mic
+result; Start still needs every row. Checked in the dev stack with Chrome's fake microphone: Internet failed,
+Microphone passed (the level meter moves), Audio output passed, Start disabled. Web 153 passed, 22 expected fail,
+7 skipped.
+
+**The upload minimum, 4 → 1 Mbps (the user's decision).** The 4 Mbps minimum was about 16 times what the interview
+streams (16 kHz mono PCM, 256 kbps) and failed the user's 2.07 Mbps connection, so they couldn't reach the interview.
+1 Mbps leaves about four times the stream. Pinned first (`it.fails`; unmarked: "expected 4 to be less than or equal
+to 1"), then lowered. Still left: the upload test times a POST to httpbin.org (P1-12) while the download test runs,
+so it measures that service and a shared line rather than the candidate's upload; and the 8 Mbps download minimum is
+as generous against the 24 kHz playback stream (384 kbps). Tech Lead: measuring against our own server.
+
+**Also found: page loads took 20+ seconds locally.** Not the app: Windows "Automatically detect settings" (WPAD) is
+on and unanswered, so every new browser connection to localhost waited about 20 s before the request was sent.
+With proxy detection skipped (`--no-proxy-server`) the invite page loads in 1.4 s from the Docker web container. A
+first guess (the Docker bind mount) was wrong; running Vite on the host gave the same 26 s, and per-request timing
+showed the delay sat before the request, even for the API's `/health`.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

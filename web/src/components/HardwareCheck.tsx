@@ -122,14 +122,14 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart }) => {
         if (progress.internet !== ProctoringState.LOADING) return;
         testInternetSpeed(DEFAULT_THRESHOLDS).then((result) => {
             setInternetResult(result);
+            // The device checks go on either way, so a candidate whose connection fails still learns whether their
+            // mic and speakers work (P2-21). Start still needs every row to pass.
             setProgress((p) => ({
                 ...p,
                 internet: result.passed ? ProctoringState.PASSED : ProctoringState.ERROR,
-                ...(result.passed
-                    ? REQUIRE_CAMERA
-                        ? { camera: ProctoringState.LOADING }
-                        : { camera: ProctoringState.PASSED, microphone: ProctoringState.LOADING }
-                    : {}),
+                ...(REQUIRE_CAMERA
+                    ? { camera: ProctoringState.LOADING }
+                    : { camera: ProctoringState.PASSED, microphone: ProctoringState.LOADING }),
             }));
         });
     }, [progress.internet]);
@@ -155,10 +155,12 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart }) => {
                     audio: ProctoringState.LOADING,
                 }));
             } else {
+                // Playing a tone doesn't need the mic, so audio output is still checked.
                 setProgress((p) => ({
                     ...p,
                     ...(REQUIRE_CAMERA ? { camera: ProctoringState.ERROR } : {}),
                     microphone: ProctoringState.ERROR,
+                    audio: ProctoringState.LOADING,
                 }));
             }
         });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { testInternetSpeed } from "./internetSpeedTest";
+import { DEFAULT_THRESHOLDS, testInternetSpeed } from "./internetSpeedTest";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -29,7 +29,7 @@ describe("testInternetSpeed", () => {
   });
 
   // When every upload attempt fails, it reports a made-up 0.5 MB/s (4 Mbps),
-  // exactly the minimum, so the upload line shows green for a dead connection.
+  // above the 1 Mbps minimum, so the upload line shows green for a dead connection.
   it.fails("does not report an upload speed when no upload succeeded (known defect)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
@@ -55,5 +55,16 @@ describe("testInternetSpeed", () => {
     expect(fetch).toHaveBeenCalledWith("/api/v1/speed_test", expect.anything());
     expect(result.download).toBeGreaterThan(0);
     expect(result.passed).toBe(true);
+  });
+});
+
+describe("DEFAULT_THRESHOLDS", () => {
+  // The interview streams the microphone as 16 kHz mono 16-bit PCM: 256 kbps. Asking for 4 Mbps turned away
+  // candidates whose upload carries it many times over (one measured 2.07 Mbps).
+  it("asks for no more upload than the interview needs, with room to spare", () => {
+    const interviewUploadMbps = (16000 * 16) / 1_000_000;
+
+    expect(DEFAULT_THRESHOLDS.minUploadMbps).toBeLessThanOrEqual(1);
+    expect(DEFAULT_THRESHOLDS.minUploadMbps).toBeGreaterThanOrEqual(interviewUploadMbps * 3);
   });
 });
