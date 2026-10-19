@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ProctoringPause from "./ProctoringPause";
 
-const props = { busy: false, error: null, onResumeCamera: vi.fn(), onResumeScreen: vi.fn() };
+const props = { secondScreen: false, busy: false, error: null, onResumeCamera: vi.fn(), onResumeScreen: vi.fn() };
 
 describe("ProctoringPause", () => {
   it("says the interview is paused, why, and that the timer keeps running", () => {
@@ -26,6 +26,22 @@ describe("ProctoringPause", () => {
 
     expect(onResumeCamera).toHaveBeenCalledOnce();
     expect(onResumeScreen).toHaveBeenCalledOnce();
+  });
+
+  it("asks for a second screen to be disconnected, with no button: the interview carries on by itself", () => {
+    render(<ProctoringPause {...props} camera={false} screen={false} secondScreen={true} />);
+
+    expect(screen.getByRole("alertdialog", { name: "Interview paused" })).toHaveTextContent(
+      "A second screen is connected. Your microphone is off until you disconnect it, and the interview carries on by itself. The timer keeps running."
+    );
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("names a second screen after what stopped", () => {
+    render(<ProctoringPause {...props} camera={true} screen={false} secondScreen={true} />);
+
+    expect(screen.getByText(/Your camera stopped/)).toHaveTextContent(/second screen is also connected: disconnect it too/);
+    expect(screen.getByRole("button", { name: "Turn camera back on" })).toBeInTheDocument();
   });
 
   it("shows why turning it back on failed", () => {

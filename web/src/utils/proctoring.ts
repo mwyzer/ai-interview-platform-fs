@@ -72,9 +72,40 @@ export const SCREEN_SHARE_ERRORS: Record<Exclude<ScreenShareResult, { ok: true }
 
 export const CAMERA_ERROR = "Chrome couldn't use your camera. Allow camera access in the address bar, then try again.";
 
+// window.screen as Chrome has it: TypeScript's Screen knows neither isExtended nor the "change" event.
+type ScreenLike = {
+  isExtended?: boolean;
+  addEventListener?: (type: "change", listener: () => void) => void;
+  removeEventListener?: (type: "change", listener: () => void) => void;
+};
+const chromeScreen = () => window.screen as unknown as ScreenLike;
+
+/**
+ * Whether Chrome sees more than one screen (screen.isExtended, from the Window Management API; no permission
+ * prompt). False when the browser can't tell. It can't see a mirrored display, which shows the same screen anyway.
+ */
+export function hasSecondScreen(target: ScreenLike = chromeScreen()): boolean {
+  return target.isExtended === true;
+}
+
+/**
+ * Calls back with hasSecondScreen() whenever a screen is plugged in or out: Chrome fires "change" on window.screen
+ * when isExtended changes. Checked every few seconds too, in case the event doesn't come. Returns the unsubscribe.
+ */
+export function watchScreens(onChange: (second: boolean) => void, target: ScreenLike = chromeScreen()): () => void {
+  const check = () => onChange(hasSecondScreen(target));
+  target.addEventListener?.("change", check);
+  const poll = setInterval(check, 5000);
+  return () => {
+    target.removeEventListener?.("change", check);
+    clearInterval(poll);
+  };
+}
+
 export interface ProctoringSummary {
   camera: { stops: number; off_seconds: number };
   screen: { stops: number; off_seconds: number };
+  second_screen?: { connected: number; seconds: number }; // absent from an API older than P2-28
 }
 
 function duration(seconds: number): string {
@@ -88,12 +119,21 @@ function times(n: number): string {
   return n === 1 ? "once" : n === 2 ? "twice" : `${n} times`;
 }
 
-/** One line for the assessor: whether the camera and screen share stayed on, or how often and how long they didn't. */
-export function proctoringSummaryText({ camera, screen }: ProctoringSummary): string {
-  if (camera.stops === 0 && screen.stops === 0) return "Camera and screen sharing stayed on throughout the interview.";
+/**
+ * One line for the assessor: whether the camera and screen share stayed on and Chrome saw one screen, or how often
+ * and how long they didn't.
+ */
+export function proctoringSummaryText({ camera, screen, second_screen }: ProctoringSummary): string {
+  const extra = second_screen?.connected ?? 0;
+  if (camera.stops === 0 && screen.stops === 0 && extra === 0) {
+    return second_screen
+      ? "Camera and screen sharing stayed on throughout the interview, and Chrome saw no second screen."
+      : "Camera and screen sharing stayed on throughout the interview.";
+  }
   const parts: string[] = [];
   if (camera.stops) parts.push(`the camera was off ${times(camera.stops)} (${duration(camera.off_seconds)} in total)`);
   if (screen.stops) parts.push(`screen sharing stopped ${times(screen.stops)} (${duration(screen.off_seconds)} in total)`);
+  if (extra) parts.push(`a second screen was connected ${times(extra)} (${duration(second_screen!.seconds)} in total)`);
   const line = parts.join("; ");
-  return `${line.charAt(0).toUpperCase()}${line.slice(1)}. The interview paused each time until it was back.`;
+  return `${line.charAt(0).toUpperCase()}${line.slice(1)}. The interview paused each time until it was put right.`;
 }

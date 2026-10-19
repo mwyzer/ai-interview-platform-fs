@@ -19,13 +19,13 @@ function devices({ screenSurface = "monitor", camera = true }: { screenSurface?:
   });
 }
 
-// The page holds the streams; this stands in for it.
-function Harness() {
+// The page holds the streams and watches the screens; this stands in for it.
+function Harness({ secondScreen = false }: { secondScreen?: boolean }) {
   const [camera, setCamera] = useState<MediaStream | null>(null);
   const [screenShare, setScreen] = useState<MediaStream | null>(null);
   const [ack, setAck] = useState(false);
   return (
-    <ProctoringSetup camera={camera} screen={screenShare} acknowledged={ack}
+    <ProctoringSetup camera={camera} screen={screenShare} secondScreen={secondScreen} acknowledged={ack}
       onCamera={setCamera} onScreen={setScreen} onAcknowledge={setAck} />
   );
 }
@@ -64,6 +64,14 @@ describe("ProctoringSetup", () => {
 
     expect(await screen.findByText("Sharing your entire screen.")).toBeInTheDocument();
     expect(await screen.findByLabelText("Your camera")).toBeInTheDocument();
+  });
+
+  it("says when a second screen is connected, and how to fix it", () => {
+    devices();
+    render(<Harness secondScreen />);
+
+    expect(screen.getByText(/Use one screen/)).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/A second screen is connected\. Disconnect it, or set your displays to mirror/);
   });
 
   it("says how to fix a blocked camera", async () => {

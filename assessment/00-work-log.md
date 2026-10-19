@@ -1040,6 +1040,54 @@ don't expire); the page shows the same message for both.
 
 Web: 189 passed, 22 expected fail, 7 skipped (32 files).
 
+### Sub-PR 27: a proctored interview needs one screen (P2-28, P1-16, branch `feat/proctoring-second-screen`)
+
+**Asked.** Does the proctoring catch an extended monitor? It didn't: the setup refuses a tab or a window, but a
+candidate with two monitors could share one and use the other, and nothing recorded it.
+
+**Built** (pinned first: `it.fails` on the web, `pending` on the API; each pin was run unmarked and failed on its
+assertion):
+- Chrome reports a second screen as `screen.isExtended` (Window Management API, no permission prompt) and fires
+  `change` on `window.screen` when one is plugged in or out. The page listens, and checks every five seconds too.
+- Setup: a "One screen" row and a line in the notice; Start stays disabled while a second screen is connected.
+- During the interview a second screen pauses it like a stopped camera: no mic frames reach the server, the timer
+  runs. There's no button; the pause lifts once the screen is unplugged. Both are reported over the interview
+  socket (`second_screen_connected`, `_disconnected`).
+- The API records the pair and sums it apart, as `second_screen: { connected, seconds }`; the assessor's line says
+  "a second screen was connected N times (… in total)", or "Chrome saw no second screen".
+- Tests of the live page with proctoring didn't exist; the device fakes moved from `interview-end.test.tsx` to
+  `test/interview.ts`, with a camera, a screen share and screens added, and two tests of what already worked (the
+  mic sent on one screen, the pause when the camera stops) came with the pins.
+
+**Checked.** In Chromium 153, headless and headed: `isExtended` is there (false on this one-screen machine),
+`window.screen` is an event target with `onchange`, and the `window-management` policy allows it. The setup at
+1280px and 375px, with a second screen simulated (`Screen.prototype.isExtended`): the row's alert, Start disabled,
+no sideways scroll. **Not checked with a real second monitor.**
+
+**What it can't see.** A mirrored display (one screen to Chrome, and the same picture anyway), a second laptop or a
+phone, another person in the room; and anyone who hides a monitor from the OS. It stops the casual case and tells
+the assessor; it doesn't prove the candidate worked alone.
+
+**Found on the way, and fixed (P1-16).** `web/vercel.json` sent `Permissions-Policy: camera=()`, which turns the
+camera off for every origin: wherever that file is used, a proctored interview couldn't get past the camera step. A
+test now reads `vercel.json` and checks each feature the candidate page uses (pinned first, failing on camera); the
+header is `camera=(self)`. Checked in Chromium with the permission granted and a fake camera, the page served with
+each header: `camera=()` gives `NotAllowedError`, `camera=(self)` a stream. Whether production serves this file at
+all is still C8's open question.
+
+**Caught on the way: P1-11 was already fixed.** Updating the report, its findings table still listed P1-11 (a broken
+invite link says "The interview has been recorded") as open. Sub-PR 26 fixed it as part of P2-27, which partly
+duplicates it; the duplicate was missed when P2-27 was logged. Its pin kept expected-failing only because its first
+assertion guessed the wording (`/invalid|expired|not found/`); it now checks the real heading, keeps the "has been
+recorded" check, and passes (own commit, with the reason).
+
+**And P2-2.** Listing what's left showed a second duplicate: P2-2 (Step 3, "Retry while Sidekiq is still
+retrying") is the defect sub-PR 25 fixed as P2-26. It had no pin, so nothing flagged it; both rows now say so. The
+same pass struck CI and the migration test from testing.md's list of what's missing (both done long ago) and moved
+the audio middleware out of "not testable yet".
+
+API: 401 examples, 0 failures, 3 pending. Web: 206 passed, 21 expected fail, 7 skipped (34 files).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are

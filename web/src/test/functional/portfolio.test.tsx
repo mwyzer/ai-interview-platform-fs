@@ -176,6 +176,21 @@ describe("Portfolio review", () => {
     expect(await screen.findByText(/The camera was off once \(45 s in total\)/)).toBeInTheDocument();
   });
 
+  it("says when a second screen was connected during a proctored interview", async () => {
+    serve(() => HttpResponse.json({ portfolio }));
+    const quiet = { stops: 0, off_seconds: 0 };
+    server.use(
+      http.get(`${API}/sessions/42`, () =>
+        HttpResponse.json({
+          session: { ...sessionShow.session, proctoring: { camera: quiet, screen: quiet, second_screen: { connected: 1, seconds: 40 } } },
+        })
+      )
+    );
+    renderApp(PAGE);
+
+    expect(await screen.findByText(/A second screen was connected once \(40 s in total\)/)).toBeInTheDocument();
+  });
+
   it("AC-27: offers a retry when the portfolio can't be loaded, and recovers", async () => {
     let fail = true;
     serve(() => (fail ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json({ portfolio })));
