@@ -90,7 +90,7 @@ describe("HardwareCheck", { timeout: 20000 }, () => {
 describe("HardwareCheck, known defects", { timeout: 30000 }, () => {
   // Retry reset the rows, but the first step only ran once, on mount: the page stuck on "Checking..." and the
   // candidate's only way out was a reload.
-  it.fails("P2-23: Retry runs the checks again", async () => {
+  it("P2-23: Retry runs the checks again", async () => {
     vi.mocked(testInternetSpeed).mockResolvedValueOnce(speed(false)).mockResolvedValue(speed(true));
     const user = userEvent.setup();
     render(<HardwareCheck />);
@@ -104,7 +104,7 @@ describe("HardwareCheck, known defects", { timeout: 30000 }, () => {
 
   // The check's microphone stream and its level meter outlived it: Chrome showed the mic as in use after the
   // interview ended, and the meter loop ran all interview long.
-  it.fails("P2-24: stops the microphone and the level meter it started when it goes away", async () => {
+  it("P2-24: stops the microphone and the level meter it started when it goes away", async () => {
     vi.mocked(testInternetSpeed).mockResolvedValue(speed(true));
     const micTrack = { stop: vi.fn() };
     vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue({ getTracks: () => [micTrack] } as unknown as MediaStream);

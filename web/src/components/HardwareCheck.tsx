@@ -49,6 +49,24 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
     const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
     const [audioLevel, setAudioLevel] = useState<number>(0);
     const videoRef = useRef<HTMLVideoElement>(null);
+    // Each run of the checks has a number; Retry starts a new one, and results from an older run are ignored (P2-23).
+    const [runId, setRunId] = useState(0);
+    const runRef = useRef(0);
+    // What the mic check opened, so it's all stopped when the check goes away or reruns (P2-24).
+    const micStreamRef = useRef<MediaStream | null>(null);
+    const meterCtxRef = useRef<AudioContext | null>(null);
+    const meterFrameRef = useRef<number | null>(null);
+
+    const stopMeter = () => {
+        if (meterFrameRef.current !== null) cancelAnimationFrame(meterFrameRef.current);
+        meterFrameRef.current = null;
+        meterCtxRef.current?.close?.()?.catch(() => {});
+        meterCtxRef.current = null;
+        micStreamRef.current?.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
+    };
+
+    useEffect(() => stopMeter, []);
 
     useEffect(() => {
         const { osAndBrowser, internet, camera, audio, microphone } = progress;
@@ -82,14 +100,18 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
             osc.frequency.setValueAtTime(440, ctx.currentTime);
             osc.start(ctx.currentTime);
             osc.stop(ctx.currentTime + 0.1);
+            setTimeout(() => ctx.close?.()?.catch(() => {}), 300);
             return true;
         } catch { return false; }
     };
 
     const startAudioLevelMonitoring = (stream: MediaStream) => {
+        stopMeter();
+        micStreamRef.current = REQUIRE_CAMERA ? null : stream; // with the camera, videoStream owns the tracks
         try {
             const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
             const ctx = new AudioCtx();
+            meterCtxRef.current = ctx;
             const source = ctx.createMediaStreamSource(stream);
             const analyser = ctx.createAnalyser();
             analyser.fftSize = 256;
@@ -98,16 +120,17 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
             const update = () => {
                 analyser.getByteFrequencyData(data);
                 setAudioLevel(Math.round(data.reduce((a, b) => a + b, 0) / data.length));
-                requestAnimationFrame(update);
+                meterFrameRef.current = requestAnimationFrame(update);
             };
             update();
         } catch { /* silent */ }
     };
 
-    // Step 1: OS & browser
+    // Step 1: OS & browser (again on every Retry)
     useEffect(() => {
+        runRef.current = runId;
         setProgress((p) => ({ ...p, osAndBrowser: ProctoringState.LOADING }));
-        setTimeout(() => {
+        const timer = setTimeout(() => {
             getBrowserInfo();
             getOSInfo();
             getCurrentTime();
@@ -117,12 +140,15 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
                 internet: ProctoringState.LOADING,
             }));
         }, 800);
-    }, []);
+        return () => clearTimeout(timer);
+    }, [runId]);
 
     // Step 2: Internet
     useEffect(() => {
         if (progress.internet !== ProctoringState.LOADING) return;
+        const run = runRef.current;
         testInternetSpeed(DEFAULT_THRESHOLDS).then((result) => {
+            if (run !== runRef.current) return;
             setInternetResult(result);
             // The device checks go on either way, so a candidate whose connection fails still learns whether their
             // mic and speakers work (P2-21). Start still needs every row to pass.
@@ -149,7 +175,12 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
                 ? navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null)
                 : Promise.resolve(null);
 
+        const run = runRef.current;
         getStream.then((stream) => {
+            if (run !== runRef.current) {
+                stream?.getTracks().forEach((t) => t.stop());
+                return;
+            }
             if (stream) {
                 if (REQUIRE_CAMERA) setVideoStream(stream);
                 startAudioLevelMonitoring(stream);
@@ -183,16 +214,19 @@ const HardwareCheck: React.FC<HardwareCheckProps> = ({ onStart, extraReady = tru
     }, [progress.audio]);
 
     const retryAll = () => {
+        stopMeter();
+        setAudioLevel(0);
         videoStream?.getTracks().forEach((t) => t.stop());
         setVideoStream(null);
         setInternetResult(null);
         setProgress({
-            osAndBrowser: ProctoringState.LOADING,
+            osAndBrowser: ProctoringState.WAITING,
             internet: ProctoringState.WAITING,
             camera: ProctoringState.WAITING,
             audio: ProctoringState.WAITING,
             microphone: ProctoringState.WAITING,
         });
+        setRunId((id) => id + 1);
     };
 
     const thresholds = DEFAULT_THRESHOLDS;

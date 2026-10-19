@@ -12,7 +12,7 @@ describe("timerRuns", () => {
   // The server's clock (its time ceiling) doesn't stop while the browser reconnects, so the candidate's mustn't
   // either: each reconnect used to add its length to the time shown. Not while wrapping up: expiring then would cut
   // off the interviewer's closing words.
-  it.fails("P2-25: keeps counting while reconnecting, and stops while the interview wraps up", () => {
+  it("P2-25: keeps counting while reconnecting, and stops while the interview wraps up", () => {
     expect(timerRuns("reconnecting")).toBe(true);
     expect(timerRuns("draining_audio")).toBe(false);
   });
