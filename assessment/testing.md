@@ -19,12 +19,12 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 395 examples, 0 failures, 3 pending
+### API (RSpec): 398 examples, 0 failures, 3 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
-| Original harness | 83 (6 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker |
-| Functional | 14 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, failed narrative, invalid requests; known defects end to end |
+| Original harness | 84 (6 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker (leaves "failed" to the retries-exhausted hook, P2-26) |
+| Functional | 16 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, a portfolio kept "generating" while Sidekiq retries and one job for two Retry clicks (P2-26), failed narrative, invalid requests; known defects end to end |
 | Unit | 80 (1 pending) | Prompt compiler; session start and end; the invite link (P1-15); JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Gap fill | 30 | Skill library model and endpoints; tenant resolver (JWT, header, Referer order, unknown scheme); coverage analyzer worker (applying updates, discovered skills and their cap of ten, auto-advancing stale partials, publishing); keeping or deleting skills on assessment update |
 | Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
@@ -115,6 +115,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P2-21 a failed check skips the mic and audio output checks~~ **fixed** in sub-PR 19 | | hardware check (×2) now pass |
 | ~~P2-22 the portfolio page waits forever for a stalled generation~~ **fixed** in sub-PR 21 | | portfolio (stops after three minutes) now passes |
 | ~~P2-23 Retry gets stuck~~, ~~P2-24 the check leaves the mic on~~, ~~P2-25 the timer stops while reconnecting~~ **fixed** in sub-PR 24 | | hardware check (×2), timer rule now pass |
+| ~~P2-26 a retried portfolio job shows "failed" and Retry queues a second one~~ **fixed** in sub-PR 25 | functional journey, portfolio worker now pass | |
 | P3 (override label, optional reason, Edge, Android, offline upload) | | override panel (×2), hardware utils (×2), speed test |
 
 ## What's missing, in priority order
