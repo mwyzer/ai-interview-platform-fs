@@ -48,12 +48,12 @@ Every page is also checked with axe (WCAG 2.1 A/AA, serious and critical), and e
 moment 14). The built web app runs against the real API with synthetic data from `rails e2e:seed`, and nothing calls
 the model. Run: see "Running the E2E tests" in the [README](../README.md); CI job `e2e`.
 
-### Web (Vitest, Testing Library, MSW): 234 tests, 205 passing, 22 expected to fail, 7 opt-in
+### Web (Vitest, Testing Library, MSW): 234 tests, 206 passing, 21 expected to fail, 7 opt-in
 
 | Suite | Tests | Covers |
 |---|---|---|
 | Unit | 125 (7 expected to fail) | The production headers in `vercel.json` let the page use the microphone, camera (P1-16), screen sharing and the screen count; the closing screen (the role, the three steps that follow); the audio hook reports "interrupted", not "complete", once every reconnect fails (P2-27); the hardware check runs every device check whatever failed before (P2-21, sub-PR 19), reruns on Retry and stops the mic it opened (P2-23, P2-24); the timer counts while reconnecting (P2-25); the upload minimum against the interview stream; `LevelRadio` and `SkillPicker` (search, pick, anchors); `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card (with the not-assessed reason) and override panel (including rating an unrated skill), `ExpandableText`, comparison table (reasons, `data-label`), timer, connection status, error boundary |
-| Functional | 61 (13 expected to fail) | Sign-in and the route guard; assessment list; creating an assessment (library and custom skills, validation, API errors) and editing it; inviting candidates (session states, named and unnamed links, copying); vacancy list, create and edit; transcript (turns, download, empty, error); portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link, and how it ends: a broken link, a failed load with Try again, the microphone off once the server ends the interview (P2-27) |
+| Functional | 61 (12 expected to fail) | Sign-in and the route guard; assessment list; creating an assessment (library and custom skills, validation, API errors) and editing it; inviting candidates (session states, named and unnamed links, copying); vacancy list, create and edit; transcript (turns, download, empty, error); portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link, and how it ends: a broken link, a failed load with Try again, the microphone off once the server ends the interview (P2-27) |
 | Proctoring | 33 | Chrome on a computer only, from real user-agent strings and brand lists (Edge, Opera, Brave, phones refused); entire screen kept, a tab or a window stopped and refused; the setup notice, camera and screen steps and their errors; the page in Chrome, on a phone, in Edge and with the setting off; the form sending it; Start held back until the steps are done (sub-PR 22); the pause screen (what stopped, one button each, the error) and the assessor's line on the portfolio (sub-PR 23); one screen: `screen.isExtended`, its change event and the five-second check, Start held while a second screen is connected, the live page pausing (no mic frames sent) and carrying on once it's out, the camera's pause in the live page, the assessor's line (P2-28, sub-PR 27) |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
 
@@ -92,7 +92,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | P1-8 list only loads page 1 | | assessment list |
 | P1-9 every ended session reads "completed" | | assessment list |
 | P1-10 invite link ends a session as `all_covered` | functional journey | |
-| P1-11 broken link says "recorded" | | candidate page |
+| ~~P1-11 broken link says "recorded"~~ **fixed** in sub-PR 26 (the pin's wording corrected in sub-PR 27) | | candidate page now passes |
 | P1-12 hardware check calls third parties, and fails under the production CSP | | candidate page; speed test under CSP |
 | ~~P1-13 PDF export crashes on overrides and emoji~~ **fixed** in sub-PR 14 | PDF generator (×2) now pass | |
 | P1-14 removing a skill on an edit form doesn't delete it | assessment update shows `_destroy` works (passing) | assessment form; vacancy form |

@@ -1075,7 +1075,13 @@ header is `camera=(self)`. Checked in Chromium with the permission granted and a
 each header: `camera=()` gives `NotAllowedError`, `camera=(self)` a stream. Whether production serves this file at
 all is still C8's open question.
 
-API: 401 examples, 0 failures, 3 pending. Web: 205 passed, 22 expected fail, 7 skipped (34 files).
+**Caught on the way: P1-11 was already fixed.** Updating the report, its findings table still listed P1-11 (a broken
+invite link says "The interview has been recorded") as open. Sub-PR 26 fixed it as part of P2-27, which partly
+duplicates it; the duplicate was missed when P2-27 was logged. Its pin kept expected-failing only because its first
+assertion guessed the wording (`/invalid|expired|not found/`); it now checks the real heading, keeps the "has been
+recorded" check, and passes (own commit, with the reason).
+
+API: 401 examples, 0 failures, 3 pending. Web: 206 passed, 21 expected fail, 7 skipped (34 files).
 
 ## AI verification moments
 
