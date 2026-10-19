@@ -7,10 +7,10 @@ RSpec.describe PortfolioGeneratorWorker do
     expect { described_class.new.perform(-1) }.not_to raise_error
   end
 
-  it 'runs the generator for the session' do
+  it 'runs the generator for the session, leaving the failed status to the retries-exhausted hook' do
     session   = create(:session, :ended)
     generator = instance_double(Portfolios::Generator, call: nil)
-    allow(Portfolios::Generator).to receive(:new).with(session:).and_return(generator)
+    allow(Portfolios::Generator).to receive(:new).with(session:, mark_failed: false).and_return(generator)
 
     described_class.new.perform(session.id)
 
@@ -18,7 +18,6 @@ RSpec.describe PortfolioGeneratorWorker do
   end
 
   it 'P2-26: leaves the portfolio generating when an attempt fails, so Sidekiq can retry it' do
-    pending 'P2-26: the first failed attempt marks the portfolio failed'
     session = create(:session, :ended)
     allow(Gemini::HttpClient).to receive(:new)
       .and_return(FakeGemini.new(Gemini::HttpClient::ApiError.new('API returned 503', status: 503)))

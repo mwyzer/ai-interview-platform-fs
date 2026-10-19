@@ -11,8 +11,11 @@ module Portfolios
       def initialize(msg = "The model's answer couldn't be read as a portfolio") = super
     end
 
-    def initialize(session:, gemini_client: nil)
+    # mark_failed: false leaves a failed attempt "generating", for a caller that will try again. The worker passes it,
+    # because Sidekiq retries the job and only its retries-exhausted hook knows the portfolio has really failed (P2-26).
+    def initialize(session:, gemini_client: nil, mark_failed: true)
       @session = session
+      @mark_failed = mark_failed
       @gemini_client = gemini_client || Gemini::HttpClient.new(
         model:   ENV.fetch('GEMINI_PRO_MODEL', 'gemini-2.0-pro-001'),
         timeout: 180  # up to 3 minutes for large transcripts
@@ -105,8 +108,13 @@ module Portfolios
       Rails.logger.error("[N10] Portfolio generation failed for session #{@session.id}: #{category} (#{error_class})")
       return unless portfolio&.persisted?
 
-      portfolio.reload.update!(generation_status: 'failed', generation_error_category: category,
-                               generation_error: Portfolio.generation_error_message(category))
+      # The category is kept either way: the retries-exhausted hook builds its message from it.
+      if @mark_failed
+        portfolio.reload.update!(generation_status: 'failed', generation_error_category: category,
+                                 generation_error: Portfolio.generation_error_message(category))
+      else
+        portfolio.reload.update!(generation_error_category: category)
+      end
     end
 
     def error_category(error)

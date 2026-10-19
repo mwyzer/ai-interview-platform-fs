@@ -73,7 +73,6 @@ RSpec.describe 'Failure paths', type: :request do
     end
 
     it 'P2-26: keeps the portfolio generating while Sidekiq still retries, and queues no second job on Retry' do
-      pending 'P2-26: the first failed attempt marks the portfolio failed, so Retry queues a second job'
       stub_gemini(portfolio: Gemini::HttpClient::ApiError.new('API returned 503', status: 503))
       end_interview
 
@@ -86,6 +85,18 @@ RSpec.describe 'Failure paths', type: :request do
       post "/api/v1/sessions/#{session.id}/portfolio/regenerate", headers: headers
       expect(response).to have_http_status(:unprocessable_entity)
       expect(PortfolioGeneratorWorker.jobs).to be_empty
+    end
+
+    it 'queues one job when Retry is clicked twice' do
+      stub_gemini(portfolio: Gemini::HttpClient::ApiError.new('API returned 503', status: 503))
+      end_interview
+      expect { run_jobs(PortfolioGeneratorWorker) }.to raise_error(Gemini::HttpClient::ApiError)
+      give_up_retrying
+
+      2.times { post "/api/v1/sessions/#{session.id}/portfolio/regenerate", headers: headers }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(PortfolioGeneratorWorker.jobs.size).to eq(1)
     end
 
     it 'refuses to regenerate a portfolio that did not fail' do
