@@ -48,11 +48,11 @@ Every page is also checked with axe (WCAG 2.1 A/AA, serious and critical), and e
 moment 14). The built web app runs against the real API with synthetic data from `rails e2e:seed`, and nothing calls
 the model. Run: see "Running the E2E tests" in the [README](../README.md); CI job `e2e`.
 
-### Web (Vitest, Testing Library, MSW): 205 tests, 176 passing, 22 expected to fail, 7 opt-in
+### Web (Vitest, Testing Library, MSW): 209 tests, 180 passing, 22 expected to fail, 7 opt-in
 
 | Suite | Tests | Covers |
 |---|---|---|
-| Unit | 112 (7 expected to fail) | The hardware check runs every device check whatever failed before (P2-21, sub-PR 19); the upload minimum against the interview stream; `LevelRadio` and `SkillPicker` (search, pick, anchors); `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card (with the not-assessed reason) and override panel (including rating an unrated skill), `ExpandableText`, comparison table (reasons, `data-label`), timer, connection status, error boundary |
+| Unit | 116 (7 expected to fail) | The hardware check runs every device check whatever failed before (P2-21, sub-PR 19), reruns on Retry and stops the mic it opened (P2-23, P2-24); the timer counts while reconnecting (P2-25); the upload minimum against the interview stream; `LevelRadio` and `SkillPicker` (search, pick, anchors); `parseLevel` (strict: 28 inputs) and labels; `cn`; browser and OS detection; the speed test offline and under the production CSP; token storage; the axios client; `usePolling`; level badge, confidence, skill card (with the not-assessed reason) and override panel (including rating an unrated skill), `ExpandableText`, comparison table (reasons, `data-label`), timer, connection status, error boundary |
 | Functional | 57 (13 expected to fail) | Sign-in and the route guard; assessment list; creating an assessment (library and custom skills, validation, API errors) and editing it; inviting candidates (session states, named and unnamed links, copying); vacancy list, create and edit; transcript (turns, download, empty, error); portfolio review, the not-assessed summary, generating, failed and retry, load error, overrides; fit/gap, including the two-minute timeout and a failed fetch; the candidate page from a link |
 | Proctoring | 21 | Chrome on a computer only, from real user-agent strings and brand lists (Edge, Opera, Brave, phones refused); entire screen kept, a tab or a window stopped and refused; the setup notice, camera and screen steps and their errors; the page in Chrome, on a phone, in Edge and with the setting off; the form sending it; Start held back until the steps are done (sub-PR 22); the pause screen (what stopped, one button each, the error) and the assessor's line on the portfolio (sub-PR 23) |
 | Integration | 14 (2 expected to fail) | Live monitor over REST + WebSocket (7); contract against the running API (7, opt-in) |
@@ -60,7 +60,7 @@ the model. Run: see "Running the E2E tests" in the [README](../README.md); CI jo
 Run: `docker compose exec web npm test`, or `cd web && npm install --include=dev && npm test`. The contract test needs
 `API_INTEGRATION_URL`, `API_INTEGRATION_EMAIL` and `API_INTEGRATION_PASSWORD`, and must run from the host.
 
-Without the API, the run is 176 passing, 22 expected to fail, 7 skipped.
+Without the API, the run is 180 passing, 22 expected to fail, 7 skipped.
 
 ### How the tests were checked
 
@@ -114,6 +114,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | ~~P2-20 microphone frames starting with `{` dropped~~ **fixed** in sub-PR 15 | audio proxy now passes | |
 | ~~P2-21 a failed check skips the mic and audio output checks~~ **fixed** in sub-PR 19 | | hardware check (×2) now pass |
 | ~~P2-22 the portfolio page waits forever for a stalled generation~~ **fixed** in sub-PR 21 | | portfolio (stops after three minutes) now passes |
+| ~~P2-23 Retry gets stuck~~, ~~P2-24 the check leaves the mic on~~, ~~P2-25 the timer stops while reconnecting~~ **fixed** in sub-PR 24 | | hardware check (×2), timer rule now pass |
 | P3 (override label, optional reason, Edge, Android, offline upload) | | override panel (×2), hardware utils (×2), speed test |
 
 ## What's missing, in priority order
