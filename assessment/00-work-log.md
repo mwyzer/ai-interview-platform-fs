@@ -1040,7 +1040,7 @@ don't expire); the page shows the same message for both.
 
 Web: 189 passed, 22 expected fail, 7 skipped (32 files).
 
-### Sub-PR 27: a proctored interview needs one screen (P2-28, branch `feat/proctoring-second-screen`)
+### Sub-PR 27: a proctored interview needs one screen (P2-28, P1-16, branch `feat/proctoring-second-screen`)
 
 **Asked.** Does the proctoring catch an extended monitor? It didn't: the setup refuses a tab or a window, but a
 candidate with two monitors could share one and use the other, and nothing recorded it.
@@ -1068,11 +1068,14 @@ no sideways scroll. **Not checked with a real second monitor.**
 phone, another person in the room; and anyone who hides a monitor from the OS. It stops the casual case and tells
 the assessor; it doesn't prove the candidate worked alone.
 
-**Found on the way, not fixed.** `web/vercel.json` sends `Permissions-Policy: camera=()`, which blocks the camera on
-every page it serves. If production is served with that file, a proctored interview can't get past the camera step
-(see C8: the production config isn't verifiable from the repo).
+**Found on the way, and fixed (P1-16).** `web/vercel.json` sent `Permissions-Policy: camera=()`, which turns the
+camera off for every origin: wherever that file is used, a proctored interview couldn't get past the camera step. A
+test now reads `vercel.json` and checks each feature the candidate page uses (pinned first, failing on camera); the
+header is `camera=(self)`. Checked in Chromium with the permission granted and a fake camera, the page served with
+each header: `camera=()` gives `NotAllowedError`, `camera=(self)` a stream. Whether production serves this file at
+all is still C8's open question.
 
-API: 401 examples, 0 failures, 3 pending. Web: 201 passed, 22 expected fail, 7 skipped (33 files).
+API: 401 examples, 0 failures, 3 pending. Web: 205 passed, 22 expected fail, 7 skipped (34 files).
 
 ## AI verification moments
 
