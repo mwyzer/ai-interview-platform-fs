@@ -1010,6 +1010,36 @@ past three minutes it offers "Check again" (sub-PR 21).
 
 API: 398 examples, 0 failures, 3 pending.
 
+### Sub-PR 26: the interview ends honestly (P2-27, branch `feat/interview-complete-screen`)
+
+**Redesigned first.** The closing screen was an emoji and two grey lines, in a different look from the live
+interview. It now uses the same header, names the role and lists the three steps that follow: the AI drafts a skill
+summary quoting the candidate, a person on the hiring team reviews and can correct it, and the team follows up. "The
+interview has been recorded" became "Your answers have been saved": only the transcript is kept, and "recorded"
+suggests a voice recording.
+
+**Found while doing it (P2-27).** That screen was shown for four endings, and only one was a finished interview: a
+link that doesn't exist (404), any failed load, an error the server can't recover from, and every reconnect failing.
+And when the server ended the interview, the microphone stayed on: only the End button's path stopped it. Seen in
+Chrome with a fake microphone and the audio socket faked (scratch Playwright run): the capture track was still
+"live" under "Interview Complete".
+
+**Fixed** (pinned with `it.fails` first; each pin was run as a normal test and failed on its assertion):
+- A broken link says "This interview link doesn't work" and what to do; any other failed load says "We couldn't
+  load your interview", with Try again.
+- A new "interrupted" state, for a non-recoverable error or reconnects run out: "The interview was interrupted",
+  with Rejoin. Rejoin reloads the page; the server keeps the interview open two minutes after the page leaves
+  (`BROWSER_GRACE_PERIOD`). A non-recoverable error also stops the reconnect loop, since the server closes the
+  socket after it.
+- Whatever ends the interview, the microphone, playback, camera and screen share stop. Rechecked in Chrome: after
+  `session_ended` and after a non-recoverable error, the track is "ended". At 375px no screen scrolls sideways.
+
+**Not done.** Rejoin after the two-minute grace finds the interview ended and shows the closing screen, which is
+true but says nothing about the interruption. A 404 means a mistyped link or a deleted assessment (invite links
+don't expire); the page shows the same message for both.
+
+Web: 189 passed, 22 expected fail, 7 skipped (32 files).
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
