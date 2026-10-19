@@ -983,6 +983,33 @@ always passes; "Audio output" can't tell whether anyone heard the tone.
 
 Web: 180 passed, 22 expected fail, 7 skipped (29 files).
 
+### Sub-PR 25: a portfolio fails only when Sidekiq stops retrying (P2-26, branch `fix/portfolio-retry-status`)
+
+**Seen.** Session 18's portfolio page said "Portfolio generation failed. The AI model was unavailable or
+rate-limited." The Sidekiq log showed Gemini answering 503 (overloaded, not a 429 rate limit), and **two** jobs for
+the same session, 28 seconds apart, each retrying three times before Sidekiq gave up.
+
+**Cause.** The generator marked the portfolio failed on the first error, while Sidekiq still had three retries
+scheduled. The page then showed "failed" with Retry, and Retry queued a second job beside the first.
+
+**Fixed** (pinned `pending` first; each pin was run unmarked and failed on its status assertion):
+- The worker runs the generator with `mark_failed: false`: a failed attempt stays "generating" and records only the
+  error category. The worker's retries-exhausted hook, which already wrote "failed" with a safe message, is now the
+  only place a job's portfolio becomes "failed".
+- `regenerate` claims the portfolio with one conditional UPDATE, so two Retry clicks queue one job.
+- Two existing journeys expected "failed" straight after one attempt; they now play Sidekiq running out of retries
+  (own commit, with the reason).
+
+**Caught on the way.** The first version of the claim also set `updated_at`, which `portfolios` doesn't have: the
+new specs got a 500, not a 422. The functional pin first read the status from the `portfolio` key, which a
+generating portfolio doesn't return (202 with only `status`); corrected, and checked to still fail on the old code.
+
+**Not done.** A 503 isn't retried inside `Gemini::HttpClient` with a short backoff, so a brief overload still costs
+a Sidekiq retry (15 s or more). While retries run (about two minutes for quick 503s), the page shows "generating";
+past three minutes it offers "Check again" (sub-PR 21).
+
+API: 398 examples, 0 failures, 3 pending.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
@@ -1069,3 +1096,11 @@ the raw material for the report's "AI verification moment" section.
     the configured viewport (375), and also flags any element that reaches past the screen's right edge, for a
     container that clips its child. The fault now fails with "the page is wider than the 375px screen: 634".
     **Lesson:** a layout check is only as good as its idea of the screen; plant the fault first.
+15. **A column that doesn't exist, and a pin that read the wrong key.** *(code generation, tests)* In sub-PR 25 the
+    assistant's conditional UPDATE for Retry also set `updated_at`, out of habit: `portfolios` has no such column, so
+    Retry returned 500. Its new functional pin read the status from `portfolio.generation_status`, which a generating
+    portfolio never returns (the API answers 202 with only `status`). **Caught by:** the full spec run (three 500s
+    where 422 was expected), then reading the exception in a scratch spec, and the pin still failing after the fix.
+    **Fixed:** the UPDATE sets only real columns; the pin checks 202 and `status`, and was re-run against the old
+    code to confirm it still fails there on its assertion. **Lesson:** `update_all` skips the model, so check the
+    schema; and a pin that fails before the fix proves only that something differs, not that it reads the right field.

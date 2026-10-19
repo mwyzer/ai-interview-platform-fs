@@ -32,11 +32,15 @@ module Api
           return json_error("No portfolio found for this session", :not_found)
         end
 
-        unless portfolio.failed?
+        # One conditional UPDATE is the claim: of two Retry clicks that both saw "failed", only one queues a job (P2-26).
+        # Unscoped by id is safe: the portfolio came through @session, which set_session found within the tenant.
+        claimed = Portfolio.where(id: portfolio.id, generation_status: "failed")
+                           .update_all(generation_status: "pending", generation_error: nil, generation_error_category: nil)
+        if claimed.zero?
           return json_error("Portfolio can only be regenerated when status is 'failed'", :unprocessable_entity)
         end
 
-        portfolio.update!(generation_status: "pending", generation_error: nil, generation_error_category: nil)
+        portfolio.reload
         PortfolioGeneratorWorker.perform_async(@session.id)
 
         json_response(

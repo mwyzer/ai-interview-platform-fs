@@ -18,7 +18,8 @@ class PortfolioGeneratorWorker
 
   def perform(session_id)
     session = Session.find(session_id)
-    Portfolios::Generator.new(session: session).call
+    # Sidekiq retries a failed attempt, so the portfolio stays "generating" until the hook above gives up (P2-26).
+    Portfolios::Generator.new(session: session, mark_failed: false).call
   rescue ActiveRecord::RecordNotFound
     Rails.logger.warn("[N10] Session #{session_id} not found — skipping")
   end
