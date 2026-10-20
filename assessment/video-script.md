@@ -29,7 +29,7 @@ About 570 spoken words at a calm pace. Each scene gives what's on screen, then w
 
 ### 1. Opening (0:00–0:20)
 
-**On screen:** the report's title page, with the PR #160 link.
+**On screen:** the report's title page, with the PR #167 link.
 
 > This is an AI interviewer: a candidate talks with it, and it turns the conversation into a level for each skill.
 > In this case study I found where it was unfair, fixed it end to end, and made the rest of the product safer to
@@ -116,5 +116,9 @@ About 570 spoken words at a calm pace. Each scene gives what's on screen, then w
 ## After recording
 
 - Upload as **unlisted** (YouTube unlisted, Loom, or Drive with link sharing).
-- Send me the link. I'll put it in the report and in PR #160, remove the blue review marker and the DRAFT banner, and
+- Send me the link. I'll put it in the report and in PR #167, remove the blue review marker and the DRAFT banner, and
   rebuild the PDF.
+
+**Done 2026-10-20:** uploaded to [Google Drive](https://drive.google.com/file/d/16tFmF__U1cvyYbDWRMrgp91GKFdZaVOL/view?usp=drive_link)
+(opens with the link, no sign-in); linked from the report and PR #167; the review markers and the DRAFT banner are
+gone; the PDF is rebuilt.
