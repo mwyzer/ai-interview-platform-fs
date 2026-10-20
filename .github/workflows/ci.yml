@@ -143,8 +143,8 @@ jobs:
           bundler-cache: true
           working-directory: api
 
-      # Fails on any warning in the code. The one known warning (Rails 7.0 end of life) is in
-      # api/config/brakeman.ignore, with the reason.
+      # Fails on any warning in the code. api/config/brakeman.ignore is empty: its one entry, Rails 7.0 end of
+      # life, went with the upgrade to Rails 8.1 (sub-PR 16). A warning ignored there needs its reason.
       - name: Brakeman
         working-directory: api
         run: bundle exec brakeman --no-pager --exit-on-warn

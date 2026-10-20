@@ -19,17 +19,17 @@ HTTP level, and fails on any request it didn't expect; synthetic data only; test
 
 ## What exists
 
-### API (RSpec): 401 examples, 0 failures, 3 pending
+### API (RSpec): 404 examples, 0 failures, 2 pending
 
 | Suite | Examples | Covers |
 |---|---|---|
 | Original harness | 84 (6 pending) | Coverage state engine, analyzer, map injector; portfolio generator; fit/gap engine; auth, tenancy and fit/gap requests; two models; portfolio worker (leaves "failed" to the retries-exhausted hook, P2-26) |
-| Functional | 16 (3 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, a portfolio kept "generating" while Sidekiq retries and one job for two Retry clicks (P2-26), failed narrative, invalid requests; known defects end to end |
+| Functional | 18 (2 pending) | The PRD 02 journey from setup to export; model timeout and retry, non-JSON answer, a portfolio kept "generating" while Sidekiq retries and one job for two Retry clicks (P2-26), failed narrative, invalid requests; known defects end to end; the invite link ends an interview only once the server has asked the page to finish (P1-10, sub-PR 28) |
 | Unit | 80 (1 pending) | Prompt compiler; session start and end; the invite link (P1-15); JWT and request authorization; audio buffer; Gemini HTTP client through its real Faraday stack; PDF export; model validations; workers |
 | Gap fill | 30 | Skill library model and endpoints; tenant resolver (JWT, header, Referer order, unknown scheme); coverage analyzer worker (applying updates, discovered skills and their cap of ten, auto-advancing stale partials, publishing); keeping or deleting skills on assessment update |
 | Tenant routes | 30 (1 pending) | Every API route called by another company with this company's IDs in the URL or body: 404 and no change; lists and creates stay in the caller's company; a route with no case fails the suite (sub-PR 8) |
 | Production guards | 10 | Login pinned to the server-set company (3); boot refused on the free tier, without a login company (4) or without `APP_BASE_URL` (1, sub-PR 17); the app booted in production mode in a subprocess (2) (sub-PR 9) |
-| Audio proxy | 40 | `AudioWebSocketMiddleware` between fake browser and Gemini sockets, timers fired by hand: who may connect (invite link, assessor token, another company, ended session, mismatched ID); the opening; the echo gate; transcripts saved, numbered and kept free of the instructions sent to Gemini; End; reconnects with backoff and GoAway; the time warnings and ceiling; the two-minute grace after the browser leaves; the AI closing the interview (sub-PR 15) |
+| Audio proxy | 41 | `AudioWebSocketMiddleware` between fake browser and Gemini sockets, timers fired by hand: who may connect (invite link, assessor token, another company, ended session, mismatched ID); the opening; the echo gate; transcripts saved, numbered and kept free of the instructions sent to Gemini; End; reconnects with backoff and GoAway; the time warnings and ceiling; the two-minute grace after the browser leaves; the AI closing the interview (sub-PR 15), recording that it asked the page to finish (P1-10, sub-PR 28) |
 | Proctoring | 12 | The setting: off by default, turned on per assessment, reaches the candidate endpoint (sub-PR 22). The stops: only known events recorded, capped at 200, summed per device (a repeated stop counts once, an unresumed stop runs to the end), sent by the page over the interview socket, shown to the assessor only when required (sub-PR 23). A second screen connected and disconnected, summed apart as times and seconds (P2-28, sub-PR 27) |
 | Integration | 28 | Postgres constraints; the Redis coverage channel's exact messages; the Rack pipeline (tenant, CORS, rate limits, WebSocket paths); Sidekiq jobs inline with strict JSON args |
 
@@ -91,7 +91,7 @@ These turn into ordinary passing tests when the defect is fixed; the marker is r
 | C2 login lets the caller pick the company (`X-Tenant-Scheme`) | tenant routes (sign-in) | |
 | P1-8 list only loads page 1 | | assessment list |
 | P1-9 every ended session reads "completed" | | assessment list |
-| P1-10 invite link ends a session as `all_covered` | functional journey | |
+| ~~P1-10 invite link ends a session as `all_covered`~~ **fixed** in sub-PR 28 | functional journey (×2) now pass | |
 | ~~P1-11 broken link says "recorded"~~ **fixed** in sub-PR 26 (the pin's wording corrected in sub-PR 27) | | candidate page now passes |
 | P1-12 hardware check calls third parties, and fails under the production CSP | | candidate page; speed test under CSP |
 | ~~P1-13 PDF export crashes on overrides and emoji~~ **fixed** in sub-PR 14 | PDF generator (×2) now pass | |

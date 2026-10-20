@@ -444,6 +444,16 @@ RSpec.describe AudioWebSocketMiddleware do
       expect(timers.map(&:first)).to include(1)
     end
 
+    it 'records that it asked the page to finish, so the invite link alone cannot end the interview (P1-10)' do
+      expect(session.reload.ending_requested_at).to be_nil
+
+      ai_says('Thanks for your time, you’ll hear back from the team.')
+      gemini.emit(:on_model_turn_complete)
+
+      expect(browser.types).to include('preparing_to_end')
+      expect(session.reload.ending_requested_at).to be_within(5.seconds).of(Time.current)
+    end
+
     it 'closes the socket once the session has ended, telling the page why' do
       ai_says('Thanks for your time, you’ll hear back from the team.')
       gemini.emit(:on_model_turn_complete)
