@@ -1089,6 +1089,34 @@ the audio middleware out of "not testable yet".
 
 API: 401 examples, 0 failures, 3 pending. Web: 206 passed, 21 expected fail, 7 skipped (34 files).
 
+### Sub-PR 28: the invite link alone can't end the interview (P1-10, branch `fix/invite-link-end`)
+
+**The gap.** `POST /sessions/:token/audio_complete` needs no login by design: the candidate page calls it with the
+invite token once the closing words have played. But it ended any session as `all_covered`. Anyone holding the
+link (forwarded by email or WhatsApp, links never expire: P2-10) could end a candidate's interview, live or not yet
+started, recorded as fully covered, and start a model call over an empty transcript. Step 3 pinned the never-started
+case; the live case, where a candidate is cut off mid-answer, got its own pin (unmarked: 200, ended `all_covered`).
+
+**Fixed.** Only the server decides the interview is over. Before it sends `preparing_to_end`, the WebSocket
+middleware records `sessions.ending_requested_at` (one helper now serves the three places that send it); the
+endpoint ends only a session with that set, and otherwise answers 409 and changes nothing. A column rather than
+process memory, because the HTTP call can reach a different Puma worker than the one holding the socket. If the
+write fails, the page is still told and the existing poll ends the session after 30 s. The web page didn't change:
+it retries on an error, and once the session has ended the endpoint answers 200.
+
+**Checked.** The migration rolls back and re-applies on the test database. `schema.rb` carries only the new column
+and the version; the dump also rewrote two unrelated check constraints (a local Postgres formatting difference),
+left out. On the dev API, after a restart (it doesn't reload the changed code): a live session posted without a
+request → 409, still `active`; with the request recorded → 200, ended `all_covered`. The first try, before the
+restart, still ended the session and queued a portfolio job for that throwaway session; the job was removed. Not
+checked: a whole interview ending by itself in the browser, since the model's daily quota was spent.
+
+**Still open.** A link holder can still open the page, join a live interview's socket or end it as
+`manual_candidate` from the page, as the candidate can; links never expire (P2-10). Closing that needs a
+per-candidate secret or expiry, not just this check.
+
+API: 404 examples, 0 failures, 2 pending. Web unchanged: 206 passed, 21 expected fail, 7 skipped.
+
 ## AI verification moments
 
 Moments where an AI assistant's claim or reading turned out wrong or misleading, and how it was caught. These are
